@@ -138,6 +138,77 @@ const InterruptsSection = ({ interruptBefore, interruptAfter }) => {
 }
 
 /**
+ * State & Identity display component
+ */
+const StateIdentitySection = ({
+  contextType,
+  idGenerator,
+  idType,
+  stateType,
+  stateFields,
+}) => {
+  const hasData =
+    [contextType, idGenerator, idType, stateType].some(
+      (field) => field && field !== "none"
+    ) || stateFields.length > 0
+
+  if (!hasData) return null
+
+  return (
+    <div className="space-y-2">
+      <h4 className="text-sm font-medium text-muted-foreground">
+        State & Identity
+      </h4>
+      {contextType && contextType !== "none" && (
+        <div className="text-xs">
+          <span className="font-medium">Context Type:</span> {contextType}
+        </div>
+      )}
+      {stateType && (
+        <div className="text-xs">
+          <span className="font-medium">State Type:</span> {stateType}
+        </div>
+      )}
+      {stateFields.length > 0 && (
+        <div className="text-xs">
+          <span className="font-medium">State Fields:</span>{" "}
+          {stateFields.join(", ")}
+        </div>
+      )}
+      {idGenerator && (
+        <div className="text-xs">
+          <span className="font-medium">ID Generator:</span> {idGenerator} :
+          Type-{idType}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/**
+ * Helper function to extract graph data with defaults
+ * @param {object} graphInfo - Raw graph info
+ * @returns {object} Processed graph data
+ */
+/* eslint-disable complexity */
+const processGraphData = (graphInfo) => ({
+  node_count: graphInfo.node_count || 0,
+  edge_count: graphInfo.edge_count || 0,
+  checkpointer: graphInfo.checkpointer || false,
+  checkpointer_type: graphInfo.checkpointer_type || "None",
+  publisher: graphInfo.publisher || false,
+  store: graphInfo.store || false,
+  interrupt_before: graphInfo.interrupt_before || [],
+  interrupt_after: graphInfo.interrupt_after || [],
+  context_type: graphInfo.context_type || "none",
+  id_generator: graphInfo.id_generator || "",
+  id_type: graphInfo.id_type || "",
+  state_type: graphInfo.state_type || "",
+  state_fields: graphInfo.state_fields || [],
+})
+/* eslint-enable complexity */
+
+/**
  * Graph Info Panel component displaying metadata about the graph
  * @param {object} props - Component props
  * @param {object} props.graphInfo - Graph metadata information
@@ -145,15 +216,20 @@ const InterruptsSection = ({ interruptBefore, interruptAfter }) => {
  */
 export const GraphInfoPanel = ({ graphInfo }) => {
   const {
-    node_count = 0,
-    edge_count = 0,
-    checkpointer = false,
-    checkpointer_type = "None",
-    publisher = false,
-    store = false,
-    interrupt_before = [],
-    interrupt_after = [],
-  } = graphInfo
+    node_count,
+    edge_count,
+    checkpointer,
+    checkpointer_type,
+    publisher,
+    store,
+    interrupt_before,
+    interrupt_after,
+    context_type,
+    id_generator,
+    id_type,
+    state_type,
+    state_fields,
+  } = processGraphData(graphInfo)
 
   return (
     <Card className="absolute top-4 right-4 z-10 w-64 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm border shadow-lg">
@@ -178,6 +254,14 @@ export const GraphInfoPanel = ({ graphInfo }) => {
           interruptBefore={interrupt_before}
           interruptAfter={interrupt_after}
         />
+
+        <StateIdentitySection
+          contextType={context_type}
+          idGenerator={id_generator}
+          idType={id_type}
+          stateType={state_type}
+          stateFields={state_fields}
+        />
       </CardContent>
     </Card>
   )
@@ -201,6 +285,14 @@ InterruptsSection.propTypes = {
   interruptAfter: PropTypes.array.isRequired,
 }
 
+StateIdentitySection.propTypes = {
+  contextType: PropTypes.string.isRequired,
+  idGenerator: PropTypes.string.isRequired,
+  idType: PropTypes.string.isRequired,
+  stateType: PropTypes.string.isRequired,
+  stateFields: PropTypes.array.isRequired,
+}
+
 GraphInfoPanel.propTypes = {
   graphInfo: PropTypes.shape({
     node_count: PropTypes.number,
@@ -211,6 +303,11 @@ GraphInfoPanel.propTypes = {
     store: PropTypes.bool,
     interrupt_before: PropTypes.array,
     interrupt_after: PropTypes.array,
+    context_type: PropTypes.string,
+    id_generator: PropTypes.string,
+    id_type: PropTypes.string,
+    state_type: PropTypes.string,
+    state_fields: PropTypes.array,
   }).isRequired,
 }
 
