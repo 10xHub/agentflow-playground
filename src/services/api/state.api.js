@@ -1,7 +1,7 @@
 import api from "./index"
 
 export const fetchStateSchema = async () => {
-  return await api.get("/v1/graph/stateSchema")
+  return await api.get("/v1/graph:StateSchema")
 }
 
 export const fetchState = async (thread_id) => {
