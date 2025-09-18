@@ -1,6 +1,6 @@
 import PropTypes from "prop-types"
 import { useSelector } from "react-redux"
-import ct from "@constants"
+
 import GraphInfoPanel from "@/components/graph/GraphInfoPanel"
 import ReFlowComponent from "@/components/graph/ReactFlowComponent"
 import {
@@ -10,6 +10,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet"
+import ct from "@constants"
 
 /**
  * ViewGraphSheet component displays network graph visualization using Reagraph
@@ -36,6 +37,11 @@ const ViewGraphSheet = ({ isOpen, onClose }) => {
       store: false,
       interrupt_before: [],
       interrupt_after: [],
+      context_type: "none",
+      id_generator: "",
+      id_type: "",
+      state_type: "",
+      state_field: [],
     },
     nodes: [],
     edges: [],
