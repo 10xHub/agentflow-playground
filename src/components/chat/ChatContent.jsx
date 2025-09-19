@@ -2,7 +2,10 @@ import { useCallback } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import { useNavigate, useParams } from "react-router-dom"
 
-import { createThread, addMessage } from "@/services/store/slices/chat.slice"
+import {
+  createThread,
+  sendMessage as sendMessageThunk,
+} from "@/services/store/slices/chat.slice"
 import ct from "@constants/"
 
 import EmptyChatView from "./EmptyChatView"
@@ -22,46 +25,23 @@ const ChatContent = () => {
   const activeThread = threadId ? threads.find((t) => t.id === threadId) : null
 
   const handleNewChat = useCallback(() => {
-    const newThread = dispatch(createThread({ title: "New Chat" }))
-    navigate(`/chat/${newThread.payload.id || Date.now().toString()}`)
+    const id = Date.now().toString()
+    dispatch(createThread({ id, title: "New Chat" }))
+    navigate(`/chat/${id}`)
   }, [dispatch, navigate])
 
   const handleSendMessage = useCallback(
-    (message) => {
-      // If no active thread, create a new one
+    async (message) => {
+      // If no active thread, create one then send
       if (!activeThread) {
-        const newThread = dispatch(
-          createThread({ title: message.slice(0, 50) + "..." })
-        )
-        const threadId = newThread.payload.id || Date.now().toString()
-
-        // Add the message to the new thread
+        const newId = Date.now().toString()
         dispatch(
-          addMessage({
-            threadId,
-            message: {
-              id: Date.now().toString(),
-              content: message,
-              role: "user",
-              timestamp: new Date().toISOString(),
-            },
-          })
+          createThread({ id: newId, title: `${message.slice(0, 50)}...` })
         )
-
-        navigate(`/chat/${threadId}`)
+        navigate(`/chat/${newId}`)
+        await dispatch(sendMessageThunk(newId, message))
       } else {
-        // Add message to existing thread
-        dispatch(
-          addMessage({
-            threadId: activeThread.id,
-            message: {
-              id: Date.now().toString(),
-              content: message,
-              role: "user",
-              timestamp: new Date().toISOString(),
-            },
-          })
-        )
+        await dispatch(sendMessageThunk(activeThread.id, message))
       }
     },
     [dispatch, navigate, activeThread]

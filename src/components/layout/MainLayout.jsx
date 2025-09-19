@@ -44,7 +44,7 @@ const MainLayout = () => {
   const store = useSelector((st) => st[ct.store.SETTINGS_STORE])
   const chatStore = useSelector((st) => st[ct.store.CHAT_STORE])
 
-  const { isVerified } = store.verification
+  const isVerified = store?.verification?.isVerified ?? false
 
   // Check if we're on a thread page
   const isThreadPage = location.pathname.startsWith("/chat/") && threadId

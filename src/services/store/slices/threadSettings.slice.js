@@ -9,6 +9,8 @@ const initialState = {
   init_state: {},
   streaming_response: false,
   recursion_limit: 25,
+  response_granularity: "low",
+  include_raw: false,
   // readonly data
   context_total_messages: 0,
   context_total_tokens: 0,
@@ -40,6 +42,12 @@ const threadSettingsSlice = createSlice({
     },
     setRecursionLimit: (state, action) => {
       state.recursion_limit = action.payload
+    },
+    setResponseGranularity: (state, action) => {
+      state.response_granularity = action.payload
+    },
+    setIncludeRaw: (state, action) => {
+      state.include_raw = action.payload
     },
     updateConfigKey: (state, action) => {
       const { key, value } = action.payload
@@ -84,6 +92,8 @@ export const {
   setInitState,
   setStreamingResponse,
   setRecursionLimit,
+  setResponseGranularity,
+  setIncludeRaw,
   updateConfigKey,
   removeConfigKey,
   updateInitStateKey,

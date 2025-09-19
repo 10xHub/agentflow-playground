@@ -1,10 +1,15 @@
+/* eslint-disable import/order */
 import { createSlice } from "@reduxjs/toolkit"
+import { invokeGraph, streamGraph } from "@/services/api/graph.api"
 
 const initialState = {
   threads: [],
   activeThreadId: null,
   isLoading: false,
   error: null,
+  // track per-thread generation and abort controllers
+  generating: {}, // { [threadId]: boolean }
+  abortControllers: {}, // { [threadId]: AbortController }
 }
 
 const chatSlice = createSlice({
@@ -37,10 +42,10 @@ const chatSlice = createSlice({
       const thread = state.threads.find((t) => t.id === threadId)
       if (thread) {
         const newMessage = {
-          id: Date.now().toString(),
+          id: message.id || Date.now().toString(),
           content: message.content,
-          role: message.role, // 'user' or 'assistant'
-          timestamp: new Date().toISOString(),
+          role: message.role, // 'user' | 'assistant' | 'tool'
+          timestamp: message.timestamp || new Date().toISOString(),
         }
         thread.messages.push(newMessage)
         thread.updatedAt = new Date().toISOString()
@@ -90,6 +95,20 @@ const chatSlice = createSlice({
         thread.updatedAt = new Date().toISOString()
       }
     },
+    setGenerating: (state, action) => {
+      const { threadId, value } = action.payload
+      if (!state.generating) state.generating = {}
+      state.generating[threadId] = value
+    },
+    registerAbortController: (state, action) => {
+      const { threadId, controller } = action.payload
+      if (!state.abortControllers) state.abortControllers = {}
+      state.abortControllers[threadId] = controller
+    },
+    clearAbortController: (state, action) => {
+      const threadId = action.payload
+      delete state.abortControllers[threadId]
+    },
   },
 })
 
@@ -103,6 +122,203 @@ export const {
   deleteThread,
   updateThreadTitle,
   clearMessages,
+  setGenerating,
+  registerAbortController,
+  clearAbortController,
 } = chatSlice.actions
 
 export default chatSlice.reducer
+
+// Helpers
+const buildGraphBody = (settings, userContent) => ({
+  messages: [
+    {
+      message_id: 0,
+      role: "user",
+      content: userContent,
+    },
+  ],
+  initial_state: settings.init_state || {},
+  config: settings.config || {},
+  recursion_limit: settings.recursion_limit || 25,
+  response_granularity: settings.response_granularity || "low",
+  include_raw: Boolean(settings.include_raw),
+})
+
+/**
+ * Send message deciding between invoke vs stream based on thread settings
+ * @param {string} threadId ID of the thread to send message to
+ * @param {string} content User message content
+ */
+export const sendMessage =
+  (threadId, content) => async (dispatch, getState) => {
+    const state = getState()
+    const settings = state.threadSettingsStore
+
+    // ensure user message exists in thread
+    dispatch(
+      addMessage({
+        threadId,
+        message: { content, role: "user" },
+      })
+    )
+
+    const body = buildGraphBody(settings, content)
+
+    if (settings.streaming_response) {
+      await dispatch(streamAssistantAnswer(threadId, body))
+    } else {
+      await dispatch(invokeAssistantAnswer(threadId, body))
+    }
+  }
+
+export const stopStreaming = (threadId) => (dispatch, getState) => {
+  const { abortControllers } = getState().chatStore
+  const controller = abortControllers[threadId]
+  if (controller) {
+    controller.abort()
+  }
+}
+
+export const invokeAssistantAnswer = (threadId, body) => async (dispatch) => {
+  dispatch(setGenerating({ threadId, value: true }))
+  try {
+    const response = await invokeGraph(body)
+    handleInvokeResponse(dispatch, threadId, response)
+  } catch (error) {
+    dispatch(setError(error?.message || "Invoke failed"))
+    dispatch(
+      addMessage({
+        threadId,
+        message: {
+          content: `Error: ${error?.message || error}`,
+          role: "assistant",
+        },
+      })
+    )
+  } finally {
+    dispatch(setGenerating({ threadId, value: false }))
+  }
+}
+
+/**
+ * Handle the invoke API response and append messages to the thread.
+ */
+function handleInvokeResponse(dispatch, threadId, response) {
+  const payload = response?.data?.data || response?.data
+  const messages = payload?.messages || []
+  messages.forEach((m) => {
+    dispatch(
+      addMessage({
+        threadId,
+        message: {
+          content: m.content || "",
+          role: m.role === "tool" ? "tool" : m.role || "assistant",
+        },
+      })
+    )
+  })
+}
+
+export const streamAssistantAnswer = (threadId, body) => async (dispatch) => {
+  dispatch(setGenerating({ threadId, value: true }))
+  const controller = new globalThis.AbortController()
+  dispatch(registerAbortController({ threadId, controller }))
+
+  // create a placeholder assistant message to append deltas
+  const assistantId = Date.now().toString()
+  dispatch(
+    addMessage({
+      threadId,
+      message: { id: assistantId, content: "", role: "assistant" },
+    })
+  )
+
+  try {
+    await processStream(dispatch, threadId, controller, assistantId, body)
+  } catch (error) {
+    if (error?.name !== "AbortError") {
+      dispatch(setError(error?.message || "Stream failed"))
+      dispatch(
+        updateMessage({
+          threadId,
+          messageId: assistantId,
+          content: `Error: ${error?.message || error}`,
+        })
+      )
+    }
+  } finally {
+    dispatch(setGenerating({ threadId, value: false }))
+    dispatch(clearAbortController(threadId))
+  }
+}
+
+/**
+ * Process the streaming response and update the assistant message incrementally.
+ */
+async function processStream(
+  dispatch,
+  threadId,
+  controller,
+  assistantId,
+  body
+) {
+  let accumulated = ""
+  for await (const chunk of streamGraph(body, controller.signal)) {
+    const data = chunk?.data || chunk
+    accumulated = handleStreamDelta(
+      dispatch,
+      threadId,
+      assistantId,
+      data,
+      accumulated
+    )
+  }
+}
+
+/** Update accumulated content from a stream chunk and append tool messages */
+function handleStreamDelta(dispatch, threadId, assistantId, data, accumulated) {
+  if (isToolMessage(data)) {
+    maybeAppendToolMessage(dispatch, threadId, data)
+    return accumulated
+  }
+  const delta = getDeltaText(data)
+  if (!delta) return accumulated
+  const nextAccum = `${accumulated}${delta}`
+  dispatch(
+    updateMessage({ threadId, messageId: assistantId, content: nextAccum })
+  )
+  return nextAccum
+}
+
+/** Extract text delta from a stream chunk */
+// eslint-disable-next-line complexity
+function getDeltaText(data) {
+  if (typeof data?.delta?.content === "string" && data.delta.content) {
+    return data.delta.content
+  }
+  if (typeof data?.message?.content === "string" && data.message.content) {
+    return data.message.content
+  }
+  if (typeof data?.content === "string" && data.content) {
+    return data.content
+  }
+  return ""
+}
+
+/** Whether a chunk represents a tool message */
+function isToolMessage(data) {
+  return Boolean(data?.message && data.message.role === "tool")
+}
+
+/** Append tool message from a stream chunk if present */
+function maybeAppendToolMessage(dispatch, threadId, data) {
+  if (data?.message && data.message.role === "tool") {
+    dispatch(
+      addMessage({
+        threadId,
+        message: { content: data.message.content || "", role: "tool" },
+      })
+    )
+  }
+}

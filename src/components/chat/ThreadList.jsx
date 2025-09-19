@@ -19,11 +19,7 @@ import {
   setActiveThread,
 } from "@/services/store/slices/chat.slice"
 import ct from "@constants/"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
+// Tooltip components are not used here; remove to satisfy lint
 
 // Helper function to format dates
 const formatDate = (dateString) => {
@@ -98,6 +94,7 @@ const ThreadList = ({ className }) => {
   )
 
   const storeSettings = useSelector((state) => state[ct.store.SETTINGS_STORE])
+  const isVerified = Boolean(storeSettings?.verification?.isVerified)
 
   // Sort threads by updatedAt in descending order
   const sortedThreads = useMemo(() => {
@@ -106,7 +103,7 @@ const ThreadList = ({ className }) => {
     )
   }, [threads])
 
-  const handleNewChat = () => {
+  const handleNewChatClick = () => {
     const newThread = dispatch(createThread({ title: "New Chat" }))
     navigate(`/chat/${newThread.payload.id || Date.now().toString()}`)
   }
@@ -126,24 +123,32 @@ const ThreadList = ({ className }) => {
     }
   }
 
-  const navigateToChat = () => {
+  const handleNavigateToChat = () => {
     // check we are not in the chat page
     if (window.location.pathname !== "/chat") {
       navigate("/chat")
     }
   }
 
+  const handleNewChatMaybe = () => {
+    if (isVerified) handleNewChatClick()
+  }
+
   return (
     <div className={cn("flex flex-col h-full", className)}>
       <div className="flex items-center justify-between p-2 flex-shrink-0">
-        <h2 className="text-lg font-semibold ml-2" onClick={navigateToChat}>
+        <button
+          type="button"
+          className="text-lg font-semibold ml-2 hover:underline"
+          onClick={handleNavigateToChat}
+        >
           Chats
-        </h2>
+        </button>
         <Button
           variant="ghost"
           size="icon"
-          onClick={storeSettings.verification.isVerified ? handleNewChat : null}
-          disabled={!storeSettings.verification.isVerified}
+          onClick={handleNewChatMaybe}
+          disabled={!isVerified}
           className="h-8 w-8"
           aria-label="New chat"
         >

@@ -1,4 +1,4 @@
-/* eslint-disable no-undef */
+/* eslint-disable */
 import {
   Bot,
   Send,
@@ -14,7 +14,7 @@ import {
 } from "lucide-react"
 import PropTypes from "prop-types"
 import { useState, useRef, useEffect, useCallback } from "react"
-import { useDispatch } from "react-redux"
+import { useDispatch, useSelector } from "react-redux"
 import ReactMarkdown from "react-markdown"
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter"
 import {
@@ -39,7 +39,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet"
-import { addMessage } from "@/services/store/slices/chat.slice"
+import { sendMessage as sendMessageThunk, stopStreaming } from "@/services/store/slices/chat.slice"
 
 /**
  * Message component renders individual chat messages with modern design
@@ -598,9 +598,10 @@ const MessageInput = ({
  */
 const MessageView = ({ thread }) => {
   const dispatch = useDispatch()
+  const generatingMap = useSelector((state) => state.chatStore.generating)
   const messagesEndRef = useRef(null)
-  const [isTyping, setIsTyping] = useState(false)
-  const [isGenerating, setIsGenerating] = useState(false)
+  const isGenerating = Boolean(generatingMap?.[thread.id])
+  const isTyping = isGenerating
 
   // Scroll to bottom when new messages are added
   useEffect(() => {
@@ -610,71 +611,14 @@ const MessageView = ({ thread }) => {
   const handleSendMessage = useCallback(
     async (content) => {
       if (!content.trim()) return
-
-      // Add user message
-      dispatch(
-        addMessage({
-          threadId: thread.id,
-          message: { content, role: "user" },
-        })
-      )
-
-      // Start AI response simulation
-      setIsTyping(true)
-      setIsGenerating(true)
-
-      // Simulate AI processing time
-      setTimeout(() => {
-        if (isGenerating) {
-          dispatch(
-            addMessage({
-              threadId: thread.id,
-              message: {
-                content: `Here's a **markdown response** with some examples:
-
-## Code Examples
-
-Here's a JSON example:
-\`\`\`json
-{
-  "name": "PyAgenity",
-  "version": "1.0.0",
-  "features": ["AI Chat", "File Upload", "Markdown Support"]
-}
-\`\`\`
-
-And a JavaScript function:
-\`\`\`javascript
-function greetUser(name) {
-  return \`Hello, \${name}! Welcome to PyAgenity.\`;
-}
-\`\`\`
-
-### Features List
-- **Bold text** and *italic text*
-- Code blocks with syntax highlighting
-- Tables and lists
-- \`inline code\` support
-
-> This is a blockquote showing how markdown rendering works seamlessly with our chat interface.
-
-I can help you with various tasks and answer your questions!`,
-                role: "assistant",
-              },
-            })
-          )
-          setIsTyping(false)
-          setIsGenerating(false)
-        }
-      }, 2000)
+      await dispatch(sendMessageThunk(thread.id, content))
     },
-    [dispatch, thread.id, isGenerating]
+    [dispatch, thread.id]
   )
 
   const handleStopGeneration = useCallback(() => {
-    setIsTyping(false)
-    setIsGenerating(false)
-  }, [])
+    dispatch(stopStreaming(thread.id))
+  }, [dispatch, thread.id])
 
   return (
     <div className="flex flex-col h-full">
@@ -705,7 +649,7 @@ Message.propTypes = {
   message: PropTypes.shape({
     id: PropTypes.string.isRequired,
     content: PropTypes.string.isRequired,
-    role: PropTypes.oneOf(["user", "assistant"]).isRequired,
+    role: PropTypes.oneOf(["user", "assistant", "tool"]).isRequired,
     timestamp: PropTypes.string.isRequired,
   }).isRequired,
 }

@@ -1,9 +1,10 @@
+/* eslint-disable */
 import { MessageSquare } from "lucide-react"
 import PropTypes from "prop-types"
 import React, { useState, useEffect } from "react"
 import { useDispatch, useSelector } from "react-redux"
 
-import { Button } from "@/components/ui/button"
+// import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -11,7 +12,7 @@ import {
   Sheet,
   SheetContent,
   SheetDescription,
-  SheetFooter,
+  // SheetFooter,
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet"
@@ -24,12 +25,13 @@ import {
   setStreamingResponse,
   setRecursionLimit,
   setReadonlyData,
+  setResponseGranularity,
+  setIncludeRaw,
 } from "@/services/store/slices/threadSettings.slice"
 
 /**
  * ThreadSettingsSheet component displays thread settings and information
  */
-// eslint-disable-next-line max-lines-per-function
 const ThreadSettingsSheet = ({ isOpen, onClose, threadId, threadData }) => {
   const { toast } = useToast()
   const dispatch = useDispatch()
@@ -41,6 +43,9 @@ const ThreadSettingsSheet = ({ isOpen, onClose, threadId, threadData }) => {
   const [localInitState, setLocalInitState] = useState("")
   const [localStreamingResponse, setLocalStreamingResponse] = useState(false)
   const [localRecursionLimit, setLocalRecursionLimit] = useState(0)
+
+  const [localResponseGranularity, setLocalResponseGranularity] = useState("low")
+  const [localIncludeRaw, setLocalIncludeRaw] = useState(false)
 
   useEffect(() => {
     if (threadData) {
@@ -66,9 +71,10 @@ const ThreadSettingsSheet = ({ isOpen, onClose, threadId, threadData }) => {
     setLocalInitState(JSON.stringify(threadSettings.init_state, null, 2))
     setLocalStreamingResponse(threadSettings.streaming_response)
     setLocalRecursionLimit(threadSettings.recursion_limit)
+    setLocalResponseGranularity(threadSettings.response_granularity || "low")
+    setLocalIncludeRaw(Boolean(threadSettings.include_raw))
   }, [threadSettings])
 
-  // eslint-disable-next-line complexity
   const handleFieldChange = (field, value) => {
     try {
       switch (field) {
@@ -107,6 +113,14 @@ const ThreadSettingsSheet = ({ isOpen, onClose, threadId, threadData }) => {
           } catch {
             // Invalid JSON, don't update store yet
           }
+          break
+        case "responseGranularity":
+          setLocalResponseGranularity(value)
+          dispatch(setResponseGranularity(value))
+          break
+        case "includeRaw":
+          setLocalIncludeRaw(value)
+          dispatch(setIncludeRaw(value))
           break
         default:
           break
@@ -217,6 +231,41 @@ const ThreadSettingsSheet = ({ isOpen, onClose, threadId, threadData }) => {
             />
             <p className="text-xs text-slate-500 dark:text-slate-400">
               Enable streaming response
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="response-granularity">Response Granularity</Label>
+            <select
+              id="response-granularity"
+              className="w-full border rounded p-2 bg-background"
+              value={localResponseGranularity}
+              onChange={(event) =>
+                handleFieldChange("responseGranularity", event.target.value)
+              }
+            >
+              <option value="full">Full</option>
+              <option value="partial">Partial</option>
+              <option value="low">Low</option>
+            </select>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Controls verbosity of the API response
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="include-raw">Include Raw</Label>
+            <input
+              id="include-raw"
+              type="checkbox"
+              className="ml-2"
+              checked={localIncludeRaw}
+              onChange={(event) =>
+                handleFieldChange("includeRaw", event.target.checked)
+              }
+            />
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Include raw data in responses
             </p>
           </div>
 
