@@ -81,8 +81,6 @@ const ViewStateSheet = ({ isOpen, onClose }) => {
     // The schema data structure is: stateSchema.data.data.properties
     const schemaProperties = stateData
 
-    console.warn("#SDT schemaProperties", schemaProperties)
-
     if (!schemaProperties) return []
 
     const staticFields = ["context", "context_summary", "execution_meta"]
