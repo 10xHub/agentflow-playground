@@ -31,7 +31,7 @@ export default defineConfig({
   //  For performance, you might want to consider running ESLint
   //  separately or on pre-commit hooks.
   esbuild: {
-    jsxInject: `import React from 'react'`,
+    // jsxInject: `import React from 'react'`,
   },
   lintOnSave: true, // Enable linting during development
   eslint: {
@@ -54,15 +54,14 @@ export default defineConfig({
         branches: 85,
         functions: 85,
       },
-      exclude: [
-        "src/components/ui/**"
-      ],
+      exclude: ["src/components/ui/**", "src/components/magicui/**"],
       statements: 30,
     },
     exclude: [
       "**/public/**",
       "**/dist/**",
       "**/src/components/ui/**",
+      "**/src/components/magicui/**",
     ],
   },
   css: {
@@ -73,7 +72,11 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (id.includes("node_modules")) {
-            return id.toString().split("node_modules/")[1].split("/")[0].toString()
+            return id
+              .toString()
+              .split("node_modules/")[1]
+              .split("/")[0]
+              .toString()
           }
         },
       },

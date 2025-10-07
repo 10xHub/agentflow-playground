@@ -12,7 +12,7 @@ import QuickAction from "./QuickAction"
  * EmptyChatView component displays when no thread is selected or active thread has no messages
  * Styled to match Claude's clean and modern empty state design
  */
-const EmptyChatView = ({ onNewChat, onSendMessage }) => {
+const EmptyChatUI = ({ onNewChat, onSendMessage }) => {
   const [message, setMessage] = useState("")
   const fileInputReference = useRef(null)
 
@@ -78,9 +78,9 @@ const EmptyChatView = ({ onNewChat, onSendMessage }) => {
   )
 }
 
-EmptyChatView.propTypes = {
+EmptyChatUI.propTypes = {
   onNewChat: PropTypes.func.isRequired,
   onSendMessage: PropTypes.func.isRequired,
 }
 
-export default EmptyChatView
+export default EmptyChatUI

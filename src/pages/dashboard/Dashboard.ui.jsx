@@ -3,7 +3,6 @@ import { useSelector } from "react-redux"
 
 import ConfigurationCard from "@/components/dashboard/ConfigurationCard"
 import AnimatedGradientText from "@/components/magicui/animated-gradient-text"
-import TypingAnimation from "@/components/magicui/typing-animation"
 import VerificationStepper from "@/components/setup/VerificationStepper"
 import ct from "@constants"
 

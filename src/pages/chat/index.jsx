@@ -1,12 +1,62 @@
-import ChatContent from "@/pages/chat/component/ChatContent"
+import { useCallback } from "react"
+import { useDispatch, useSelector } from "react-redux"
+import { useNavigate, useParams } from "react-router-dom"
+
+import {
+  createThread,
+  sendMessage as sendMessageThunk,
+} from "@/services/store/slices/chat.slice"
+import ct from "@constants/"
+
+import EmptyChatUI from "./component/empty"
+import FullMessageUI from "./component/full"
 
 /**
  * Chat page component renders the chat content area
  */
 const Chat = () => {
+  const dispatch = useDispatch()
+  const navigate = useNavigate()
+  const { threadId } = useParams()
+
+  const { threads } = useSelector((state) => state[ct.store.CHAT_STORE])
+
+  // Find the active thread
+  const activeThread = threadId ? threads.find((t) => t.id === threadId) : null
+
+  const handleNewChat = useCallback(() => {
+    const id = Date.now().toString()
+    dispatch(createThread({ id, title: "New Chat" }))
+    navigate(`/chat/${id}`)
+  }, [dispatch, navigate])
+
+  const handleSendMessage = useCallback(
+    async (message) => {
+      // If no active thread, create one then send
+      if (!activeThread) {
+        const newId = Date.now().toString()
+        dispatch(
+          createThread({ id: newId, title: `${message.slice(0, 50)}...` })
+        )
+        navigate(`/chat/${newId}`)
+        await dispatch(sendMessageThunk(newId, message))
+      } else {
+        await dispatch(sendMessageThunk(activeThread.id, message))
+      }
+    },
+    [dispatch, navigate, activeThread]
+  )
+
   return (
-    <div className="h-[calc(100vh-120px)]">
-      <ChatContent />
+    <div className="flex flex-col h-full">
+      {activeThread ? (
+        <FullMessageUI thread={activeThread} />
+      ) : (
+        <EmptyChatUI
+          onNewChat={handleNewChat}
+          onSendMessage={handleSendMessage}
+        />
+      )}
     </div>
   )
 }
