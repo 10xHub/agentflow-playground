@@ -387,7 +387,7 @@ const ViewStateSheet = ({ isOpen, onClose }) => {
                           Context Messages ({(formData.context || []).length})
                         </Label>
                         <p className="text-xs text-muted-foreground">
-                          Conversation history: use it as Short Term Memory
+                          Conversation history: Short Term Memory
                         </p>
                       </div>
                     </div>
