@@ -1,12 +1,10 @@
+// import { Sparkles } from "lucide-react"
 import { Sparkles } from "lucide-react"
 import PropTypes from "prop-types"
 import { useState, useRef } from "react"
 import { useSelector } from "react-redux"
 
-import ct from "@constants/"
-
 import EmptyInputCard from "./EmptyInputCard"
-import QuickAction from "./QuickAction"
 
 /**
  * EmptyChatView component displays when no thread is selected or active thread has no messages
@@ -15,8 +13,9 @@ import QuickAction from "./QuickAction"
 const EmptyChatUI = ({ onNewChat, onSendMessage }) => {
   const [message, setMessage] = useState("")
   const fileInputReference = useRef(null)
+  const store = useSelector((state) => state?.settings)
 
-  const store = useSelector((state) => state[ct.store.SETTINGS_STORE])
+  // const store = useSelector((state) => state[ct.store.SETTINGS_STORE])
 
   const handleSubmit = (event) => {
     event.preventDefault()
@@ -26,9 +25,9 @@ const EmptyChatUI = ({ onNewChat, onSendMessage }) => {
     }
   }
 
-  const handleFileAttach = () => {
-    fileInputReference.current?.click()
-  }
+  // const handleFileAttach = () => {
+  //   fileInputReference.current?.click()
+  // }
 
   const handleFileChange = (event) => {
     const { files } = event.target
@@ -40,39 +39,28 @@ const EmptyChatUI = ({ onNewChat, onSendMessage }) => {
   }
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Header with logo and greeting */}
-      <div className="flex-1 flex flex-col items-center justify-center max-w-4xl mx-auto px-6">
-        <div className="text-center mb-12">
-          <div className="flex items-center justify-center mb-6">
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-white" />
-            </div>
-            <h1 className="text-2xl font-semibold ml-3 text-foreground">
-              {store.name && store.name.length > 0 ? (
-                <span>{store.name}</span>
-              ) : (
-                <span>PyAgenity</span>
-              )}
+    <div className="flex items-center justify-center h-screen w-full bg-gradient-to-b from-[#181c2a] via-[#23263a] to-[#181c2a]">
+      <div className="flex flex-col items-center w-full max-w-xl mx-auto">
+        <div className="text-center mb-8">
+          <div className="flex items-center justify-center mb-2 gap-2">
+            <span className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600">
+              <Sparkles className="w-6 h-6 text-white" />
+            </span>
+            <h1 className="text-3xl font-semibold text-foreground">
+              {store?.name && store.name.length > 0 ? store.name : "PyAgenity"}
             </h1>
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-base text-muted-foreground">
             Powered by AI Intelligence
           </p>
         </div>
-
-        {/* Large input area with shine border */}
         <EmptyInputCard
           onHandleSubmit={handleSubmit}
           message={message}
           setMessage={setMessage}
           onHandleFileChange={handleFileChange}
-          onHandleFileAttach={handleFileAttach}
           fileInputReference={fileInputReference}
         />
-
-        {/* Quick Actions */}
-        <QuickAction />
       </div>
     </div>
   )
