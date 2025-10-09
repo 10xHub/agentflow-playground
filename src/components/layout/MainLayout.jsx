@@ -46,7 +46,6 @@ const MainLayout = () => {
   const isVerified = store?.verification?.isVerified ?? false
 
   // Check if we're on a thread page
-  const isThreadPage = location.pathname.startsWith("/chat/") && threadId
   const isChatPage = location.pathname.startsWith("/chat")
 
   // Get thread data from Redux store
@@ -85,7 +84,7 @@ const MainLayout = () => {
 
             <div className="flex items-center justify-center flex-1">
               {/* Thread Settings Button - Only visible on thread pages */}
-              {isThreadPage && (
+              {isChatPage && (
                 <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
