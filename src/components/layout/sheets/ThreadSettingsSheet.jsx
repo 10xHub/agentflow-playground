@@ -30,7 +30,7 @@ import {
   setResponseGranularity,
   setIncludeRaw,
   setContextMetadata,
-} from "@/services/store/slices/threadSettings.slice"
+} from "@/services/store/slices/thread-settings.slice"
 
 /**
  * ThreadSettingsSheet component displays thread settings and information
