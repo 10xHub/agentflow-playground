@@ -4,7 +4,7 @@
  * Provides easy-to-use hooks for A2A and A2UI communication in React components.
  */
 
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useState, useEffect, useCallback } from "react"
 
 /**
  * Hook for A2UI WebSocket connection
@@ -15,33 +15,37 @@ export const useAgentWebSocket = (baseUrl, agentId, authToken = null) => {
   const [error, setError] = useState(null)
 
   useEffect(() => {
+    let activeClient = null
+    let isMounted = true
+
     // Dynamically import the client
     import("@10xscale/agentflow-client").then((module) => {
       const { A2UIClient } = module
 
-      const newClient = new A2UIClient({
+      if (!isMounted) return
+
+      activeClient = new A2UIClient({
         baseUrl,
         agentId: agentId || "*",
         authToken,
         debug: true,
       })
 
-      newClient.onConnectionChange((state) => {
+      activeClient.onConnectionChange((state) => {
         setConnectionState(state)
       })
 
-      newClient.onError((error_) => {
+      activeClient.onError((error_) => {
         setError(error_)
       })
 
-      newClient.connect()
-      setClient(newClient)
+      activeClient.connect()
+      setClient(activeClient)
     })
 
     return () => {
-      if (client) {
-        client.disconnect()
-      }
+      isMounted = false
+      activeClient?.disconnect()
     }
   }, [baseUrl, agentId, authToken])
 

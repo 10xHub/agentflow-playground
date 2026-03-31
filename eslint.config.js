@@ -34,11 +34,17 @@ export default [
     languageOptions: {
       globals: {
         console: "readonly",
+        fetch: "readonly",
+        clearInterval: "readonly",
+        clearTimeout: "readonly",
         window: "readonly",
         localStorage: "readonly",
         document: "readonly",
         navigator: "readonly",
         Blob: "readonly",
+        setInterval: "readonly",
+        setTimeout: "readonly",
+        URLSearchParams: "readonly",
       },
     },
   },

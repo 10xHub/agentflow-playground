@@ -140,6 +140,7 @@ const AgentCard = ({ agent }) => {
     error: "bg-red-100 text-red-800",
     offline: "bg-gray-100 text-gray-800",
   }
+  const defaultStatusClassName = "bg-gray-100 text-gray-800"
 
   return (
     <div className="bg-white rounded-lg shadow p-4 hover:shadow-lg transition-shadow">
@@ -150,7 +151,7 @@ const AgentCard = ({ agent }) => {
         </div>
         <span
           className={`px-2 py-1 rounded text-xs font-medium ${
-            statusColors[agent.status] || "bg-gray-100 text-gray-800"
+            statusColors[agent.status] || defaultStatusClassName
           }`}
         >
           {agent.status}
@@ -161,9 +162,9 @@ const AgentCard = ({ agent }) => {
         <p className="text-sm text-gray-600 mb-1">Type: {agent.agent_type}</p>
         {agent.capabilities && agent.capabilities.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-2">
-            {agent.capabilities.map((capability, index) => (
+            {agent.capabilities.map((capability) => (
               <span
-                key={index}
+                key={`${agent.agent_id}-${capability}`}
                 className="px-2 py-0.5 bg-gray-200 text-gray-700 rounded text-xs"
               >
                 {capability}

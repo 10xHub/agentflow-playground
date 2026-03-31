@@ -100,6 +100,7 @@ describe("chat slice", () => {
 
   it("keeps streamed reasoning, tool calls, tool results, and assistant text separate", async () => {
     const store = createTestStore()
+    const weatherText = "The weather is sunny."
 
     streamGraph.mockImplementation(async function* mockStream() {
       yield {
@@ -151,7 +152,7 @@ describe("chat slice", () => {
         data: {
           message: {
             role: "assistant",
-            content: [{ type: "text", text: "The weather is sunny." }],
+            content: [{ type: "text", text: weatherText }],
             delta: false,
           },
         },
@@ -171,11 +172,12 @@ describe("chat slice", () => {
     expect(messages[0].content).toContain("Need the weather tool")
     expect(messages[1].content).toContain("get_weather")
     expect(messages[2].content).toContain("25°C")
-    expect(messages[3].content).toBe("The weather is sunny.")
+    expect(messages[3].content).toBe(weatherText)
   })
 
   it("corrects order when text chunk arrives before reasoning and tool_call chunks", async () => {
     const store = createTestStore()
+    const weatherText = "The weather is sunny."
 
     // Simulates the real backend sending the final-text message FIRST,
     // followed by the reasoning+tool_call snapshot — the wrong arrival order.
@@ -185,7 +187,7 @@ describe("chat slice", () => {
         data: {
           message: {
             role: "assistant",
-            content: [{ type: "text", text: "The weather is sunny." }],
+            content: [{ type: "text", text: weatherText }],
             delta: false,
           },
         },

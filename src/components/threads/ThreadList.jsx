@@ -54,7 +54,7 @@ const ThreadItem = ({ thread, isActive, onSelect, onDelete }) => (
         : "hover:bg-accent/50 text-foreground/70 hover:text-foreground"
     )}
     onClick={() => onSelect(thread.id)}
-    onKeyDown={(e) => e.key === "Enter" && onSelect(thread.id)}
+    onKeyDown={(event) => event.key === "Enter" && onSelect(thread.id)}
   >
     <div className="flex-1 min-w-0">
       <p

@@ -74,6 +74,10 @@ ContentBlock.propTypes = {
   text: PropTypes.string,
 }
 
+ContentBlock.defaultProps = {
+  text: "",
+}
+
 /**
  * Helper component for context message management
  */
