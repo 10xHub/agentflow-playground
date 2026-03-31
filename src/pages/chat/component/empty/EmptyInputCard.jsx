@@ -18,14 +18,14 @@ const EmptyInputCard = ({
   // file attach is handled via the hidden input label
   return (
     <div className="w-full h-full flex items-center justify-center px-2">
-      <Card className="relative w-full max-w-xl mx-auto shadow-2xl rounded-2xl border border-[rgba(255,255,255,0.08)]">
+      <Card className="relative w-full max-w-xl mx-auto shadow-xl rounded-2xl border border-border/50 bg-background/50 backdrop-blur-sm">
         <ShineBorder
           shineColor={["#60A5FA", "#8B5CF6", "#F59E0B"]}
           borderWidth={1}
           duration={8}
-          className="rounded-2xl"
+          className="rounded-2xl pointer-events-none"
         />
-        <form onSubmit={handleSubmit} className="h-full">
+        <form onSubmit={handleSubmit} className="relative z-10 h-full">
           <CardContent className="p-2 flex flex-col gap-2">
             <textarea
               value={message}
@@ -36,7 +36,7 @@ const EmptyInputCard = ({
                   : "Type your message here to start a new chat..."
               }
               disabled={disabled}
-              className="w-full min-h-[120px] max-h-[28vh] px-4 py-3 border border-border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-muted-foreground text-base leading-relaxed transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-background min-h-[120px] max-h-[28vh] px-4 py-3 border border-border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-muted-foreground text-base leading-relaxed transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               onKeyDown={(event) => {
                 if (event.key === "Enter" && !event.shiftKey && !disabled) {
                   event.preventDefault()
