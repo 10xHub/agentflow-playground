@@ -5,6 +5,9 @@ import { fileURLToPath } from "node:url"
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 export default [
+  {
+    ignores: ["**/*.{test,spec}.{js,jsx,ts,tsx}"],
+  },
   ...config,
   {
     settings: {
@@ -34,8 +37,17 @@ export default [
     languageOptions: {
       globals: {
         console: "readonly",
+        fetch: "readonly",
+        clearInterval: "readonly",
+        clearTimeout: "readonly",
         window: "readonly",
         localStorage: "readonly",
+        document: "readonly",
+        navigator: "readonly",
+        Blob: "readonly",
+        setInterval: "readonly",
+        setTimeout: "readonly",
+        URLSearchParams: "readonly",
       },
     },
   },

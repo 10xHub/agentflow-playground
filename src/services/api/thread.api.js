@@ -1,16 +1,22 @@
-import api from "./index"
+import { getAgentFlowClient } from "@/lib/agentflow-client"
 
 /**
  * List threads with optional filters
  * @param {object} parameters - Optional query params { search, offset, limit }
  */
 export const listThreads = async (parameters = {}) => {
-  const query = {}
-  if (parameters.search !== undefined) query.search = parameters.search
-  if (parameters.offset !== undefined) query.offset = parameters.offset
-  if (parameters.limit !== undefined) query.limit = parameters.limit
+  const client = getAgentFlowClient()
+  const request = {}
+  if (parameters.search !== undefined) request.search = parameters.search
+  if (parameters.offset !== undefined) request.offset = parameters.offset
+  if (parameters.limit !== undefined) request.limit = parameters.limit
 
-  return await api.get("/v1/threads", { params: query })
+  const response = await client.threads(request)
+  // Transform to match existing response format
+  return {
+    data: response.data,
+    status: 200,
+  }
 }
 
 /**
@@ -18,7 +24,13 @@ export const listThreads = async (parameters = {}) => {
  * @param {string|number} thread_id - ID of the thread to fetch
  */
 export const getThread = async (thread_id) => {
-  return await api.get(`/v1/threads/${thread_id}`)
+  const client = getAgentFlowClient()
+  const response = await client.threadDetails(thread_id)
+  // Transform to match existing response format
+  return {
+    data: response.data,
+    status: 200,
+  }
 }
 
 /**
@@ -26,7 +38,13 @@ export const getThread = async (thread_id) => {
  * @param {string|number} thread_id - ID of the thread to delete
  */
 export const deleteThread = async (thread_id) => {
-  return await api.delete(`/v1/threads/${thread_id}`)
+  const client = getAgentFlowClient()
+  const response = await client.deleteThread(thread_id)
+  // Transform to match existing response format
+  return {
+    data: response.data,
+    status: 200,
+  }
 }
 
 export default {

@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "pyagenity-api",
-    "summary": "Backend Base",
+    "summary": "Pyagenity Backend",
     "version": "0.1.0"
   },
   "paths": {
@@ -235,12 +235,12 @@
         "security": [{ "HTTPBearer": [] }]
       }
     },
-    "/v1/graph:stateSchema": {
+    "/v1/graph:StateSchema": {
       "get": {
         "tags": ["Graph"],
         "summary": "Invoke graph execution",
         "description": "Execute the graph with the provided input and return the final result",
-        "operationId": "state_schema_v1_graph_stateSchema_get",
+        "operationId": "state_schema_v1_graph_StateSchema_get",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -248,6 +248,85 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/_SwaggerSuccessSchemas_GraphSchema_"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/_SwaggerError400Schemas"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/_SwaggerError404Schemas"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/_SwaggerError401Schemas"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/_SwaggerError403Schemas"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/_SwaggerError426Schemas"
+                }
+              }
+            }
+          }
+        },
+        "security": [{ "HTTPBearer": [] }]
+      }
+    },
+    "/v1/graph/stop": {
+      "post": {
+        "tags": ["Graph"],
+        "summary": "Stop graph execution",
+        "description": "Stop the currently running graph execution for a specific thread",
+        "operationId": "stop_graph_v1_graph_stop_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/GraphStopSchema" }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/_SwaggerSuccessSchemas_dict_"
                 }
               }
             }
@@ -1211,6 +1290,626 @@
         }
       }
     },
+    "/v1/store/memories": {
+      "post": {
+        "tags": ["store"],
+        "summary": "Store a memory",
+        "description": "Persist a memory payload using the configured store backend.",
+        "operationId": "create_memory_v1_store_memories_post",
+        "security": [{ "HTTPBearer": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/StoreMemorySchema" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/_SwaggerSuccessSchemas_MemoryCreateResponseSchema_"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/_SwaggerError400Schemas"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/_SwaggerError404Schemas"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/_SwaggerError401Schemas"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/_SwaggerError403Schemas"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/_SwaggerError426Schemas"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": ["store"],
+        "summary": "List memories",
+        "description": "List memories from the configured store backend.",
+        "operationId": "list_memories_v1_store_memories_get",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "description": "Maximum number of memories to return.",
+              "default": 100,
+              "title": "Limit"
+            },
+            "description": "Maximum number of memories to return."
+          },
+          {
+            "name": "config",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
+              "description": "JSON-encoded configuration overrides forwarded to the store backend.",
+              "title": "Config"
+            },
+            "description": "JSON-encoded configuration overrides forwarded to the store backend."
+          },
+          {
+            "name": "options",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
+              "description": "JSON-encoded options forwarded to the store backend.",
+              "title": "Options"
+            },
+            "description": "JSON-encoded options forwarded to the store backend."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/_SwaggerSuccessSchemas_MemoryListResponseSchema_"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/_SwaggerError400Schemas"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/_SwaggerError404Schemas"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/_SwaggerError401Schemas"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/_SwaggerError403Schemas"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/_SwaggerError426Schemas"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/store/search": {
+      "post": {
+        "tags": ["store"],
+        "summary": "Search memories",
+        "description": "Search memories stored in the backend based on semantic similarity and filters.",
+        "operationId": "search_memories_v1_store_search_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/SearchMemorySchema" }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/_SwaggerSuccessSchemas_MemorySearchResponseSchema_"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/_SwaggerError400Schemas"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/_SwaggerError404Schemas"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/_SwaggerError401Schemas"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/_SwaggerError403Schemas"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/_SwaggerError426Schemas"
+                }
+              }
+            }
+          }
+        },
+        "security": [{ "HTTPBearer": [] }]
+      }
+    },
+    "/v1/store/memories/{memory_id}": {
+      "get": {
+        "tags": ["store"],
+        "summary": "Get a memory",
+        "description": "Retrieve a memory by its identifier from the configured store backend.",
+        "operationId": "get_memory_v1_store_memories__memory_id__get",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "memory_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "title": "Memory Id" }
+          },
+          {
+            "name": "config",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
+              "description": "JSON-encoded configuration overrides forwarded to the store backend.",
+              "title": "Config"
+            },
+            "description": "JSON-encoded configuration overrides forwarded to the store backend."
+          },
+          {
+            "name": "options",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
+              "description": "JSON-encoded options forwarded to the store backend.",
+              "title": "Options"
+            },
+            "description": "JSON-encoded options forwarded to the store backend."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/_SwaggerSuccessSchemas_MemoryItemResponseSchema_"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/_SwaggerError400Schemas"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/_SwaggerError404Schemas"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/_SwaggerError401Schemas"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/_SwaggerError403Schemas"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/_SwaggerError426Schemas"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["store"],
+        "summary": "Update a memory",
+        "description": "Update the content or metadata of a stored memory.",
+        "operationId": "update_memory_v1_store_memories__memory_id__put",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "memory_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "title": "Memory Id" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdateMemorySchema" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/_SwaggerSuccessSchemas_MemoryOperationResponseSchema_"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/_SwaggerError400Schemas"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/_SwaggerError404Schemas"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/_SwaggerError401Schemas"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/_SwaggerError403Schemas"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/_SwaggerError426Schemas"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["store"],
+        "summary": "Delete a memory",
+        "description": "Delete a stored memory by its identifier.",
+        "operationId": "delete_memory_v1_store_memories__memory_id__delete",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "memory_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "title": "Memory Id" }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  { "$ref": "#/components/schemas/DeleteMemorySchema" },
+                  { "type": "null" }
+                ],
+                "description": "Optional configuration overrides forwarded to the store backend.",
+                "title": "Payload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/_SwaggerSuccessSchemas_MemoryOperationResponseSchema_"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/_SwaggerError400Schemas"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/_SwaggerError404Schemas"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/_SwaggerError401Schemas"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/_SwaggerError403Schemas"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/_SwaggerError426Schemas"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/store/memories/forget": {
+      "post": {
+        "tags": ["store"],
+        "summary": "Forget memories",
+        "description": "Forget memories matching the provided filters from the store backend.",
+        "operationId": "forget_memory_v1_store_memories_forget_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ForgetMemorySchema" }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/_SwaggerSuccessSchemas_MemoryOperationResponseSchema_"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/_SwaggerError400Schemas"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/_SwaggerError404Schemas"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/_SwaggerError401Schemas"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/_SwaggerError403Schemas"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/_SwaggerError426Schemas"
+                }
+              }
+            }
+          }
+        },
+        "security": [{ "HTTPBearer": [] }]
+      }
+    },
     "/v1/ping": {
       "get": {
         "tags": ["Ping"],
@@ -1284,13 +1983,105 @@
   },
   "components": {
     "schemas": {
+      "AnnotationBlock": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["annotation"],
+            "const": "annotation",
+            "title": "Type",
+            "default": "annotation"
+          },
+          "kind": {
+            "type": "string",
+            "enum": ["citation", "note"],
+            "title": "Kind",
+            "default": "citation"
+          },
+          "refs": {
+            "items": { "$ref": "#/components/schemas/AnnotationRef" },
+            "type": "array",
+            "title": "Refs"
+          },
+          "spans": {
+            "anyOf": [
+              {
+                "items": {
+                  "prefixItems": [{ "type": "integer" }, { "type": "integer" }],
+                  "type": "array",
+                  "maxItems": 2,
+                  "minItems": 2
+                },
+                "type": "array"
+              },
+              { "type": "null" }
+            ],
+            "title": "Spans"
+          }
+        },
+        "type": "object",
+        "title": "AnnotationBlock",
+        "description": "Annotation content block for messages.\n\nAttributes:\n    type (Literal[\"annotation\"]): Block type discriminator.\n    kind (Literal[\"citation\", \"note\"]): Kind of annotation.\n    refs (list[AnnotationRef]): List of annotation references.\n    spans (list[tuple[int, int]] | None): Spans covered by the annotation."
+      },
+      "AnnotationRef": {
+        "properties": {
+          "url": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Url"
+          },
+          "file_id": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "File Id"
+          },
+          "page": {
+            "anyOf": [{ "type": "integer" }, { "type": "null" }],
+            "title": "Page"
+          },
+          "index": {
+            "anyOf": [{ "type": "integer" }, { "type": "null" }],
+            "title": "Index"
+          },
+          "title": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Title"
+          }
+        },
+        "type": "object",
+        "title": "AnnotationRef",
+        "description": "Reference to annotation metadata (e.g., citation, note).\n\nAttributes:\n    url (str | None): URL to annotation source.\n    file_id (str | None): Provider-managed file ID.\n    page (int | None): Page number (if applicable).\n    index (int | None): Index within the annotation source.\n    title (str | None): Title of the annotation."
+      },
+      "AudioBlock": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["audio"],
+            "const": "audio",
+            "title": "Type",
+            "default": "audio"
+          },
+          "media": { "$ref": "#/components/schemas/MediaRef" },
+          "transcript": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Transcript"
+          },
+          "sample_rate": {
+            "anyOf": [{ "type": "integer" }, { "type": "null" }],
+            "title": "Sample Rate"
+          },
+          "channels": {
+            "anyOf": [{ "type": "integer" }, { "type": "null" }],
+            "title": "Channels"
+          }
+        },
+        "type": "object",
+        "required": ["media"],
+        "title": "AudioBlock",
+        "description": "Audio content block for messages.\n\nAttributes:\n    type (Literal[\"audio\"]): Block type discriminator.\n    media (MediaRef): Reference to audio media.\n    transcript (str | None): Transcript of audio.\n    sample_rate (int | None): Sample rate in Hz.\n    channels (int | None): Number of audio channels."
+      },
       "ConfigSchema": {
         "properties": {
           "config": {
-            "anyOf": [
-              { "additionalProperties": true, "type": "object" },
-              { "type": "null" }
-            ],
+            "anyOf": [{ "type": "object" }, { "type": "null" }],
             "title": "Config",
             "description": "Configuration for the state"
           }
@@ -1298,6 +2089,82 @@
         "type": "object",
         "title": "ConfigSchema",
         "description": "Schema for state data."
+      },
+      "DataBlock": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["data"],
+            "const": "data",
+            "title": "Type",
+            "default": "data"
+          },
+          "mime_type": { "type": "string", "title": "Mime Type" },
+          "data_base64": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Data Base64"
+          },
+          "media": {
+            "anyOf": [
+              { "$ref": "#/components/schemas/MediaRef" },
+              { "type": "null" }
+            ]
+          }
+        },
+        "type": "object",
+        "required": ["mime_type"],
+        "title": "DataBlock",
+        "description": "Data content block for messages.\n\nAttributes:\n    type (Literal[\"data\"]): Block type discriminator.\n    mime_type (str): MIME type of the data.\n    data_base64 (str | None): Base64-encoded data.\n    media (MediaRef | None): Reference to associated media."
+      },
+      "DeleteMemorySchema": {
+        "properties": {
+          "config": {
+            "anyOf": [{ "type": "object" }, { "type": "null" }],
+            "title": "Config",
+            "description": "Configuration values forwarded to the store backend."
+          },
+          "options": {
+            "anyOf": [{ "type": "object" }, { "type": "null" }],
+            "title": "Options",
+            "description": "Extra keyword arguments to forward to the store backend."
+          }
+        },
+        "type": "object",
+        "title": "DeleteMemorySchema",
+        "description": "Schema for deleting a memory."
+      },
+      "DistanceMetric": {
+        "type": "string",
+        "enum": ["cosine", "euclidean", "dot_product", "manhattan"],
+        "title": "DistanceMetric",
+        "description": "Supported distance metrics for vector similarity."
+      },
+      "DocumentBlock": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["document"],
+            "const": "document",
+            "title": "Type",
+            "default": "document"
+          },
+          "media": { "$ref": "#/components/schemas/MediaRef" },
+          "pages": {
+            "anyOf": [
+              { "items": { "type": "integer" }, "type": "array" },
+              { "type": "null" }
+            ],
+            "title": "Pages"
+          },
+          "excerpt": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Excerpt"
+          }
+        },
+        "type": "object",
+        "required": ["media"],
+        "title": "DocumentBlock",
+        "description": "Document content block for messages.\n\nAttributes:\n    type (Literal[\"document\"]): Block type discriminator.\n    media (MediaRef): Reference to document media.\n    pages (list[int] | None): List of page numbers.\n    excerpt (str | None): Excerpt from the document."
       },
       "EdgeSchema": {
         "properties": {
@@ -1321,6 +2188,30 @@
         "required": ["id", "source", "target"],
         "title": "EdgeSchema",
         "description": "Schema for individual graph edges."
+      },
+      "ErrorBlock": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["error"],
+            "const": "error",
+            "title": "Type",
+            "default": "error"
+          },
+          "message": { "type": "string", "title": "Message" },
+          "code": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Code"
+          },
+          "data": {
+            "anyOf": [{ "type": "object" }, { "type": "null" }],
+            "title": "Data"
+          }
+        },
+        "type": "object",
+        "required": ["message"],
+        "title": "ErrorBlock",
+        "description": "Error content block for messages.\n\nAttributes:\n    type (Literal[\"error\"]): Block type discriminator.\n    message (str): Error message.\n    code (str | None): Error code.\n    data (dict[str, Any] | None): Additional error data."
       },
       "ErrorOutputSchema": {
         "properties": {
@@ -1350,6 +2241,40 @@
         "type": "object",
         "required": ["loc", "msg", "type"],
         "title": "ErrorSchemas"
+      },
+      "ForgetMemorySchema": {
+        "properties": {
+          "config": {
+            "anyOf": [{ "type": "object" }, { "type": "null" }],
+            "title": "Config",
+            "description": "Configuration values forwarded to the store backend."
+          },
+          "options": {
+            "anyOf": [{ "type": "object" }, { "type": "null" }],
+            "title": "Options",
+            "description": "Extra keyword arguments to forward to the store backend."
+          },
+          "memory_type": {
+            "anyOf": [
+              { "$ref": "#/components/schemas/MemoryType" },
+              { "type": "null" }
+            ],
+            "description": "Optional memory type to target for deletion."
+          },
+          "category": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Category",
+            "description": "Optional category to target for deletion."
+          },
+          "filters": {
+            "anyOf": [{ "type": "object" }, { "type": "null" }],
+            "title": "Filters",
+            "description": "Additional filters to control which memories are forgotten."
+          }
+        },
+        "type": "object",
+        "title": "ForgetMemorySchema",
+        "description": "Schema for forgetting memories based on filters."
       },
       "GraphInfoSchema": {
         "properties": {
@@ -1398,6 +2323,34 @@
             ],
             "title": "Interrupt After",
             "description": "Nodes to interrupt after"
+          },
+          "context_type": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Context Type",
+            "description": "Type of context for the graph"
+          },
+          "id_generator": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Id Generator",
+            "description": "ID generator type for the graph"
+          },
+          "id_type": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Id Type",
+            "description": "ID type for the graph"
+          },
+          "state_type": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "State Type",
+            "description": "State type for the graph"
+          },
+          "state_fields": {
+            "anyOf": [
+              { "items": { "type": "string" }, "type": "array" },
+              { "type": "null" }
+            ],
+            "title": "State Fields",
+            "description": "State fields for the graph"
           }
         },
         "type": "object",
@@ -1420,18 +2373,12 @@
             "description": "List of messages to process through the graph"
           },
           "initial_state": {
-            "anyOf": [
-              { "additionalProperties": true, "type": "object" },
-              { "type": "null" }
-            ],
+            "anyOf": [{ "type": "object" }, { "type": "null" }],
             "title": "Initial State",
             "description": "Initial state for the graph execution"
           },
           "config": {
-            "anyOf": [
-              { "additionalProperties": true, "type": "object" },
-              { "type": "null" }
-            ],
+            "anyOf": [{ "type": "object" }, { "type": "null" }],
             "title": "Config",
             "description": "Optional configuration for graph execution"
           },
@@ -1442,7 +2389,7 @@
             "default": 25
           },
           "response_granularity": {
-            "$ref": "#/components/schemas/ResponseGranularity",
+            "allOf": [{ "$ref": "#/components/schemas/ResponseGranularity" }],
             "description": "Granularity of the response (full, partial, low)",
             "default": "low"
           },
@@ -1461,23 +2408,20 @@
       "GraphInvokeOutputSchema": {
         "properties": {
           "messages": {
-            "items": { "$ref": "#/components/schemas/Message" },
+            "items": { "$ref": "#/components/schemas/Message-Output" },
             "type": "array",
             "title": "Messages",
             "description": "Final processed messages from the graph"
           },
           "state": {
-            "anyOf": [
-              { "additionalProperties": true, "type": "object" },
-              { "type": "null" }
-            ],
+            "anyOf": [{ "type": "object" }, { "type": "null" }],
             "title": "State",
             "description": "State information from the graph execution"
           },
           "context": {
             "anyOf": [
               {
-                "items": { "$ref": "#/components/schemas/Message" },
+                "items": { "$ref": "#/components/schemas/Message-Output" },
                 "type": "array"
               },
               { "type": "null" }
@@ -1491,10 +2435,7 @@
             "description": "Summary information from the graph execution"
           },
           "meta": {
-            "anyOf": [
-              { "additionalProperties": true, "type": "object" },
-              { "type": "null" }
-            ],
+            "anyOf": [{ "type": "object" }, { "type": "null" }],
             "title": "Meta",
             "description": "Meta information from the graph execution"
           }
@@ -1507,7 +2448,7 @@
       "GraphSchema": {
         "properties": {
           "info": {
-            "$ref": "#/components/schemas/GraphInfoSchema",
+            "allOf": [{ "$ref": "#/components/schemas/GraphInfoSchema" }],
             "description": "Graph metadata and configuration"
           },
           "nodes": {
@@ -1528,19 +2469,33 @@
         "title": "GraphSchema",
         "description": "Schema for the complete graph structure."
       },
+      "GraphStopSchema": {
+        "properties": {
+          "thread_id": {
+            "type": "string",
+            "title": "Thread Id",
+            "description": "Thread ID to stop execution for"
+          },
+          "config": {
+            "anyOf": [{ "type": "object" }, { "type": "null" }],
+            "title": "Config",
+            "description": "Optional configuration for the stop operation"
+          }
+        },
+        "type": "object",
+        "required": ["thread_id"],
+        "title": "GraphStopSchema",
+        "description": "Schema for stopping graph execution."
+      },
       "GraphStreamChunkSchema": {
         "properties": {
           "data": {
-            "additionalProperties": true,
             "type": "object",
             "title": "Data",
             "description": "Chunk data"
           },
           "metadata": {
-            "anyOf": [
-              { "additionalProperties": true, "type": "object" },
-              { "type": "null" }
-            ],
+            "anyOf": [{ "type": "object" }, { "type": "null" }],
             "title": "Metadata",
             "description": "Chunk metadata"
           }
@@ -1550,35 +2505,276 @@
         "title": "GraphStreamChunkSchema",
         "description": "Schema for individual stream chunks from graph execution."
       },
-      "Message": {
+      "ImageBlock": {
         "properties": {
-          "message_id": { "type": "string", "title": "Message Id" },
+          "type": {
+            "type": "string",
+            "enum": ["image"],
+            "const": "image",
+            "title": "Type",
+            "default": "image"
+          },
+          "media": { "$ref": "#/components/schemas/MediaRef" },
+          "alt_text": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Alt Text"
+          },
+          "bbox": {
+            "anyOf": [
+              { "items": { "type": "number" }, "type": "array" },
+              { "type": "null" }
+            ],
+            "title": "Bbox"
+          }
+        },
+        "type": "object",
+        "required": ["media"],
+        "title": "ImageBlock",
+        "description": "Image content block for messages.\n\nAttributes:\n    type (Literal[\"image\"]): Block type discriminator.\n    media (MediaRef): Reference to image media.\n    alt_text (str | None): Alternative text for accessibility.\n    bbox (list[float] | None): Bounding box coordinates [x1, y1, x2, y2]."
+      },
+      "MediaRef": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": ["url", "file_id", "data"],
+            "title": "Kind",
+            "default": "url"
+          },
+          "url": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Url"
+          },
+          "file_id": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "File Id"
+          },
+          "data_base64": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Data Base64"
+          },
+          "mime_type": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Mime Type"
+          },
+          "size_bytes": {
+            "anyOf": [{ "type": "integer" }, { "type": "null" }],
+            "title": "Size Bytes"
+          },
+          "sha256": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Sha256"
+          },
+          "filename": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Filename"
+          },
+          "width": {
+            "anyOf": [{ "type": "integer" }, { "type": "null" }],
+            "title": "Width"
+          },
+          "height": {
+            "anyOf": [{ "type": "integer" }, { "type": "null" }],
+            "title": "Height"
+          },
+          "duration_ms": {
+            "anyOf": [{ "type": "integer" }, { "type": "null" }],
+            "title": "Duration Ms"
+          },
+          "page": {
+            "anyOf": [{ "type": "integer" }, { "type": "null" }],
+            "title": "Page"
+          }
+        },
+        "type": "object",
+        "title": "MediaRef",
+        "description": "Reference to media content (image/audio/video/document/data).\n\nPrefer referencing by URL or provider file_id over inlining base64 for large payloads.\n\nAttributes:\n    kind (Literal[\"url\", \"file_id\", \"data\"]): Type of reference.\n    url (str | None): URL to media content.\n    file_id (str | None): Provider-managed file ID.\n    data_base64 (str | None): Base64-encoded data (small payloads only).\n    mime_type (str | None): MIME type of the media.\n    size_bytes (int | None): Size in bytes.\n    sha256 (str | None): SHA256 hash of the media.\n    filename (str | None): Filename of the media.\n    width (int | None): Image width (if applicable).\n    height (int | None): Image height (if applicable).\n    duration_ms (int | None): Duration in milliseconds (if applicable).\n    page (int | None): Page number (if applicable)."
+      },
+      "MemoryCreateResponseSchema": {
+        "properties": {
+          "memory_id": {
+            "type": "string",
+            "title": "Memory Id",
+            "description": "Identifier of the stored memory."
+          }
+        },
+        "type": "object",
+        "required": ["memory_id"],
+        "title": "MemoryCreateResponseSchema",
+        "description": "Response schema for create memory operations."
+      },
+      "MemoryItemResponseSchema": {
+        "properties": {
+          "memory": {
+            "anyOf": [
+              { "$ref": "#/components/schemas/MemorySearchResult" },
+              { "type": "null" }
+            ],
+            "description": "Memory retrieved from the store, if available."
+          }
+        },
+        "type": "object",
+        "title": "MemoryItemResponseSchema",
+        "description": "Response schema for single memory retrieval."
+      },
+      "MemoryListResponseSchema": {
+        "properties": {
+          "memories": {
+            "items": { "$ref": "#/components/schemas/MemorySearchResult" },
+            "type": "array",
+            "title": "Memories",
+            "description": "Collection of memories returned from the store."
+          }
+        },
+        "type": "object",
+        "title": "MemoryListResponseSchema",
+        "description": "Response schema for listing memories."
+      },
+      "MemoryOperationResponseSchema": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success",
+            "description": "Whether the store operation succeeded."
+          },
+          "data": {
+            "anyOf": [{}, { "type": "null" }],
+            "title": "Data",
+            "description": "Optional payload returned by the store."
+          }
+        },
+        "type": "object",
+        "required": ["success"],
+        "title": "MemoryOperationResponseSchema",
+        "description": "Generic response schema for mutation operations."
+      },
+      "MemorySearchResponseSchema": {
+        "properties": {
+          "results": {
+            "items": { "$ref": "#/components/schemas/MemorySearchResult" },
+            "type": "array",
+            "title": "Results",
+            "description": "Search results ranked by relevance."
+          }
+        },
+        "type": "object",
+        "title": "MemorySearchResponseSchema",
+        "description": "Response schema for search operations."
+      },
+      "MemorySearchResult": {
+        "properties": {
+          "id": { "type": "string", "title": "Id" },
+          "content": {
+            "type": "string",
+            "title": "Content",
+            "description": "Primary textual content of the memory",
+            "default": ""
+          },
+          "score": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Score",
+            "description": "Similarity / relevance score",
+            "default": 0.0
+          },
+          "memory_type": {
+            "allOf": [{ "$ref": "#/components/schemas/MemoryType" }],
+            "default": "episodic"
+          },
+          "metadata": { "type": "object", "title": "Metadata" },
+          "vector": {
+            "anyOf": [
+              { "items": { "type": "number" }, "type": "array" },
+              { "type": "null" }
+            ],
+            "title": "Vector"
+          },
+          "user_id": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "User Id"
+          },
+          "thread_id": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Thread Id"
+          },
+          "timestamp": {
+            "anyOf": [
+              { "type": "string", "format": "date-time" },
+              { "type": "null" }
+            ],
+            "title": "Timestamp"
+          }
+        },
+        "type": "object",
+        "title": "MemorySearchResult",
+        "description": "Result from a memory search operation (Pydantic model)."
+      },
+      "MemoryType": {
+        "type": "string",
+        "enum": [
+          "episodic",
+          "semantic",
+          "procedural",
+          "entity",
+          "relationship",
+          "custom",
+          "declarative"
+        ],
+        "title": "MemoryType",
+        "description": "Types of memories that can be stored."
+      },
+      "Message-Input": {
+        "properties": {
+          "message_id": {
+            "anyOf": [{ "type": "string" }, { "type": "integer" }],
+            "title": "Message Id"
+          },
           "role": {
             "type": "string",
             "enum": ["user", "assistant", "system", "tool"],
             "title": "Role"
           },
-          "content": { "type": "string", "title": "Content" },
+          "content": {
+            "items": {
+              "oneOf": [
+                { "$ref": "#/components/schemas/TextBlock" },
+                { "$ref": "#/components/schemas/ImageBlock" },
+                { "$ref": "#/components/schemas/AudioBlock" },
+                { "$ref": "#/components/schemas/VideoBlock" },
+                { "$ref": "#/components/schemas/DocumentBlock" },
+                { "$ref": "#/components/schemas/DataBlock" },
+                { "$ref": "#/components/schemas/ToolCallBlock" },
+                { "$ref": "#/components/schemas/ToolResultBlock" },
+                { "$ref": "#/components/schemas/ReasoningBlock" },
+                { "$ref": "#/components/schemas/AnnotationBlock" },
+                { "$ref": "#/components/schemas/ErrorBlock" }
+              ],
+              "discriminator": {
+                "propertyName": "type",
+                "mapping": {
+                  "annotation": "#/components/schemas/AnnotationBlock",
+                  "audio": "#/components/schemas/AudioBlock",
+                  "data": "#/components/schemas/DataBlock",
+                  "document": "#/components/schemas/DocumentBlock",
+                  "error": "#/components/schemas/ErrorBlock",
+                  "image": "#/components/schemas/ImageBlock",
+                  "reasoning": "#/components/schemas/ReasoningBlock",
+                  "text": "#/components/schemas/TextBlock",
+                  "tool_call": "#/components/schemas/ToolCallBlock",
+                  "tool_result": "#/components/schemas/ToolResultBlock",
+                  "video": "#/components/schemas/VideoBlock"
+                }
+              }
+            },
+            "type": "array",
+            "title": "Content"
+          },
+          "delta": { "type": "boolean", "title": "Delta", "default": false },
           "tools_calls": {
             "anyOf": [
-              {
-                "items": { "additionalProperties": true, "type": "object" },
-                "type": "array"
-              },
+              { "items": { "type": "object" }, "type": "array" },
               { "type": "null" }
             ],
             "title": "Tools Calls"
-          },
-          "tool_call_id": {
-            "anyOf": [{ "type": "string" }, { "type": "null" }],
-            "title": "Tool Call Id"
-          },
-          "function_call": {
-            "anyOf": [
-              { "additionalProperties": true, "type": "object" },
-              { "type": "null" }
-            ],
-            "title": "Function Call"
           },
           "reasoning": {
             "anyOf": [{ "type": "string" }, { "type": "null" }],
@@ -1591,11 +2787,7 @@
             ],
             "title": "Timestamp"
           },
-          "metadata": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Metadata"
-          },
+          "metadata": { "type": "object", "title": "Metadata" },
           "usages": {
             "anyOf": [
               { "$ref": "#/components/schemas/TokenUsages" },
@@ -1603,17 +2795,96 @@
             ]
           },
           "raw": {
-            "anyOf": [
-              { "additionalProperties": true, "type": "object" },
-              { "type": "null" }
-            ],
+            "anyOf": [{ "type": "object" }, { "type": "null" }],
             "title": "Raw"
           }
         },
         "type": "object",
-        "required": ["message_id", "role", "content"],
+        "required": ["role", "content"],
         "title": "Message",
-        "description": "Represents a message in a conversation, including content, role, metadata, and token usage.\n\nExample:\n    >>> msg = Message(message_id=\"abc123\", role=\"user\", content=\"Hello!\")\n    {'message_id': 'abc123', 'role': 'user', 'content': 'Hello!', ...}\n\nAttributes:\n    message_id (str): Unique identifier for the message.\n    role (Literal[\"user\", \"assistant\", \"system\", \"tool\"]): The role of the message sender.\n    content (str): The message content.\n    tools_calls (list[dict[str, Any]] | None): Tool call information, if any.\n    tool_call_id (str | None): Tool call identifier, if any.\n    function_call (dict[str, Any] | None): Function call information, if any.\n    reasoning (str | None): Reasoning or explanation, if any.\n    timestamp (datetime | None): Timestamp of the message.\n    metadata (dict[str, Any]): Additional metadata.\n    usages (TokenUsages | None): Token usage statistics.\n    raw (dict[str, Any] | None): Raw data, if any."
+        "description": "Represents a message in a conversation, including content, role, metadata, and token usage.\n\nAttributes:\n    message_id (str | int): Unique identifier for the message.\n    role (Literal[\"user\", \"assistant\", \"system\", \"tool\"]): The role of the message sender.\n    content (list[ContentBlock]): The message content blocks.\n    delta (bool): Indicates if this is a delta/partial message.\n    tools_calls (list[dict[str, Any]] | None): Tool call information, if any.\n    reasoning (str | None): Reasoning or explanation, if any.\n    timestamp (datetime | None): Timestamp of the message.\n    metadata (dict[str, Any]): Additional metadata.\n    usages (TokenUsages | None): Token usage statistics.\n    raw (dict[str, Any] | None): Raw data, if any.\n\nExample:\n    >>> msg = Message(message_id=\"abc123\", role=\"user\", content=[TextBlock(text=\"Hello!\")])\n    {'message_id': 'abc123', 'role': 'user', 'content': [...], ...}"
+      },
+      "Message-Output": {
+        "properties": {
+          "message_id": {
+            "anyOf": [{ "type": "string" }, { "type": "integer" }],
+            "title": "Message Id"
+          },
+          "role": {
+            "type": "string",
+            "enum": ["user", "assistant", "system", "tool"],
+            "title": "Role"
+          },
+          "content": {
+            "items": {
+              "oneOf": [
+                { "$ref": "#/components/schemas/TextBlock" },
+                { "$ref": "#/components/schemas/ImageBlock" },
+                { "$ref": "#/components/schemas/AudioBlock" },
+                { "$ref": "#/components/schemas/VideoBlock" },
+                { "$ref": "#/components/schemas/DocumentBlock" },
+                { "$ref": "#/components/schemas/DataBlock" },
+                { "$ref": "#/components/schemas/ToolCallBlock" },
+                { "$ref": "#/components/schemas/ToolResultBlock" },
+                { "$ref": "#/components/schemas/ReasoningBlock" },
+                { "$ref": "#/components/schemas/AnnotationBlock" },
+                { "$ref": "#/components/schemas/ErrorBlock" }
+              ],
+              "discriminator": {
+                "propertyName": "type",
+                "mapping": {
+                  "annotation": "#/components/schemas/AnnotationBlock",
+                  "audio": "#/components/schemas/AudioBlock",
+                  "data": "#/components/schemas/DataBlock",
+                  "document": "#/components/schemas/DocumentBlock",
+                  "error": "#/components/schemas/ErrorBlock",
+                  "image": "#/components/schemas/ImageBlock",
+                  "reasoning": "#/components/schemas/ReasoningBlock",
+                  "text": "#/components/schemas/TextBlock",
+                  "tool_call": "#/components/schemas/ToolCallBlock",
+                  "tool_result": "#/components/schemas/ToolResultBlock",
+                  "video": "#/components/schemas/VideoBlock"
+                }
+              }
+            },
+            "type": "array",
+            "title": "Content"
+          },
+          "delta": { "type": "boolean", "title": "Delta", "default": false },
+          "tools_calls": {
+            "anyOf": [
+              { "items": { "type": "object" }, "type": "array" },
+              { "type": "null" }
+            ],
+            "title": "Tools Calls"
+          },
+          "reasoning": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Reasoning"
+          },
+          "timestamp": {
+            "anyOf": [
+              { "type": "string", "format": "date-time" },
+              { "type": "null" }
+            ],
+            "title": "Timestamp"
+          },
+          "metadata": { "type": "object", "title": "Metadata" },
+          "usages": {
+            "anyOf": [
+              { "$ref": "#/components/schemas/TokenUsages" },
+              { "type": "null" }
+            ]
+          },
+          "raw": {
+            "anyOf": [{ "type": "object" }, { "type": "null" }],
+            "title": "Raw"
+          }
+        },
+        "type": "object",
+        "required": ["role", "content"],
+        "title": "Message",
+        "description": "Represents a message in a conversation, including content, role, metadata, and token usage.\n\nAttributes:\n    message_id (str | int): Unique identifier for the message.\n    role (Literal[\"user\", \"assistant\", \"system\", \"tool\"]): The role of the message sender.\n    content (list[ContentBlock]): The message content blocks.\n    delta (bool): Indicates if this is a delta/partial message.\n    tools_calls (list[dict[str, Any]] | None): Tool call information, if any.\n    reasoning (str | None): Reasoning or explanation, if any.\n    timestamp (datetime | None): Timestamp of the message.\n    metadata (dict[str, Any]): Additional metadata.\n    usages (TokenUsages | None): Token usage statistics.\n    raw (dict[str, Any] | None): Raw data, if any.\n\nExample:\n    >>> msg = Message(message_id=\"abc123\", role=\"user\", content=[TextBlock(text=\"Hello!\")])\n    {'message_id': 'abc123', 'role': 'user', 'content': [...], ...}"
       },
       "MessageSchema": {
         "properties": {
@@ -1643,7 +2914,7 @@
           "messages": {
             "anyOf": [
               {
-                "items": { "$ref": "#/components/schemas/Message" },
+                "items": { "$ref": "#/components/schemas/Message-Output" },
                 "type": "array"
               },
               { "type": "null" }
@@ -1677,24 +2948,18 @@
       "PutMessagesSchema": {
         "properties": {
           "config": {
-            "anyOf": [
-              { "additionalProperties": true, "type": "object" },
-              { "type": "null" }
-            ],
+            "anyOf": [{ "type": "object" }, { "type": "null" }],
             "title": "Config",
             "description": "Configuration for the state"
           },
           "messages": {
-            "items": { "$ref": "#/components/schemas/Message" },
+            "items": { "$ref": "#/components/schemas/Message-Input" },
             "type": "array",
             "title": "Messages",
             "description": "List of messages to store"
           },
           "metadata": {
-            "anyOf": [
-              { "additionalProperties": true, "type": "object" },
-              { "type": "null" }
-            ],
+            "anyOf": [{ "type": "object" }, { "type": "null" }],
             "title": "Metadata",
             "description": "Optional metadata"
           }
@@ -1704,10 +2969,34 @@
         "title": "PutMessagesSchema",
         "description": "Schema for putting messages."
       },
+      "ReasoningBlock": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["reasoning"],
+            "const": "reasoning",
+            "title": "Type",
+            "default": "reasoning"
+          },
+          "summary": { "type": "string", "title": "Summary" },
+          "details": {
+            "anyOf": [
+              { "items": { "type": "string" }, "type": "array" },
+              { "type": "null" }
+            ],
+            "title": "Details"
+          }
+        },
+        "type": "object",
+        "required": ["summary"],
+        "title": "ReasoningBlock",
+        "description": "Reasoning content block for messages.\n\nAttributes:\n    type (Literal[\"reasoning\"]): Block type discriminator.\n    summary (str): Summary of reasoning.\n    details (list[str] | None): Detailed reasoning steps."
+      },
       "ResponseGranularity": {
         "type": "string",
         "enum": ["full", "partial", "low"],
-        "title": "ResponseGranularity"
+        "title": "ResponseGranularity",
+        "description": "Response granularity options for agent graph outputs.\n\nValues:\n    FULL: State, latest messages.\n    PARTIAL: Context, summary, latest messages.\n    LOW: Only latest messages."
       },
       "ResponseSchema": {
         "properties": {
@@ -1732,13 +3021,91 @@
         "title": "ResponseSchema",
         "description": "Base response schema for checkpointer operations."
       },
+      "RetrievalStrategy": {
+        "type": "string",
+        "enum": [
+          "similarity",
+          "temporal",
+          "relevance",
+          "hybrid",
+          "graph_traversal"
+        ],
+        "title": "RetrievalStrategy",
+        "description": "Memory retrieval strategies."
+      },
+      "SearchMemorySchema": {
+        "properties": {
+          "config": {
+            "anyOf": [{ "type": "object" }, { "type": "null" }],
+            "title": "Config",
+            "description": "Configuration values forwarded to the store backend."
+          },
+          "options": {
+            "anyOf": [{ "type": "object" }, { "type": "null" }],
+            "title": "Options",
+            "description": "Extra keyword arguments to forward to the store backend."
+          },
+          "query": {
+            "type": "string",
+            "title": "Query",
+            "description": "Textual query used for memory retrieval."
+          },
+          "memory_type": {
+            "anyOf": [
+              { "$ref": "#/components/schemas/MemoryType" },
+              { "type": "null" }
+            ],
+            "description": "Optional memory type filter."
+          },
+          "category": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Category",
+            "description": "Optional category filter."
+          },
+          "limit": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Limit",
+            "description": "Maximum number of results to return.",
+            "default": 10
+          },
+          "score_threshold": {
+            "anyOf": [{ "type": "number" }, { "type": "null" }],
+            "title": "Score Threshold",
+            "description": "Minimum similarity score required for results."
+          },
+          "filters": {
+            "anyOf": [{ "type": "object" }, { "type": "null" }],
+            "title": "Filters",
+            "description": "Additional store-specific filters."
+          },
+          "retrieval_strategy": {
+            "allOf": [{ "$ref": "#/components/schemas/RetrievalStrategy" }],
+            "description": "Retrieval strategy used by the backend store.",
+            "default": "similarity"
+          },
+          "distance_metric": {
+            "allOf": [{ "$ref": "#/components/schemas/DistanceMetric" }],
+            "description": "Distance metric applied during similarity search.",
+            "default": "cosine"
+          },
+          "max_tokens": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Max Tokens",
+            "description": "Maximum tokens used for truncation in similarity search.",
+            "default": 4000
+          }
+        },
+        "type": "object",
+        "required": ["query"],
+        "title": "SearchMemorySchema",
+        "description": "Schema for searching memories."
+      },
       "StateResponseSchema": {
         "properties": {
           "state": {
-            "anyOf": [
-              { "additionalProperties": true, "type": "object" },
-              { "type": "null" }
-            ],
+            "anyOf": [{ "type": "object" }, { "type": "null" }],
             "title": "State",
             "description": "State data"
           }
@@ -1750,15 +3117,11 @@
       "StateSchema": {
         "properties": {
           "config": {
-            "anyOf": [
-              { "additionalProperties": true, "type": "object" },
-              { "type": "null" }
-            ],
+            "anyOf": [{ "type": "object" }, { "type": "null" }],
             "title": "Config",
             "description": "Configuration for the state"
           },
           "state": {
-            "additionalProperties": true,
             "type": "object",
             "title": "State",
             "description": "State data"
@@ -1769,13 +3132,73 @@
         "title": "StateSchema",
         "description": "Schema for putting state."
       },
+      "StoreMemorySchema": {
+        "properties": {
+          "config": {
+            "anyOf": [{ "type": "object" }, { "type": "null" }],
+            "title": "Config",
+            "description": "Configuration values forwarded to the store backend."
+          },
+          "options": {
+            "anyOf": [{ "type": "object" }, { "type": "null" }],
+            "title": "Options",
+            "description": "Extra keyword arguments to forward to the store backend."
+          },
+          "content": {
+            "anyOf": [
+              { "type": "string" },
+              { "$ref": "#/components/schemas/Message-Input" }
+            ],
+            "title": "Content",
+            "description": "Memory content or structured message."
+          },
+          "memory_type": {
+            "allOf": [{ "$ref": "#/components/schemas/MemoryType" }],
+            "description": "Memory classification used by the backend store.",
+            "default": "episodic"
+          },
+          "category": {
+            "type": "string",
+            "title": "Category",
+            "description": "Category label for the memory.",
+            "default": "general"
+          },
+          "metadata": {
+            "anyOf": [{ "type": "object" }, { "type": "null" }],
+            "title": "Metadata",
+            "description": "Arbitrary metadata associated with the memory."
+          }
+        },
+        "type": "object",
+        "required": ["content"],
+        "title": "StoreMemorySchema",
+        "description": "Schema for storing a memory item."
+      },
+      "TextBlock": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["text"],
+            "const": "text",
+            "title": "Type",
+            "default": "text"
+          },
+          "text": { "type": "string", "title": "Text" },
+          "annotations": {
+            "items": { "$ref": "#/components/schemas/AnnotationRef" },
+            "type": "array",
+            "title": "Annotations"
+          }
+        },
+        "type": "object",
+        "required": ["text"],
+        "title": "TextBlock",
+        "description": "Text content block for messages.\n\nAttributes:\n    type (Literal[\"text\"]): Block type discriminator.\n    text (str): Text content.\n    annotations (list[AnnotationRef]): List of annotation references."
+      },
       "ThreadResponseSchema": {
         "properties": {
           "thread": {
-            "anyOf": [
-              { "additionalProperties": true, "type": "object" },
-              { "type": "null" }
-            ],
+            "anyOf": [{ "type": "object" }, { "type": "null" }],
             "title": "Thread",
             "description": "Thread data"
           }
@@ -1788,10 +3211,7 @@
         "properties": {
           "threads": {
             "anyOf": [
-              {
-                "items": { "additionalProperties": true, "type": "object" },
-                "type": "array"
-              },
+              { "items": { "type": "object" }, "type": "array" },
               { "type": "null" }
             ],
             "title": "Threads",
@@ -1824,27 +3244,140 @@
             "type": "integer",
             "title": "Cache Read Input Tokens",
             "default": 0
+          },
+          "image_tokens": {
+            "anyOf": [{ "type": "integer" }, { "type": "null" }],
+            "title": "Image Tokens",
+            "default": 0
+          },
+          "audio_tokens": {
+            "anyOf": [{ "type": "integer" }, { "type": "null" }],
+            "title": "Audio Tokens",
+            "default": 0
           }
         },
         "type": "object",
         "required": ["completion_tokens", "prompt_tokens", "total_tokens"],
         "title": "TokenUsages",
-        "description": "Tracks token usage statistics for a message or model response.\n\nExample:\n    >>> usage = TokenUsages(completion_tokens=10, prompt_tokens=20, total_tokens=30)\n    {'completion_tokens': 10, 'prompt_tokens': 20, 'total_tokens': 30, ...}"
+        "description": "Tracks token usage statistics for a message or model response.\n\nAttributes:\n    completion_tokens (int): Number of completion tokens used.\n    prompt_tokens (int): Number of prompt tokens used.\n    total_tokens (int): Total tokens used.\n    reasoning_tokens (int): Reasoning tokens used (optional).\n    cache_creation_input_tokens (int): Cache creation input tokens (optional).\n    cache_read_input_tokens (int): Cache read input tokens (optional).\n    image_tokens (int | None): Image tokens for multimodal models (optional).\n    audio_tokens (int | None): Audio tokens for multimodal models (optional).\n\nExample:\n    >>> usage = TokenUsages(completion_tokens=10, prompt_tokens=20, total_tokens=30)\n    {'completion_tokens': 10, 'prompt_tokens': 20, 'total_tokens': 30, ...}"
+      },
+      "ToolCallBlock": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["tool_call"],
+            "const": "tool_call",
+            "title": "Type",
+            "default": "tool_call"
+          },
+          "id": { "type": "string", "title": "Id" },
+          "name": { "type": "string", "title": "Name" },
+          "args": { "type": "object", "title": "Args" },
+          "tool_type": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Tool Type"
+          }
+        },
+        "type": "object",
+        "required": ["id", "name"],
+        "title": "ToolCallBlock",
+        "description": "Tool call content block for messages.\n\nAttributes:\n    type (Literal[\"tool_call\"]): Block type discriminator.\n    id (str): Tool call ID.\n    name (str): Tool name.\n    args (dict[str, Any]): Arguments for the tool call.\n    tool_type (str | None): Type of tool (e.g., web_search, file_search)."
+      },
+      "ToolResultBlock": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["tool_result"],
+            "const": "tool_result",
+            "title": "Type",
+            "default": "tool_result"
+          },
+          "call_id": { "type": "string", "title": "Call Id" },
+          "output": { "title": "Output" },
+          "is_error": {
+            "type": "boolean",
+            "title": "Is Error",
+            "default": false
+          },
+          "status": {
+            "anyOf": [
+              { "type": "string", "enum": ["completed", "failed"] },
+              { "type": "null" }
+            ],
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": ["call_id"],
+        "title": "ToolResultBlock",
+        "description": "Tool result content block for messages.\n\nAttributes:\n    type (Literal[\"tool_result\"]): Block type discriminator.\n    call_id (str): Tool call ID.\n    output (Any): Output from the tool (str, dict, MediaRef, or list of blocks).\n    is_error (bool): Whether the result is an error.\n    status (Literal[\"completed\", \"failed\"] | None): Status of the tool call."
+      },
+      "UpdateMemorySchema": {
+        "properties": {
+          "config": {
+            "anyOf": [{ "type": "object" }, { "type": "null" }],
+            "title": "Config",
+            "description": "Configuration values forwarded to the store backend."
+          },
+          "options": {
+            "anyOf": [{ "type": "object" }, { "type": "null" }],
+            "title": "Options",
+            "description": "Extra keyword arguments to forward to the store backend."
+          },
+          "content": {
+            "anyOf": [
+              { "type": "string" },
+              { "$ref": "#/components/schemas/Message-Input" }
+            ],
+            "title": "Content",
+            "description": "Updated memory content or message."
+          },
+          "metadata": {
+            "anyOf": [{ "type": "object" }, { "type": "null" }],
+            "title": "Metadata",
+            "description": "Updated metadata for the memory."
+          }
+        },
+        "type": "object",
+        "required": ["content"],
+        "title": "UpdateMemorySchema",
+        "description": "Schema for updating a memory."
+      },
+      "VideoBlock": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["video"],
+            "const": "video",
+            "title": "Type",
+            "default": "video"
+          },
+          "media": { "$ref": "#/components/schemas/MediaRef" },
+          "thumbnail": {
+            "anyOf": [
+              { "$ref": "#/components/schemas/MediaRef" },
+              { "type": "null" }
+            ]
+          }
+        },
+        "type": "object",
+        "required": ["media"],
+        "title": "VideoBlock",
+        "description": "Video content block for messages.\n\nAttributes:\n    type (Literal[\"video\"]): Block type discriminator.\n    media (MediaRef): Reference to video media.\n    thumbnail (MediaRef | None): Reference to thumbnail image."
       },
       "_SwaggerError400Schemas": {
         "properties": {
           "metadata": {
-            "additionalProperties": true,
             "type": "object",
             "title": "Metadata",
             "default": {
               "message": "Failed",
-              "request_id": "c898087dcc9446da9bbb906214e24c22",
-              "timestamp": "2025-09-01T17:50:40.171278"
+              "request_id": "89e743d4f1d64dff8b74cff178b3f4c1",
+              "timestamp": "2025-10-06T18:16:37.416823"
             }
           },
           "error": {
-            "$ref": "#/components/schemas/ErrorOutputSchema",
+            "allOf": [{ "$ref": "#/components/schemas/ErrorOutputSchema" }],
             "default": {
               "code": "BAD_REQUEST",
               "message": "Invalid input, please check the input data for any errors",
@@ -1858,17 +3391,16 @@
       "_SwaggerError401Schemas": {
         "properties": {
           "metadata": {
-            "additionalProperties": true,
             "type": "object",
             "title": "Metadata",
             "default": {
               "message": "Failed",
-              "request_id": "0b2bffc3e31d45f0acb2a87664dbabb8",
-              "timestamp": "2025-09-01T17:50:40.171862"
+              "request_id": "9f32652a9bf74c2cafa1aca2346e67ab",
+              "timestamp": "2025-10-06T18:16:37.418276"
             }
           },
           "error": {
-            "$ref": "#/components/schemas/ErrorOutputSchema",
+            "allOf": [{ "$ref": "#/components/schemas/ErrorOutputSchema" }],
             "default": {
               "code": "AUTHENTICATION_FAILED",
               "message": "Please provide valid credentials",
@@ -1882,17 +3414,16 @@
       "_SwaggerError403Schemas": {
         "properties": {
           "metadata": {
-            "additionalProperties": true,
             "type": "object",
             "title": "Metadata",
             "default": {
               "message": "Failed",
-              "request_id": "31f747ec79b144d69c6b647c4657bae1",
-              "timestamp": "2025-09-01T17:50:40.172129"
+              "request_id": "b51e65438a64443590b72bdcac10542d",
+              "timestamp": "2025-10-06T18:16:37.418965"
             }
           },
           "error": {
-            "$ref": "#/components/schemas/ErrorOutputSchema",
+            "allOf": [{ "$ref": "#/components/schemas/ErrorOutputSchema" }],
             "default": {
               "code": "PERMISSION_ERROR",
               "message": "You don't have permission to access this resource",
@@ -1906,17 +3437,16 @@
       "_SwaggerError404Schemas": {
         "properties": {
           "metadata": {
-            "additionalProperties": true,
             "type": "object",
             "title": "Metadata",
             "default": {
               "message": "Failed",
-              "request_id": "93ce51ef88594c0da2bcd549dea6be61",
-              "timestamp": "2025-09-01T17:50:40.171581"
+              "request_id": "407874a546da436f9eed4341d62fba4f",
+              "timestamp": "2025-10-06T18:16:37.417572"
             }
           },
           "error": {
-            "$ref": "#/components/schemas/ErrorOutputSchema",
+            "allOf": [{ "$ref": "#/components/schemas/ErrorOutputSchema" }],
             "default": {
               "code": "RESOURCE_NOT_FOUND",
               "message": "Resource not found",
@@ -1930,17 +3460,16 @@
       "_SwaggerError426Schemas": {
         "properties": {
           "metadata": {
-            "additionalProperties": true,
             "type": "object",
             "title": "Metadata",
             "default": {
               "message": "Failed",
-              "request_id": "322bec6a522448678ea9adf891dc2cf4",
-              "timestamp": "2025-09-01T17:50:40.172409"
+              "request_id": "642c3a99bb6b47f9b81370e1da91b622",
+              "timestamp": "2025-10-06T18:16:37.419645"
             }
           },
           "error": {
-            "$ref": "#/components/schemas/ErrorOutputSchema",
+            "allOf": [{ "$ref": "#/components/schemas/ErrorOutputSchema" }],
             "default": {
               "code": "VALIDATION_ERROR",
               "message": "Invalid input",
@@ -1961,13 +3490,12 @@
         "properties": {
           "data": { "$ref": "#/components/schemas/GraphInvokeOutputSchema" },
           "metadata": {
-            "additionalProperties": true,
             "type": "object",
             "title": "Metadata",
             "default": {
               "message": "Success",
-              "request_id": "a5110bdd2d3c4dcf8084097ea4929394",
-              "timestamp": "2025-09-01T17:50:40.170642"
+              "request_id": "5c877d01da834212b34e398ffca5fdc8",
+              "timestamp": "2025-10-06T18:16:37.415740"
             }
           }
         },
@@ -1979,13 +3507,12 @@
         "properties": {
           "data": { "$ref": "#/components/schemas/GraphSchema" },
           "metadata": {
-            "additionalProperties": true,
             "type": "object",
             "title": "Metadata",
             "default": {
               "message": "Success",
-              "request_id": "a5110bdd2d3c4dcf8084097ea4929394",
-              "timestamp": "2025-09-01T17:50:40.170642"
+              "request_id": "5c877d01da834212b34e398ffca5fdc8",
+              "timestamp": "2025-10-06T18:16:37.415740"
             }
           }
         },
@@ -1997,13 +3524,12 @@
         "properties": {
           "data": { "$ref": "#/components/schemas/GraphStreamChunkSchema" },
           "metadata": {
-            "additionalProperties": true,
             "type": "object",
             "title": "Metadata",
             "default": {
               "message": "Success",
-              "request_id": "a5110bdd2d3c4dcf8084097ea4929394",
-              "timestamp": "2025-09-01T17:50:40.170642"
+              "request_id": "5c877d01da834212b34e398ffca5fdc8",
+              "timestamp": "2025-10-06T18:16:37.415740"
             }
           }
         },
@@ -2011,17 +3537,103 @@
         "required": ["data"],
         "title": "_SwaggerSuccessSchemas[GraphStreamChunkSchema]"
       },
-      "_SwaggerSuccessSchemas_Message_": {
+      "_SwaggerSuccessSchemas_MemoryCreateResponseSchema_": {
         "properties": {
-          "data": { "$ref": "#/components/schemas/Message" },
+          "data": { "$ref": "#/components/schemas/MemoryCreateResponseSchema" },
           "metadata": {
-            "additionalProperties": true,
             "type": "object",
             "title": "Metadata",
             "default": {
               "message": "Success",
-              "request_id": "a5110bdd2d3c4dcf8084097ea4929394",
-              "timestamp": "2025-09-01T17:50:40.170642"
+              "request_id": "5c877d01da834212b34e398ffca5fdc8",
+              "timestamp": "2025-10-06T18:16:37.415740"
+            }
+          }
+        },
+        "type": "object",
+        "required": ["data"],
+        "title": "_SwaggerSuccessSchemas[MemoryCreateResponseSchema]"
+      },
+      "_SwaggerSuccessSchemas_MemoryItemResponseSchema_": {
+        "properties": {
+          "data": { "$ref": "#/components/schemas/MemoryItemResponseSchema" },
+          "metadata": {
+            "type": "object",
+            "title": "Metadata",
+            "default": {
+              "message": "Success",
+              "request_id": "5c877d01da834212b34e398ffca5fdc8",
+              "timestamp": "2025-10-06T18:16:37.415740"
+            }
+          }
+        },
+        "type": "object",
+        "required": ["data"],
+        "title": "_SwaggerSuccessSchemas[MemoryItemResponseSchema]"
+      },
+      "_SwaggerSuccessSchemas_MemoryListResponseSchema_": {
+        "properties": {
+          "data": { "$ref": "#/components/schemas/MemoryListResponseSchema" },
+          "metadata": {
+            "type": "object",
+            "title": "Metadata",
+            "default": {
+              "message": "Success",
+              "request_id": "5c877d01da834212b34e398ffca5fdc8",
+              "timestamp": "2025-10-06T18:16:37.415740"
+            }
+          }
+        },
+        "type": "object",
+        "required": ["data"],
+        "title": "_SwaggerSuccessSchemas[MemoryListResponseSchema]"
+      },
+      "_SwaggerSuccessSchemas_MemoryOperationResponseSchema_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/MemoryOperationResponseSchema"
+          },
+          "metadata": {
+            "type": "object",
+            "title": "Metadata",
+            "default": {
+              "message": "Success",
+              "request_id": "5c877d01da834212b34e398ffca5fdc8",
+              "timestamp": "2025-10-06T18:16:37.415740"
+            }
+          }
+        },
+        "type": "object",
+        "required": ["data"],
+        "title": "_SwaggerSuccessSchemas[MemoryOperationResponseSchema]"
+      },
+      "_SwaggerSuccessSchemas_MemorySearchResponseSchema_": {
+        "properties": {
+          "data": { "$ref": "#/components/schemas/MemorySearchResponseSchema" },
+          "metadata": {
+            "type": "object",
+            "title": "Metadata",
+            "default": {
+              "message": "Success",
+              "request_id": "5c877d01da834212b34e398ffca5fdc8",
+              "timestamp": "2025-10-06T18:16:37.415740"
+            }
+          }
+        },
+        "type": "object",
+        "required": ["data"],
+        "title": "_SwaggerSuccessSchemas[MemorySearchResponseSchema]"
+      },
+      "_SwaggerSuccessSchemas_Message_": {
+        "properties": {
+          "data": { "$ref": "#/components/schemas/Message-Output" },
+          "metadata": {
+            "type": "object",
+            "title": "Metadata",
+            "default": {
+              "message": "Success",
+              "request_id": "5c877d01da834212b34e398ffca5fdc8",
+              "timestamp": "2025-10-06T18:16:37.415740"
             }
           }
         },
@@ -2033,13 +3645,12 @@
         "properties": {
           "data": { "$ref": "#/components/schemas/MessagesListResponseSchema" },
           "metadata": {
-            "additionalProperties": true,
             "type": "object",
             "title": "Metadata",
             "default": {
               "message": "Success",
-              "request_id": "a5110bdd2d3c4dcf8084097ea4929394",
-              "timestamp": "2025-09-01T17:50:40.170642"
+              "request_id": "5c877d01da834212b34e398ffca5fdc8",
+              "timestamp": "2025-10-06T18:16:37.415740"
             }
           }
         },
@@ -2051,13 +3662,12 @@
         "properties": {
           "data": { "$ref": "#/components/schemas/ResponseSchema" },
           "metadata": {
-            "additionalProperties": true,
             "type": "object",
             "title": "Metadata",
             "default": {
               "message": "Success",
-              "request_id": "a5110bdd2d3c4dcf8084097ea4929394",
-              "timestamp": "2025-09-01T17:50:40.170642"
+              "request_id": "5c877d01da834212b34e398ffca5fdc8",
+              "timestamp": "2025-10-06T18:16:37.415740"
             }
           }
         },
@@ -2069,13 +3679,12 @@
         "properties": {
           "data": { "$ref": "#/components/schemas/StateResponseSchema" },
           "metadata": {
-            "additionalProperties": true,
             "type": "object",
             "title": "Metadata",
             "default": {
               "message": "Success",
-              "request_id": "a5110bdd2d3c4dcf8084097ea4929394",
-              "timestamp": "2025-09-01T17:50:40.170642"
+              "request_id": "5c877d01da834212b34e398ffca5fdc8",
+              "timestamp": "2025-10-06T18:16:37.415740"
             }
           }
         },
@@ -2087,13 +3696,12 @@
         "properties": {
           "data": { "$ref": "#/components/schemas/ThreadResponseSchema" },
           "metadata": {
-            "additionalProperties": true,
             "type": "object",
             "title": "Metadata",
             "default": {
               "message": "Success",
-              "request_id": "a5110bdd2d3c4dcf8084097ea4929394",
-              "timestamp": "2025-09-01T17:50:40.170642"
+              "request_id": "5c877d01da834212b34e398ffca5fdc8",
+              "timestamp": "2025-10-06T18:16:37.415740"
             }
           }
         },
@@ -2105,13 +3713,12 @@
         "properties": {
           "data": { "$ref": "#/components/schemas/ThreadsListResponseSchema" },
           "metadata": {
-            "additionalProperties": true,
             "type": "object",
             "title": "Metadata",
             "default": {
               "message": "Success",
-              "request_id": "a5110bdd2d3c4dcf8084097ea4929394",
-              "timestamp": "2025-09-01T17:50:40.170642"
+              "request_id": "5c877d01da834212b34e398ffca5fdc8",
+              "timestamp": "2025-10-06T18:16:37.415740"
             }
           }
         },
@@ -2119,17 +3726,33 @@
         "required": ["data"],
         "title": "_SwaggerSuccessSchemas[ThreadsListResponseSchema]"
       },
-      "_SwaggerSuccessSchemas_str_": {
+      "_SwaggerSuccessSchemas_dict_": {
         "properties": {
-          "data": { "type": "string", "title": "Data" },
+          "data": { "type": "object", "title": "Data" },
           "metadata": {
-            "additionalProperties": true,
             "type": "object",
             "title": "Metadata",
             "default": {
               "message": "Success",
-              "request_id": "a5110bdd2d3c4dcf8084097ea4929394",
-              "timestamp": "2025-09-01T17:50:40.170642"
+              "request_id": "5c877d01da834212b34e398ffca5fdc8",
+              "timestamp": "2025-10-06T18:16:37.415740"
+            }
+          }
+        },
+        "type": "object",
+        "required": ["data"],
+        "title": "_SwaggerSuccessSchemas[dict]"
+      },
+      "_SwaggerSuccessSchemas_str_": {
+        "properties": {
+          "data": { "type": "string", "title": "Data" },
+          "metadata": {
+            "type": "object",
+            "title": "Metadata",
+            "default": {
+              "message": "Success",
+              "request_id": "5c877d01da834212b34e398ffca5fdc8",
+              "timestamp": "2025-10-06T18:16:37.415740"
             }
           }
         },

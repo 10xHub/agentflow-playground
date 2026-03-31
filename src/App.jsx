@@ -4,8 +4,8 @@ import { Provider } from "react-redux"
 import { RouterProvider } from "react-router-dom"
 import { PersistGate } from "redux-persist/integration/react"
 
-import { ThemeProvider } from "@/lib/context/ThemeProvider"
-import { asyncStoragePersister, queryClient } from "@/lib/queryClient"
+import { ThemeProvider } from "@/lib/context/theme-provider"
+import { asyncStoragePersister, queryClient } from "@/lib/query-client"
 import { store, persistor } from "@store/"
 
 import router from "./route/index"

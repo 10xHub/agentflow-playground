@@ -1,4 +1,4 @@
-import DashboardUI from "./Dashboard.ui"
+import DashboardUI from "./dashboard.ui"
 
 const Dashboard = () => {
   return <DashboardUI />

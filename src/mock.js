@@ -7,7 +7,7 @@
  * @function enableMocking
  * @returns {Promise<void>|undefined} A promise that resolves when the mock worker is started, or undefined in production.
  */
-export async function enableMocking() {
+export const enableMocking = async () => {
   if (import.meta.env.PROD) {
     return
   }

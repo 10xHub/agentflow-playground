@@ -1,4 +1,3 @@
-/* eslint-disable no-undef */
 import PropTypes from "prop-types"
 import { useEffect, useState } from "react"
 

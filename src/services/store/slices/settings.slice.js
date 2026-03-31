@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit"
 
-import { pingBackend, fetchGraphData } from "@api/setupIntegration.api"
+import { pingBackend, fetchGraphData } from "@api/setup-integration.api"
 import ct from "@constants/"
 
 // Async thunks for API testing
@@ -9,7 +9,7 @@ export const testPingEndpoint = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const result = await pingBackend()
-      console.log("#SDT Ping Result:", result)
+      console.warn("#SDT Ping Result:", result)
       return result
     } catch (error) {
       console.error("#SDT Ping error:", error.message)
@@ -23,7 +23,7 @@ export const testGraphEndpoint = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const result = await fetchGraphData()
-      console.log("#SDT Graph Result:", result)
+      console.warn("#SDT Graph Result:", result)
       return result
     } catch (error) {
       return rejectWithValue(error.message)
@@ -104,7 +104,9 @@ const settingsSlice = createSlice({
         state.verification.graphStep.status = "success"
         state.verification.graphStep.errorMessage = ""
         // also save the data in the state
-        state.graphData = action.payload.data.data
+        // The response format from client library is { data: {...}, metadata: {...} }
+        // We need to extract the graph data
+        state.graphData = action.payload.data?.graph || action.payload.data
         state.verification.isVerified =
           state.verification.pingStep.status === "success"
         state.verification.lastVerificationTime = new Date().toISOString()

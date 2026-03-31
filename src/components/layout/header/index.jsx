@@ -1,7 +1,7 @@
 import { AnimatedThemeToggler } from "@/components/magicui/animated-theme-toggler"
 
-import LanguageNav from "./LanguageNav"
-import UserNav from "./UserNav"
+import LanguageNav from "./language-nav"
+import UserNav from "./user-nav"
 // import SheetMenu from "../sidebars/sheet-menu"
 
 /**

@@ -1,9 +1,9 @@
 import { createBrowserRouter } from "react-router-dom"
 
-import MainLayout from "@/components/layout/MainLayout"
+import MainLayout from "@/components/layout/main-layout"
 import ct from "@constants/"
 
-import dashboardRoutes from "./Main.routes"
+import dashboardRoutes from "./main.routes"
 
 const router = createBrowserRouter([
   {

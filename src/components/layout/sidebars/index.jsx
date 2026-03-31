@@ -7,8 +7,8 @@ import { cn } from "@/lib/utils"
 import ct from "@constants/"
 import { changeSidebar } from "@store/slices/theme.slice"
 
-import Menu from "./Menu"
-import SidebarToggle from "./SidebarToggle"
+import Menu from "./menu"
+import SidebarToggle from "./sidebar-toggle"
 
 const Sidebar = () => {
   const store = useSelector((st) => st[ct.store.THEME_STORE])

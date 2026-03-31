@@ -1,18 +1,44 @@
-import api from "./index"
+import { getAgentFlowClient } from "@/lib/agentflow-client"
 
 export const fetchStateSchema = async () => {
-  return await api.get("/v1/graph/stateSchema")
+  const client = getAgentFlowClient()
+  const response = await client.graphStateSchema()
+  // Transform to match existing response format
+  return {
+    data: response.data,
+    status: 200,
+  }
 }
 
 export const fetchState = async (thread_id) => {
-  return await api.get(`/v1/threads/${thread_id}/state`)
+  const client = getAgentFlowClient()
+  const response = await client.threadState(thread_id)
+  // Transform to match existing response format
+  return {
+    data: response.data,
+    status: 200,
+  }
 }
 
 export const putState = async (thread_id, body) => {
+  const client = getAgentFlowClient()
   // body should conform to StateSchema (see openapi.json)
-  return await api.put(`/v1/threads/${thread_id}/state`, body)
+  // Extract config and state from body
+  const { config = {}, state } = body
+  const response = await client.updateThreadState(thread_id, config, state)
+  // Transform to match existing response format
+  return {
+    data: response.data,
+    status: 200,
+  }
 }
 
 export const deleteState = async (thread_id) => {
-  return await api.delete(`/v1/threads/${thread_id}/state`)
+  const client = getAgentFlowClient()
+  const response = await client.clearThreadState(thread_id)
+  // Transform to match existing response format
+  return {
+    data: response.data,
+    status: 200,
+  }
 }

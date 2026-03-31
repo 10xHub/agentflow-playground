@@ -1,4 +1,5 @@
 "use client"
+import PropTypes from "prop-types"
 import * as React from "react"
 
 import { cn } from "@/lib/utils"
@@ -42,3 +43,16 @@ export const ShineBorder = ({
     />
   )
 }
+
+/* eslint-disable react/require-default-props */
+ShineBorder.propTypes = {
+  borderWidth: PropTypes.number,
+  duration: PropTypes.number,
+  shineColor: PropTypes.oneOfType([
+    PropTypes.string,
+    PropTypes.arrayOf(PropTypes.string),
+  ]),
+  className: PropTypes.string,
+  style: PropTypes.object,
+}
+/* eslint-enable react/require-default-props */

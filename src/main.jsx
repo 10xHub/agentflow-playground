@@ -2,7 +2,6 @@ import moment from "moment-timezone"
 import React from "react"
 import ReactDOM from "react-dom/client"
 
-// eslint-disable-next-line import/order
 import App from "./App"
 
 import "./main.css"
