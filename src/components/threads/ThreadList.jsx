@@ -1,11 +1,10 @@
-import { MessageSquarePlus, MoreVertical, Trash2 } from "lucide-react"
+import { MessageSquarePlus, MoreVertical, Trash2, MessagesSquare } from "lucide-react"
 import PropTypes from "prop-types"
 import { useMemo } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import { useNavigate, useLocation } from "react-router-dom"
 
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,7 +18,6 @@ import {
   setActiveThread,
 } from "@/services/store/slices/chat.slice"
 import ct from "@constants/"
-// Tooltip components are not used here; remove to satisfy lint
 
 // Helper function to format dates
 const formatDate = (dateString) => {
@@ -39,50 +37,61 @@ const formatDate = (dateString) => {
 
 // ThreadItem component to handle individual thread rendering
 const ThreadItem = ({ thread, isActive, onSelect, onDelete }) => (
-  <Card
-    className={`group relative flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors hover:bg-accent w-full text-left ${
-      isActive ? "bg-accent text-accent-foreground" : ""
-    }`}
+  <div
+    role="button"
+    tabIndex={0}
+    className={cn(
+      "group relative flex items-start gap-2.5 px-3 py-2.5 rounded-md cursor-pointer transition-all duration-100 w-full text-left select-none outline-none",
+      isActive
+        ? "bg-accent text-accent-foreground"
+        : "hover:bg-accent/50 text-foreground/70 hover:text-foreground"
+    )}
     onClick={() => onSelect(thread.id)}
+    onKeyDown={(e) => e.key === "Enter" && onSelect(thread.id)}
   >
     <div className="flex-1 min-w-0">
-      <h3 className="text-sm font-medium truncate">
-        {thread.title.slice(0, 30)}
-      </h3>
-      <div className="flex items-center justify-between">
-        <p className="text-xs text-muted-foreground truncate flex-1">
-          {thread.messages.length > 0
-            ? thread.messages[thread.messages.length - 1].content.slice(0, 30)
-            : "No messages yet"}
-        </p>
-        <span className="text-xs text-muted-foreground ml-2">
-          {formatDate(thread.updatedAt)}
-        </span>
-      </div>
+      <p className={cn(
+        "text-[13px] truncate leading-snug",
+        isActive ? "font-medium text-foreground" : "font-normal"
+      )}>
+        {thread.title}
+      </p>
+      <p className="text-[11px] text-muted-foreground truncate mt-0.5 leading-snug">
+        {thread.messages.length > 0
+          ? thread.messages[thread.messages.length - 1].content
+          : "No messages yet"}
+      </p>
     </div>
 
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-          onClick={(event) => event.stopPropagation()}
-        >
-          <MoreVertical className="h-4 w-4" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem
-          onClick={(event) => onDelete(thread.id, event)}
-          className="text-destructive"
-        >
-          <Trash2 className="h-4 w-4 mr-2" />
-          Delete
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  </Card>
+    <div className="flex-shrink-0 flex items-center gap-1 pt-0.5">
+      <span className="text-[10px] tabular-nums text-muted-foreground/80">
+        {formatDate(thread.updatedAt)}
+      </span>
+      <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-5 w-5 text-muted-foreground hover:text-foreground hover:bg-transparent"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <MoreVertical className="h-3 w-3" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-36">
+            <DropdownMenuItem
+              onClick={(event) => onDelete(thread.id, event)}
+              className="text-destructive focus:text-destructive focus:bg-destructive/10"
+            >
+              <Trash2 className="h-3.5 w-3.5 mr-2" />
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </div>
+  </div>
 )
 
 const ThreadList = ({ className }) => {
@@ -145,29 +154,38 @@ const ThreadList = ({ className }) => {
 
   return (
     <div className={cn("flex flex-col h-full", className)}>
-      <div className="flex items-center justify-between p-2 flex-shrink-0">
-        <Button variant="ghost" onClick={handleNavigateToChat}>
-          Chats
-        </Button>
+      {/* Sidebar header */}
+      <div className="flex items-center justify-between px-4 py-3 flex-shrink-0">
+        <button
+          className="flex items-center gap-2 text-[13px] font-semibold text-foreground/80 hover:text-foreground transition-colors"
+          onClick={handleNavigateToChat}
+        >
+          <MessagesSquare className="h-3.5 w-3.5" />
+          Conversations
+        </button>
         <Button
           variant="ghost"
           size="icon"
           onClick={handleNewChatMaybe}
           disabled={!isVerified}
-          className="h-8 w-8"
-          aria-label="New chat"
+          className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-accent"
+          aria-label="New conversation"
         >
           <MessageSquarePlus className="h-4 w-4" />
         </Button>
       </div>
 
       <ScrollArea className="flex-1 min-h-0">
-        <div className="p-2 space-y-1">
+        <div className="px-2 pb-4">
           {sortedThreads.length === 0 ? (
-            <div className="text-center text-muted-foreground p-8">
-              <MessageSquarePlus className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No conversations yet</p>
-              <p className="text-sm">Start a new chat to begin</p>
+            <div className="flex flex-col items-center justify-center text-center text-muted-foreground px-4 py-12 gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
+                <MessagesSquare className="h-5 w-5 opacity-50" />
+              </div>
+              <div>
+                <p className="text-[13px] font-medium">No conversations</p>
+                <p className="text-[11px] mt-0.5">Start a new chat to begin</p>
+              </div>
             </div>
           ) : (
             sortedThreads.map((thread) => (

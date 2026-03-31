@@ -35,14 +35,14 @@ const DevelopmentToolButton = ({
           size="sm"
           onClick={handleClick}
           disabled={disabled}
-          className={`h-8 w-8 p-0 ${
+          className={`h-8 w-8 p-0 text-muted-foreground transition-colors ${
             disabled
               ? "opacity-50 cursor-not-allowed"
-              : "hover:bg-slate-100 dark:hover:bg-slate-800"
-          } ${isActive && !disabled ? "bg-slate-100 dark:bg-slate-800" : ""}`}
+              : "hover:bg-accent hover:text-accent-foreground"
+          } ${isActive && !disabled ? "bg-accent text-accent-foreground" : ""}`}
           aria-label={tooltip}
         >
-          {text} <Icon className="h-4 w-4" />
+          {text} <Icon className="h-[18px] w-[18px]" />
         </Button>
       </TooltipTrigger>
       <TooltipContent>

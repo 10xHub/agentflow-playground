@@ -1,5 +1,6 @@
 /* eslint-disable unicorn/filename-case */
 import PropTypes from "prop-types"
+import { cn } from "@/lib/utils"
 
 import { Button } from "@/components/ui/button"
 import { buildMessageText } from "@/lib/messageContent"
@@ -29,15 +30,16 @@ const ContextMessage = ({
             #{index + 1}
           </span>
           <span
-            className={`text-xs px-2 py-1 rounded-full ${
+            className={cn(
+              "text-[10px] font-medium px-1.5 py-0.5 rounded",
               message.role === "user"
-                ? "bg-blue-100 text-blue-700"
+                ? "bg-blue-500/10 text-blue-600 dark:text-blue-400"
                 : message.role === "assistant"
-                  ? "bg-green-100 text-green-700"
+                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                   : message.role === "system"
-                    ? "bg-purple-100 text-purple-700"
-                    : "bg-gray-100 text-gray-700"
-            }`}
+                    ? "bg-violet-500/10 text-violet-600 dark:text-violet-400"
+                    : "bg-muted text-muted-foreground"
+            )}
           >
             {message.role}
           </span>

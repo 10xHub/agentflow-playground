@@ -13,6 +13,7 @@ import {
   Code,
   Settings,
   AlertCircle,
+  AlertTriangle,
 } from "lucide-react"
 import PropTypes from "prop-types"
 import { useState, useRef, useEffect, useCallback } from "react"
@@ -56,6 +57,7 @@ const Message = ({ message }) => {
   const isToolCall = message.kind === "tool_call"
   const isToolResult =
     message.kind === "tool_result" || message.role === "tool"
+  const isError = message.kind === "error"
   const showToolMessageContent = useSelector(
     (state) => state.threadSettingsStore.show_tool_message_content
   )
@@ -73,23 +75,29 @@ const Message = ({ message }) => {
       ? "Tool Call"
       : isToolResult
         ? "Tool Result"
-        : null
+        : isError
+          ? "Error"
+          : null
   const bubbleClassName = isUser
-    ? "bg-blue-600 text-white ml-8"
-    : isReasoning
-      ? "bg-slate-50 dark:bg-slate-900/80 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700"
-      : isToolCall
-        ? "bg-amber-50 dark:bg-amber-950/20 text-slate-900 dark:text-white border border-amber-200 dark:border-amber-800"
-        : isToolResult
-          ? "bg-orange-50 dark:bg-orange-950/20 text-slate-900 dark:text-white border border-orange-200 dark:border-orange-800"
-          : "bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700"
-  const avatarClassName = isToolCall
-    ? "from-amber-500 to-orange-500"
-    : isToolResult
-      ? "from-orange-500 to-red-500"
+    ? "bg-[#f4f4f4] dark:bg-muted font-normal text-foreground"
+    : isError
+      ? "bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800 rounded-xl px-4 py-3"
       : isReasoning
-        ? "from-slate-500 to-slate-700"
-        : "from-blue-500 to-purple-600"
+        ? "bg-muted/30 dark:bg-muted/20 text-muted-foreground border-l-2 border-slate-300 dark:border-slate-700"
+        : isToolCall
+          ? "bg-muted/30 dark:bg-muted/20 text-muted-foreground border-l-2 border-amber-400 dark:border-amber-600"
+          : isToolResult
+            ? "bg-muted/30 dark:bg-muted/20 text-muted-foreground border-l-2 border-orange-400 dark:border-orange-600"
+            : "bg-transparent text-foreground"
+  const avatarClassName = isError
+    ? "from-red-100 to-red-200 dark:from-red-900 dark:to-red-950 text-red-600 dark:text-red-400"
+    : isToolCall
+      ? "from-amber-100 to-amber-200 dark:from-amber-900 dark:to-amber-950 text-amber-600 dark:text-amber-400"
+      : isToolResult
+        ? "from-orange-100 to-orange-200 dark:from-orange-900 dark:to-orange-950 text-orange-600 dark:text-orange-400"
+        : isReasoning
+          ? "from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 text-slate-600 dark:text-slate-400"
+          : "from-blue-600 to-indigo-600 text-white"
 
   const handleCopy = async () => {
     try {
@@ -225,28 +233,34 @@ const Message = ({ message }) => {
 
   return (
     <div
-      className={`flex gap-4 p-6 ${isUser ? "justify-end" : ""} group hover:bg-muted/30 transition-colors`}
+      className={`flex gap-4 py-6 px-4 md:px-6 w-full max-w-4xl mx-auto ${isUser ? "justify-end" : "justify-start"} group transition-colors`}
     >
       {!isUser && (
         <div
-          className={`flex-shrink-0 w-9 h-9 rounded-full bg-gradient-to-br ${avatarClassName} flex items-center justify-center shadow-sm`}
+          className={`flex-shrink-0 w-8 h-8 rounded-md bg-gradient-to-br ${avatarClassName} flex items-center justify-center shadow-sm`}
         >
-          <Bot className="w-5 h-5 text-white" />
+          {isError ? (
+            <AlertTriangle className="w-4 h-4 text-current" />
+          ) : (
+            <Bot className="w-5 h-5 text-current opacity-80" />
+          )}
         </div>
       )}
-      <div className={`flex flex-col max-w-[75%] ${isUser ? "items-end" : ""}`}>
+      <div className={`flex flex-col flex-1 min-w-0 max-w-[85%] ${isUser ? "items-end" : "items-start"}`}>
         {!isUser && kindLabel && (
-          <div className="mb-2 px-2">
-            <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium uppercase tracking-wide text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+          <div className="mb-1">
+            <span className={`inline-flex items-center text-[11px] font-semibold tracking-wider uppercase ${isError ? "text-red-500 dark:text-red-400" : "text-muted-foreground"}`}>
               {kindLabel}
             </span>
           </div>
         )}
-        <div className="relative">
-          <div className={`rounded-2xl px-5 py-3 shadow-sm ${bubbleClassName}`}>
-            <div className="text-sm leading-relaxed">
+        <div className={isUser ? "flex justify-end" : "relative w-full"}>
+          <div className={`${isUser ? "rounded-2xl px-5 py-3 shadow-sm max-w-full" : isError ? "" : "py-1"} ${bubbleClassName}`}>
+            <div className="text-[15px] leading-relaxed">
               {isUser ? (
                 <p className="whitespace-pre-wrap">{message.content}</p>
+              ) : isError ? (
+                <p className="whitespace-pre-wrap text-sm">{message.content}</p>
               ) : (
                 <div className="prose prose-sm max-w-none dark:prose-invert prose-slate">
                   <ReactMarkdown
@@ -279,9 +293,9 @@ const Message = ({ message }) => {
                       variant="ghost"
                       size="sm"
                       onClick={handleCopy}
-                      className="h-6 w-6 p-0 text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700"
+                      className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground hover:bg-muted"
                     >
-                      <Copy className="w-3 h-3" />
+                      <Copy className="w-3.5 h-3.5" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
@@ -298,9 +312,9 @@ const Message = ({ message }) => {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-6 w-6 p-0 text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700"
+                          className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground hover:bg-muted"
                         >
-                          <Code className="w-3 h-3" />
+                          <Code className="w-3.5 h-3.5" />
                         </Button>
                       </SheetTrigger>
                     </TooltipTrigger>
@@ -326,18 +340,12 @@ const Message = ({ message }) => {
             </div>
           )}
 
-          {isUser && (
-            <div className="flex space-x-1">
-              <div className="w-1 h-1 bg-blue-500 rounded-full"></div>
-              <div className="w-1 h-1 bg-blue-500 rounded-full"></div>
-            </div>
-          )}
         </div>
       </div>
 
       {isUser && (
-        <div className="flex-shrink-0 w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center shadow-sm">
-          <User className="w-5 h-5 text-white" />
+        <div className="flex-shrink-0 mt-0.5 w-8 h-8 rounded-md bg-muted flex items-center justify-center shadow-sm">
+          <User className="w-5 h-5 text-muted-foreground" />
         </div>
       )}
     </div>
@@ -349,29 +357,29 @@ const Message = ({ message }) => {
  */
 const TypingIndicator = () => {
   return (
-    <div className="flex gap-4 p-6">
-      <div className="flex-shrink-0 w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-sm">
-        <Bot className="w-5 h-5 text-white" />
+    <div className="flex gap-4 py-4 px-4 md:px-6 w-full max-w-4xl mx-auto justify-start group">
+      <div className="flex-shrink-0 w-8 h-8 rounded-md bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-sm">
+        <Bot className="w-5 h-5 text-white opacity-80" />
       </div>
-      <div className="flex flex-col max-w-[75%]">
-        <div className="rounded-2xl px-5 py-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm">
-          <div className="flex space-x-2 items-center">
-            <div className="flex space-x-1">
+      <div className="flex flex-col flex-1 min-w-0">
+        <div className="py-2 px-3 bg-muted/40 rounded-xl w-fit">
+          <div className="flex items-center gap-2">
+            <div className="flex space-x-1.5">
               <div
-                className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"
+                className="w-2 h-2 bg-blue-500/70 rounded-full animate-bounce"
                 style={{ animationDelay: "0ms" }}
               />
               <div
-                className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"
+                className="w-2 h-2 bg-blue-500/70 rounded-full animate-bounce"
                 style={{ animationDelay: "150ms" }}
               />
               <div
-                className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"
+                className="w-2 h-2 bg-blue-500/70 rounded-full animate-bounce"
                 style={{ animationDelay: "300ms" }}
               />
             </div>
-            <span className="text-xs text-muted-foreground ml-2">
-              AI is thinking...
+            <span className="text-xs text-muted-foreground animate-pulse font-medium">
+              AI is thinking…
             </span>
           </div>
         </div>
@@ -518,7 +526,7 @@ const MessageInput = ({
   }
 
   return (
-    <div className="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2">
+    <div className="pt-2 pb-4 px-4 bg-transparent w-full max-w-4xl mx-auto">
       {/* File previews */}
       {attachedFiles.length > 0 && (
         <div className="mb-4 space-y-2">
@@ -529,56 +537,20 @@ const MessageInput = ({
       )}
 
       {/* Main input area */}
-      <Card
-        className={`relative transition-all duration-200 ${
+      <div
+        className={`relative transition-all duration-200 rounded-2xl border bg-background shadow-sm ${
           isDragOver
-            ? "border-blue-400 bg-blue-50 dark:bg-blue-950/20"
-            : "border-slate-200 dark:border-slate-700"
+            ? "border-primary bg-primary/5 shadow-md"
+            : "border-border/60 hover:border-border focus-within:border-border focus-within:ring-1 focus-within:ring-ring"
         }`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       >
-        <CardContent className="p-0">
-          <form onSubmit={handleSubmit} className="flex items-end gap-2 p-3">
-            {/* Attachment controls */}
-            <div className="flex items-center gap-1">
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={() => fileInputRef.current?.click()}
-                className="h-9 w-9 text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
-                title="Attach files"
-              >
-                <Paperclip className="w-4 h-4" />
-              </Button>
-
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={handleVoiceInput}
-                className="h-9 w-9 text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
-                title="Voice input (coming soon)"
-              >
-                <Mic className="w-4 h-4" />
-              </Button>
-
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={handleVideoInput}
-                className="h-9 w-9 text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
-                title="Video input (coming soon)"
-              >
-                <Video className="w-4 h-4" />
-              </Button>
-            </div>
-
+        <div className="p-0">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-2 p-2 w-full">
             {/* Text input */}
-            <div className="flex-1 relative">
+            <div className="flex-1 relative w-full px-2 pt-2">
               <textarea
                 ref={textareaRef}
                 value={message}
@@ -587,41 +559,79 @@ const MessageInput = ({
                 placeholder={
                   isDragOver
                     ? "Drop files here..."
-                    : "Type your message here..."
+                    : "Message AgentFlow Workbench..."
                 }
                 disabled={disabled}
-                className="w-full resize-none border-0 bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 min-h-[36px] max-h-[120px]"
+                className="w-full resize-none border-0 bg-transparent text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 min-h-[44px] max-h-[200px]"
                 rows={1}
               />
             </div>
 
-            {/* Send/Stop button */}
-            {isGenerating ? (
-              <Button
-                type="button"
-                onClick={onStopGeneration}
-                size="icon"
-                className="h-9 w-9 bg-red-500 hover:bg-red-600 text-white shadow-sm"
-                title="Stop generation"
-              >
-                <Square className="h-4 w-4" />
-              </Button>
-            ) : (
-              <Button
-                type="submit"
-                size="icon"
-                disabled={
-                  (!message.trim() && attachedFiles.length === 0) || disabled
-                }
-                className="h-9 w-9 bg-blue-600 hover:bg-blue-700 text-white shadow-sm disabled:bg-slate-300 dark:disabled:bg-slate-700"
-                title="Send message"
-              >
-                <Send className="h-4 w-4" />
-              </Button>
-            )}
+            <div className="flex items-center justify-between w-full pb-1 px-1">
+              {/* Attachment controls */}
+              <div className="flex items-center gap-0.5">
+                <TooltipProvider delayDuration={300}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted"
+                      >
+                        <Paperclip className="w-4 h-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">Attach files</TooltipContent>
+                  </Tooltip>
+                  
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={handleVoiceInput}
+                        className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted"
+                      >
+                        <Mic className="w-4 h-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">Voice input (coming soon)</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+
+              {/* Send/Stop button */}
+              <div className="flex items-center pr-1">
+                {isGenerating ? (
+                  <Button
+                    type="button"
+                    onClick={onStopGeneration}
+                    size="icon"
+                    className="h-8 w-8 rounded-full bg-destructive/10 text-destructive hover:bg-destructive/20"
+                    title="Stop generation"
+                  >
+                    <Square className="h-3 w-3 fill-current" />
+                  </Button>
+                ) : (
+                  <Button
+                    type="submit"
+                    size="icon"
+                    disabled={
+                      (!message.trim() && attachedFiles.length === 0) || disabled
+                    }
+                    className="h-8 w-8 rounded-full animate-in fade-in zoom-in bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground disabled:opacity-50"
+                  >
+                    <Send className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+              </div>
+            </div>
           </form>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Hidden file input */}
       <input

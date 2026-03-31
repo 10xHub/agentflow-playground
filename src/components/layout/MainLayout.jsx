@@ -79,19 +79,22 @@ const MainLayout = () => {
       <SidebarProvider>
         <AppSidebar />
 
-        <main className="flex flex-col h-screen w-full">
-          <div className="sticky top-0 z-50 w-full dark:shadow-secondary flex items-center p-4 bg-white dark:bg-[#020817] border-b dark:border-slate-800">
-            <div className="flex items-center gap-4">
+        <main className="flex flex-col h-screen w-full bg-background selection:bg-primary/20">
+          <header className="sticky top-0 z-50 w-full flex items-center px-4 py-2.5 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
+            <div className="flex items-center gap-3">
               <SidebarTrigger />
               {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events */}
               <span
-                className="cursor-pointer"
+                className="cursor-pointer flex items-center gap-2 transition-opacity hover:opacity-80"
                 onClick={handleGoHome}
                 tabIndex={0}
                 role="button"
                 aria-label="Go to home page"
               >
-                <span className="text-lg font-bold">AgentFlow Playground</span>
+                <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
+                  <GitGraph className="h-4 w-4" />
+                </div>
+                <span className="text-sm font-semibold tracking-tight">AgentFlow Workbench</span>
               </span>
             </div>
 
@@ -146,7 +149,7 @@ const MainLayout = () => {
                 isActive={activeSheet === "history"}
                 disabled={!isVerified}
               />
-              <Separator orientation="vertical" className="h-6" />
+              <Separator orientation="vertical" className="h-4 bg-border/60 mx-1" />
               <DevelopmentToolButton
                 icon={Settings}
                 tooltip="Settings"
@@ -155,7 +158,7 @@ const MainLayout = () => {
                 disabled={false}
               />
               <ModeToggle />
-              <Separator orientation="vertical" className="h-6" />
+              <Separator orientation="vertical" className="h-4 bg-border/60 mx-1" />
               <div className="flex text-sm text-gray-500 dark:text-gray-400">
                 <Github />{" "}
                 <span className="ml-1">
@@ -170,8 +173,8 @@ const MainLayout = () => {
                 </span>
               </div>
             </div>
-          </div>
-          <div className="flex-1 overflow-hidden p-6">
+          </header>
+          <div className="flex-1 overflow-hidden">
             <Outlet />
           </div>
           <ViewStateSheet

@@ -209,53 +209,44 @@ const ViewStateSheet = ({ isOpen, onClose }) => {
   return (
     <>
       <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
-        <SheetContent side="right">
-          <SheetHeader className="pb-6">
+        <SheetContent side="right" className="flex flex-col p-0 gap-0 w-[440px] sm:w-[480px]">
+          <SheetHeader className="px-5 pt-4 pb-3 border-b flex-shrink-0">
             <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                {/* <div className="p-2 bg-primary/10 rounded-lg">
-                <Settings className="h-5 w-5 text-primary" />
-              </div> */}
-                <div>
-                  <SheetTitle className="text-xl font-semibold">
-                    Application State
-                  </SheetTitle>
-                  <SheetDescription className="text-muted-foreground mt-1">
-                    Monitor and manage your application&apos;s current state in
-                    real-time
-                  </SheetDescription>
-                </div>
+              <div>
+                <SheetTitle className="text-sm font-semibold">
+                  Application State
+                </SheetTitle>
+                <SheetDescription className="text-xs mt-0.5">
+                  Thread context &amp; memory
+                </SheetDescription>
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-1.5 flex-shrink-0">
                 <Button
                   onClick={handleSyncState}
                   variant="outline"
                   size="sm"
                   disabled={isLoading || !activeThreadId}
-                  className="bg-primary/5 hover:bg-primary/10 border-primary/20 hover:border-primary/30"
                 >
                   <RefreshCw
-                    className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`}
+                    className={`h-3.5 w-3.5 mr-1.5 ${isLoading ? "animate-spin" : ""}`}
                   />
                   Sync
                 </Button>
                 <Button
                   onClick={handleSaveState}
-                  variant="default"
                   size="sm"
                   disabled={isSaving || !activeThreadId}
-                  className="bg-blue-600 hover:bg-blue-700"
                 >
-                  <Save className="h-4 w-4 mr-2" />
+                  <Save className="h-3.5 w-3.5 mr-1.5" />
                   {isSaving ? "Saving..." : "Save"}
                 </Button>
               </div>
             </div>
           </SheetHeader>
 
-          <div>
-            <ScrollArea className="h-[calc(85vh)]">
-              <div className="space-y-2">
+          <div className="flex-1 overflow-hidden">
+            <ScrollArea className="h-full">
+              <div className="p-4 space-y-2">
                 {/* Context Messages Array */}
                 <ContextMessagesSection
                   context={formData.context}
