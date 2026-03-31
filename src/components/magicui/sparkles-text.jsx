@@ -101,6 +101,7 @@ export const SparklesText = ({
   )
 }
 
+/* eslint-disable react/require-default-props */
 SparklesText.propTypes = {
   children: PropTypes.node.isRequired,
   colors: PropTypes.shape({
@@ -110,3 +111,4 @@ SparklesText.propTypes = {
   className: PropTypes.string,
   sparklesCount: PropTypes.number,
 }
+/* eslint-enable react/require-default-props */

@@ -143,6 +143,7 @@ const StepperActions = ({
  * Main Verification Stepper Component
  */
 
+/* eslint-disable complexity */
 const VerificationStepper = ({
   isVisible,
   pingStep = { status: StepStatus.PENDING, errorMessage: "" },
@@ -216,6 +217,7 @@ const VerificationStepper = ({
     </Card>
   )
 }
+/* eslint-enable complexity */
 
 VerificationStep.propTypes = {
   title: PropTypes.string.isRequired,

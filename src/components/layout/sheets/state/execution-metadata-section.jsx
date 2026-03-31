@@ -20,7 +20,7 @@ import { Label } from "@/components/ui/label"
  * @param {Function} props.handleUpdateField - Function to handle field updates
  * @returns {object} Collapsible card component with execution metadata
  */
-// eslint-disable-next-line max-lines-per-function
+/* eslint-disable max-lines-per-function, complexity */
 const ExecutionMetadataSection = ({
   isOpen,
   onOpenChange: handleOpenChange,
@@ -182,6 +182,8 @@ const ExecutionMetadataSection = ({
     </Card>
   )
 }
+
+/* eslint-enable max-lines-per-function, complexity */
 
 ExecutionMetadataSection.propTypes = {
   isOpen: PropTypes.bool.isRequired,

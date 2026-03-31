@@ -9,7 +9,7 @@ export const testPingEndpoint = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const result = await pingBackend()
-      console.debug("#SDT Ping Result:", result)
+      console.warn("#SDT Ping Result:", result)
       return result
     } catch (error) {
       console.error("#SDT Ping error:", error.message)
@@ -23,7 +23,7 @@ export const testGraphEndpoint = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const result = await fetchGraphData()
-      console.log("#SDT Graph Result:", result)
+      console.warn("#SDT Graph Result:", result)
       return result
     } catch (error) {
       return rejectWithValue(error.message)

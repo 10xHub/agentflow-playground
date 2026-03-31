@@ -10,9 +10,6 @@ import {
 
 /**
  * ViewMemorySheet component displays memory usage information
- * @param {object} props - Component props
- * @param {boolean} props.isOpen - Whether the sheet is open
- * @param {Function} props.onClose - Function to close the sheet
  * @returns {object} Sheet component displaying memory usage information
  */
 const ViewMemorySheet = ({ isOpen, onClose }) => {

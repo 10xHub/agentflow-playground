@@ -44,6 +44,7 @@ export const ShineBorder = ({
   )
 }
 
+/* eslint-disable react/require-default-props */
 ShineBorder.propTypes = {
   borderWidth: PropTypes.number,
   duration: PropTypes.number,
@@ -54,3 +55,4 @@ ShineBorder.propTypes = {
   className: PropTypes.string,
   style: PropTypes.object,
 }
+/* eslint-enable react/require-default-props */

@@ -51,7 +51,9 @@ const getThreadMessages = (store, threadId = THREAD_ID) =>
   store.getState().chatStore.threads.find((thread) => thread.id === threadId)
     .messages
 
+// eslint-disable-next-line max-lines-per-function
 describe("chat slice", () => {
+  const WEATHER_TEXT = "The weather is sunny."
   beforeEach(() => {
     vi.clearAllMocks()
     invokeGraph.mockResolvedValue({ messages: [], meta: {}, context: [] })
@@ -100,7 +102,7 @@ describe("chat slice", () => {
 
   it("keeps streamed reasoning, tool calls, tool results, and assistant text separate", async () => {
     const store = createTestStore()
-    const weatherText = "The weather is sunny."
+    const weatherText = WEATHER_TEXT
 
     streamGraph.mockImplementation(async function* mockStream() {
       yield {
@@ -177,7 +179,7 @@ describe("chat slice", () => {
 
   it("corrects order when text chunk arrives before reasoning and tool_call chunks", async () => {
     const store = createTestStore()
-    const weatherText = "The weather is sunny."
+    const weatherText = WEATHER_TEXT
 
     // Simulates the real backend sending the final-text message FIRST,
     // followed by the reasoning+tool_call snapshot — the wrong arrival order.

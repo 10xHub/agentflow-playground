@@ -136,14 +136,15 @@ const AgentDashboard = ({ baseUrl, authToken }) => {
 }
 
 const AgentCard = ({ agent }) => {
+  const defaultStatusClass = "bg-gray-100 text-gray-800"
   const statusColors = {
     active: "bg-green-100 text-green-800",
     idle: "bg-blue-100 text-blue-800",
     busy: "bg-yellow-100 text-yellow-800",
     error: "bg-red-100 text-red-800",
-    offline: "bg-gray-100 text-gray-800",
+    offline: defaultStatusClass,
   }
-  const defaultStatusClassName = "bg-gray-100 text-gray-800"
+  const defaultStatusClassName = defaultStatusClass
 
   return (
     <div className="bg-white rounded-lg shadow p-4 hover:shadow-lg transition-shadow">
