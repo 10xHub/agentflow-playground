@@ -17,9 +17,8 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { Toaster } from "@/components/ui/toaster"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { ReactQueryDevtools } from "@/lib/devtools"
-import ct from "@constants"
-
 import { setActiveThread } from "@/services/store/slices/chat.slice"
+import ct from "@constants"
 
 import { Button } from "../ui/button"
 
@@ -49,8 +48,8 @@ const MainLayout = () => {
   const isVerified = store?.verification?.isVerified ?? false
 
   // Get threadId from URL search params (dashboard uses query params)
-  const searchParams = new URLSearchParams(location.search)
-  const threadId = searchParams.get("threadId") || chatStore.activeThreadId
+  const searchParameters = new URLSearchParams(location.search)
+  const threadId = searchParameters.get("threadId") || chatStore.activeThreadId
 
   // Check if we're on dashboard with an active thread (for showing thread-specific UI)
   const isChatPage = location.pathname === "/" && threadId && isVerified

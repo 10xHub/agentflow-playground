@@ -23,7 +23,7 @@ import { changeLocale } from "@store/slices/theme.slice"
 /**
  * Returns the country flag emoji based on the current language.
  */
-function getCountryFlag(current) {
+const getCountryFlag = (current) => {
   if (current === "en") {
     return <p>🇺🇸</p>
   }

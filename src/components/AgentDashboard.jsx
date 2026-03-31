@@ -5,8 +5,8 @@
  * capabilities, and recent activity.
  */
 
-import React, { useState, useEffect } from "react"
 import { A2UIClient } from "@10xscale/agentflow-client"
+import React, { useState, useEffect } from "react"
 
 const AgentDashboard = ({ baseUrl, authToken }) => {
   const [agents, setAgents] = useState([])
@@ -41,8 +41,8 @@ const AgentDashboard = ({ baseUrl, authToken }) => {
 
         client.on("AGENT_STATUS", (message) => {
           // Update agent status in real-time
-          setAgents((prev) =>
-            prev.map((agent) =>
+          setAgents((previous) =>
+            previous.map((agent) =>
               agent.agent_id === message.agent_id
                 ? { ...agent, status: message.data.status }
                 : agent
@@ -50,13 +50,13 @@ const AgentDashboard = ({ baseUrl, authToken }) => {
           )
         })
 
-        client.onError((err) => {
-          setError(err.message)
+        client.onError((error_) => {
+          setError(error_.message)
         })
 
         client.connect()
-      } catch (err) {
-        setError(err.message)
+      } catch (error_) {
+        setError(error_.message)
         setLoading(false)
       }
     }
@@ -161,9 +161,9 @@ const AgentCard = ({ agent }) => {
         <p className="text-sm text-gray-600 mb-1">Type: {agent.agent_type}</p>
         {agent.capabilities && agent.capabilities.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-2">
-            {agent.capabilities.map((capability, idx) => (
+            {agent.capabilities.map((capability, index) => (
               <span
-                key={idx}
+                key={index}
                 className="px-2 py-0.5 bg-gray-200 text-gray-700 rounded text-xs"
               >
                 {capability}

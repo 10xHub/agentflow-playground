@@ -109,8 +109,8 @@ const ThreadList = ({ className }) => {
   const location = useLocation()
 
   // Get threadId from URL search params
-  const searchParams = new URLSearchParams(location.search)
-  const threadId = searchParams.get("threadId")
+  const searchParameters = new URLSearchParams(location.search)
+  const threadId = searchParameters.get("threadId")
 
   const { threads, activeThreadId } = useSelector(
     (state) => state[ct.store.CHAT_STORE]

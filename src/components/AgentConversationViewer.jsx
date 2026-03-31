@@ -4,18 +4,18 @@
  * Displays real-time agent-to-agent conversations and communications.
  */
 
-import React, { useState, useEffect, useRef } from "react"
 import { A2UIClient } from "@10xscale/agentflow-client"
+import React, { useState, useEffect, useRef } from "react"
 
 const AgentConversationViewer = ({ baseUrl, agentId, authToken }) => {
   const [messages, setMessages] = useState([])
   const [thinking, setThinking] = useState(null)
   const [connectionState, setConnectionState] = useState("disconnected")
   const [error, setError] = useState(null)
-  const messagesEndRef = useRef(null)
+  const messagesEndReference = useRef(null)
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+    messagesEndReference.current?.scrollIntoView({ behavior: "smooth" })
   }
 
   useEffect(() => {
@@ -36,8 +36,8 @@ const AgentConversationViewer = ({ baseUrl, agentId, authToken }) => {
 
     // Handle agent messages
     client.on("AGENT_MESSAGE", (message) => {
-      setMessages((prev) => [
-        ...prev,
+      setMessages((previous) => [
+        ...previous,
         {
           id: message.message_id || Date.now(),
           agent_id: message.agent_id,
@@ -61,8 +61,8 @@ const AgentConversationViewer = ({ baseUrl, agentId, authToken }) => {
     // Handle agent completion (clear thinking)
     client.on("AGENT_COMPLETE", (message) => {
       setThinking(null)
-      setMessages((prev) => [
-        ...prev,
+      setMessages((previous) => [
+        ...previous,
         {
           id: Date.now(),
           agent_id: message.agent_id,
@@ -76,8 +76,8 @@ const AgentConversationViewer = ({ baseUrl, agentId, authToken }) => {
 
     // Handle errors
     client.on("AGENT_ERROR", (message) => {
-      setMessages((prev) => [
-        ...prev,
+      setMessages((previous) => [
+        ...previous,
         {
           id: Date.now(),
           agent_id: message.agent_id,
@@ -89,8 +89,8 @@ const AgentConversationViewer = ({ baseUrl, agentId, authToken }) => {
       ])
     })
 
-    client.onError((err) => {
-      setError(err.message)
+    client.onError((error_) => {
+      setError(error_.message)
     })
 
     client.connect()
@@ -142,13 +142,13 @@ const AgentConversationViewer = ({ baseUrl, agentId, authToken }) => {
           </div>
         )}
 
-        {messages.map((msg) => (
-          <MessageBubble key={msg.id} message={msg} />
+        {messages.map((message) => (
+          <MessageBubble key={message.id} message={message} />
         ))}
 
         {thinking && <ThinkingIndicator thinking={thinking} />}
 
-        <div ref={messagesEndRef} />
+        <div ref={messagesEndReference} />
       </div>
     </div>
   )

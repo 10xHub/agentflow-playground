@@ -31,7 +31,7 @@ const SheetMenu = () => {
   /**
    * Prevents default event behavior and stops propagation.
    */
-  function preventEvents(event) {
+  const preventEvents = (event) => {
     event.preventDefault()
     event.stopPropagation()
     setIsDialogOpen(true)

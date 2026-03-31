@@ -9,7 +9,7 @@ import { useState, useEffect, useCallback, useRef } from "react"
 /**
  * Hook for A2UI WebSocket connection
  */
-export function useAgentWebSocket(baseUrl, agentId, authToken = null) {
+export const useAgentWebSocket = (baseUrl, agentId, authToken = null) => {
   const [client, setClient] = useState(null)
   const [connectionState, setConnectionState] = useState("disconnected")
   const [error, setError] = useState(null)
@@ -30,8 +30,8 @@ export function useAgentWebSocket(baseUrl, agentId, authToken = null) {
         setConnectionState(state)
       })
 
-      newClient.onError((err) => {
-        setError(err)
+      newClient.onError((error_) => {
+        setError(error_)
       })
 
       newClient.connect()
@@ -56,7 +56,7 @@ export function useAgentWebSocket(baseUrl, agentId, authToken = null) {
 /**
  * Hook for agent status updates
  */
-export function useAgentStatus(client) {
+export const useAgentStatus = (client) => {
   const [status, setStatus] = useState(null)
 
   useEffect(() => {
@@ -83,15 +83,15 @@ export function useAgentStatus(client) {
 /**
  * Hook for agent messages
  */
-export function useAgentMessages(client) {
+export const useAgentMessages = (client) => {
   const [messages, setMessages] = useState([])
 
   useEffect(() => {
     if (!client) return
 
     const handler = (message) => {
-      setMessages((prev) => [
-        ...prev,
+      setMessages((previous) => [
+        ...previous,
         {
           content: message.data.content,
           role: message.data.role,
@@ -118,7 +118,7 @@ export function useAgentMessages(client) {
 /**
  * Hook for A2A client
  */
-export function useA2AClient(baseUrl, authToken = null) {
+export const useA2AClient = (baseUrl, authToken = null) => {
   const [client, setClient] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -137,11 +137,11 @@ export function useA2AClient(baseUrl, authToken = null) {
 /**
  * Hook for fetching active agents
  */
-export function useActiveAgents(
+export const useActiveAgents = (
   baseUrl,
   authToken = null,
   refreshInterval = 5000
-) {
+) => {
   const [agents, setAgents] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -157,8 +157,8 @@ export function useActiveAgents(
       const data = await response.json()
       setAgents(data.agents || [])
       setError(null)
-    } catch (err) {
-      setError(err.message)
+    } catch (error_) {
+      setError(error_.message)
     } finally {
       setLoading(false)
     }

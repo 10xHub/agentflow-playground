@@ -1,4 +1,4 @@
-/* eslint-disable import/order, complexity, max-lines-per-function */
+/* eslint-disable import/order, complexity */
 import { createSlice } from "@reduxjs/toolkit"
 import { Message } from "@10xscale/agentflow-client"
 
@@ -462,7 +462,7 @@ const handleAssistantStreamMessage = (
   data,
   streamState
 ) => {
-  const message = data.message
+  const { message } = data
   const blocks = normalizeContentBlocks(message.content)
   const toolCallBlocks = getToolCallBlocks(message, blocks)
   const toolCallIds = toolCallBlocks.map((block, index) => {
@@ -492,7 +492,7 @@ const handleAssistantStreamMessage = (
 }
 
 const handleToolStreamMessage = (dispatch, threadId, data, streamState) => {
-  const message = data.message
+  const { message } = data
   const blocks = normalizeContentBlocks(message.content)
   const toolResultBlocks = getToolResultBlocks(message, blocks)
   const toolResultIds = toolResultBlocks.map((block, index) => {
@@ -573,34 +573,35 @@ const chatSlice = createSlice({
       } else if (newMessage.streamGroup) {
         // Insert at the correct position within this stream group based on kind order
         const newKindOrder = STREAM_KIND_ORDER[newMessage.kind] ?? 99
-        let insertAfterIdx = -1
-        let firstGroupIdx = -1
+        let insertAfterIndex = -1
+        let firstGroupIndex = -1
 
-        thread.messages.forEach((existingMsg, idx) => {
-          if (existingMsg.streamGroup !== newMessage.streamGroup) {
+        thread.messages.forEach((existingMessage_, index) => {
+          if (existingMessage_.streamGroup !== newMessage.streamGroup) {
             return
           }
 
-          if (firstGroupIdx === -1) {
-            firstGroupIdx = idx
+          if (firstGroupIndex === -1) {
+            firstGroupIndex = index
           }
 
-          const existingKindOrder = STREAM_KIND_ORDER[existingMsg.kind] ?? 99
+          const existingKindOrder =
+            STREAM_KIND_ORDER[existingMessage_.kind] ?? 99
 
           if (existingKindOrder <= newKindOrder) {
-            insertAfterIdx = idx
+            insertAfterIndex = index
           }
         })
 
-        if (firstGroupIdx === -1) {
+        if (firstGroupIndex === -1) {
           // No existing group members — append at end
           thread.messages.push(newMessage)
-        } else if (insertAfterIdx === -1) {
+        } else if (insertAfterIndex === -1) {
           // New message has lowest order — insert before first group member
-          thread.messages.splice(firstGroupIdx, 0, newMessage)
+          thread.messages.splice(firstGroupIndex, 0, newMessage)
         } else {
           // Insert immediately after the last same-or-lower-order group member
-          thread.messages.splice(insertAfterIdx + 1, 0, newMessage)
+          thread.messages.splice(insertAfterIndex + 1, 0, newMessage)
         }
       } else {
         thread.messages.push(newMessage)
@@ -1041,9 +1042,9 @@ export const selectThread = (threadId) => async (dispatch) => {
     const apiMessages = response?.data?.messages || []
 
     const messages = []
-    apiMessages.forEach((msg) => {
-      const entries = buildMessageEntries(msg, {
-        baseId: getMessageId(msg),
+    apiMessages.forEach((message) => {
+      const entries = buildMessageEntries(message, {
+        baseId: getMessageId(message),
       })
       entries.forEach((entry) => {
         messages.push(buildStoredMessage(entry))

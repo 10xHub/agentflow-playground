@@ -142,7 +142,7 @@ const StepperActions = ({
 /**
  * Main Verification Stepper Component
  */
-// eslint-disable-next-line complexity
+
 const VerificationStepper = ({
   isVisible,
   pingStep = { status: StepStatus.PENDING, errorMessage: "" },

@@ -2,9 +2,9 @@
 import { User, Bot, Wrench, Monitor, X } from "lucide-react"
 import PropTypes from "prop-types"
 
-import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { buildMessageText } from "@/lib/messageContent"
+import { cn } from "@/lib/utils"
 
 const ROLE_CONFIG = {
   user: {

@@ -1,4 +1,3 @@
-/* eslint-disable no-undef */
 "use client"
 import { Moon, SunDim } from "lucide-react"
 import PropTypes from "prop-types"
