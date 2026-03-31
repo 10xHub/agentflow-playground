@@ -1,7 +1,8 @@
+/* eslint-disable unicorn/filename-case */
 import { Bot, User, Copy, FileText, Image, Zap } from "lucide-react"
 import PropTypes from "prop-types"
-import React from "react"
 import ReactMarkdown from "react-markdown"
+import { useSelector } from "react-redux"
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter"
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism"
 import remarkGfm from "remark-gfm"
@@ -10,12 +11,13 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { buildMessageText, getMessageCopyText } from "@/lib/messageContent"
 
 /**
  * Markdown components for syntax highlighting
  */
 const MarkdownComponents = {
-  code({ node, inline, className, children, ...properties }) {
+  code: ({ inline, className, children }) => {
     const match = /language-(\w+)/.exec(className || "")
     const language = match ? match[1] : ""
 
@@ -81,15 +83,30 @@ FileAttachment.propTypes = {
 /**
  * Message component that handles different message types
  */
+// eslint-disable-next-line max-lines-per-function, complexity
 const Message = ({ message, onCopy }) => {
   const isUser = message.role === "user"
   const isTool = message.role === "tool"
+  const showToolMessageContent = useSelector(
+    (state) => state.threadSettingsStore.show_tool_message_content
+  )
+  const displayContent = isUser
+    ? message.content
+    : buildMessageText(message.rawContent ?? message.content, {
+        metadata: message.metadata,
+        reasoning: message.reasoning,
+        showToolDetails: showToolMessageContent,
+        toolCalls: message.toolsCalls,
+      })
 
   const handleCopy = () => {
     try {
-      // eslint-disable-next-line no-undef
-      navigator.clipboard.writeText(message.content)
-      onCopy?.(message.content)
+      const copyValue = getMessageCopyText(message, {
+        showToolDetails: showToolMessageContent,
+      })
+
+      navigator.clipboard.writeText(copyValue)
+      onCopy?.(copyValue)
     } catch (error) {
       console.warn("Failed to copy to clipboard:", error)
     }
@@ -145,7 +162,7 @@ const Message = ({ message, onCopy }) => {
                     remarkPlugins={[remarkGfm]}
                     components={MarkdownComponents}
                   >
-                    {message.content}
+                    {displayContent}
                   </ReactMarkdown>
                 </div>
               )}
@@ -191,9 +208,17 @@ Message.propTypes = {
   message: PropTypes.shape({
     id: PropTypes.string.isRequired,
     content: PropTypes.string.isRequired,
+    rawContent: PropTypes.oneOfType([
+      PropTypes.string,
+      PropTypes.array,
+      PropTypes.object,
+    ]),
     role: PropTypes.oneOf(["user", "assistant", "tool"]).isRequired,
     timestamp: PropTypes.string.isRequired,
     attachments: PropTypes.array,
+    metadata: PropTypes.object,
+    reasoning: PropTypes.string,
+    toolsCalls: PropTypes.array,
   }).isRequired,
   onCopy: PropTypes.func,
 }

@@ -8,6 +8,7 @@ const initialState = {
   config: {},
   init_state: {},
   streaming_response: false,
+  show_tool_message_content: false,
   recursion_limit: 25,
   response_granularity: "low",
   include_raw: false,
@@ -39,6 +40,9 @@ const threadSettingsSlice = createSlice({
     },
     setStreamingResponse: (state, action) => {
       state.streaming_response = action.payload
+    },
+    setShowToolMessageContent: (state, action) => {
+      state.show_tool_message_content = action.payload
     },
     setRecursionLimit: (state, action) => {
       state.recursion_limit = action.payload
@@ -96,6 +100,7 @@ export const {
   setConfig,
   setInitState,
   setStreamingResponse,
+  setShowToolMessageContent,
   setRecursionLimit,
   setResponseGranularity,
   setIncludeRaw,

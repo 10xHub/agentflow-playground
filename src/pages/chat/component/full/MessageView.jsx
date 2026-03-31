@@ -45,16 +45,59 @@ import {
   sendMessage as sendMessageThunk,
   stopStreaming,
 } from "@/services/store/slices/chat.slice"
+import { buildMessageText, getMessageCopyText } from "@/lib/messageContent"
 
 /**
  * Message component renders individual chat messages with modern design
  */
 const Message = ({ message }) => {
   const isUser = message.role === "user"
+  const isReasoning = message.kind === "reasoning"
+  const isToolCall = message.kind === "tool_call"
+  const isToolResult =
+    message.kind === "tool_result" || message.role === "tool"
+  const showToolMessageContent = useSelector(
+    (state) => state.threadSettingsStore.show_tool_message_content
+  )
+  const displayContent = isUser
+    ? message.content
+    : buildMessageText(message.rawContent ?? message.content, {
+        metadata: message.metadata,
+        reasoning: message.reasoning,
+        showToolDetails: showToolMessageContent,
+        toolCalls: message.toolsCalls,
+      })
+  const kindLabel = isReasoning
+    ? "Reasoning"
+    : isToolCall
+      ? "Tool Call"
+      : isToolResult
+        ? "Tool Result"
+        : null
+  const bubbleClassName = isUser
+    ? "bg-blue-600 text-white ml-8"
+    : isReasoning
+      ? "bg-slate-50 dark:bg-slate-900/80 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700"
+      : isToolCall
+        ? "bg-amber-50 dark:bg-amber-950/20 text-slate-900 dark:text-white border border-amber-200 dark:border-amber-800"
+        : isToolResult
+          ? "bg-orange-50 dark:bg-orange-950/20 text-slate-900 dark:text-white border border-orange-200 dark:border-orange-800"
+          : "bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700"
+  const avatarClassName = isToolCall
+    ? "from-amber-500 to-orange-500"
+    : isToolResult
+      ? "from-orange-500 to-red-500"
+      : isReasoning
+        ? "from-slate-500 to-slate-700"
+        : "from-blue-500 to-purple-600"
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(message.content)
+      await navigator.clipboard.writeText(
+        getMessageCopyText(message, {
+          showToolDetails: showToolMessageContent,
+        })
+      )
     } catch (err) {
       console.error("Failed to copy text: ", err)
     }
@@ -185,19 +228,22 @@ const Message = ({ message }) => {
       className={`flex gap-4 p-6 ${isUser ? "justify-end" : ""} group hover:bg-muted/30 transition-colors`}
     >
       {!isUser && (
-        <div className="flex-shrink-0 w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-sm">
+        <div
+          className={`flex-shrink-0 w-9 h-9 rounded-full bg-gradient-to-br ${avatarClassName} flex items-center justify-center shadow-sm`}
+        >
           <Bot className="w-5 h-5 text-white" />
         </div>
       )}
       <div className={`flex flex-col max-w-[75%] ${isUser ? "items-end" : ""}`}>
+        {!isUser && kindLabel && (
+          <div className="mb-2 px-2">
+            <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium uppercase tracking-wide text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+              {kindLabel}
+            </span>
+          </div>
+        )}
         <div className="relative">
-          <div
-            className={`rounded-2xl px-5 py-3 shadow-sm ${
-              isUser
-                ? "bg-blue-600 text-white ml-8"
-                : "bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700"
-            }`}
-          >
+          <div className={`rounded-2xl px-5 py-3 shadow-sm ${bubbleClassName}`}>
             <div className="text-sm leading-relaxed">
               {isUser ? (
                 <p className="whitespace-pre-wrap">{message.content}</p>
@@ -207,7 +253,7 @@ const Message = ({ message }) => {
                     remarkPlugins={[remarkGfm]}
                     components={MarkdownComponents}
                   >
-                    {message.content}
+                    {displayContent}
                   </ReactMarkdown>
                 </div>
               )}
@@ -671,8 +717,17 @@ Message.propTypes = {
   message: PropTypes.shape({
     id: PropTypes.string.isRequired,
     content: PropTypes.string.isRequired,
+    rawContent: PropTypes.oneOfType([
+      PropTypes.string,
+      PropTypes.array,
+      PropTypes.object,
+    ]),
+    kind: PropTypes.string,
     role: PropTypes.oneOf(["user", "assistant", "tool"]).isRequired,
     timestamp: PropTypes.string.isRequired,
+    metadata: PropTypes.object,
+    reasoning: PropTypes.string,
+    toolsCalls: PropTypes.array,
   }).isRequired,
 }
 

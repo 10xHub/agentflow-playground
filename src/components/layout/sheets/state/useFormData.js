@@ -1,23 +1,28 @@
+/* eslint-disable unicorn/filename-case */
 import { useState, useEffect } from "react"
+
+const initialExecutionMeta = {
+  current_node: "",
+  step: 0,
+  status: "idle",
+  interrupted_node: [],
+  interrupt_reason: "",
+  interrupt_data: [],
+  thread_id: "",
+  internal_data: {},
+}
+
+const staticFields = ["context", "execution_meta", "context_summary"]
 
 /**
  * Custom hook for form data management
  */
 // eslint-disable-next-line max-lines-per-function
-const useFormData = (stateData) => {
+const useFormData = (stateData, stateSchema = {}) => {
   const [formData, setFormData] = useState({
     context: [],
     context_summary: "",
-    execution_meta: {
-      current_node: "",
-      step: 0,
-      status: "idle",
-      interrupted_node: [],
-      interrupt_reason: "",
-      interrupt_data: [],
-      thread_id: "",
-      internal_data: {},
-    },
+    execution_meta: initialExecutionMeta,
   })
 
   const getDefaultValue = (type) => {
@@ -38,23 +43,38 @@ const useFormData = (stateData) => {
   }
 
   useEffect(() => {
-    if (stateData) {
-      const newState = {}
-      for (const key in stateData) {
-        if (
-          key === "context" ||
-          key === "execution_meta" ||
-          key === "context_summary"
-        ) {
-          continue
-        }
-
-        const value = stateData[key]
-        newState[key] = value?.default || getDefaultValue(value?.type)
-      }
-      setFormData((previousData) => ({ ...previousData, ...newState }))
+    const nextFormData = {
+      context: Array.isArray(stateData?.context) ? stateData.context : [],
+      context_summary: stateData?.context_summary || "",
+      execution_meta: {
+        ...initialExecutionMeta,
+        ...(stateData?.execution_meta || {}),
+      },
     }
-  }, [stateData])
+
+    Object.keys(stateSchema || {}).forEach((key) => {
+      if (staticFields.includes(key)) {
+        return
+      }
+
+      if (stateData?.[key] !== undefined) {
+        nextFormData[key] = stateData[key]
+        return
+      }
+
+      nextFormData[key] =
+        stateSchema[key]?.default ?? getDefaultValue(stateSchema[key]?.type)
+    })
+
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setFormData((previousFormData) => {
+      if (JSON.stringify(previousFormData) === JSON.stringify(nextFormData)) {
+        return previousFormData
+      }
+
+      return nextFormData
+    })
+  }, [stateData, stateSchema])
 
   const updateField = (path, value) => {
     setFormData((previousFormData) => {

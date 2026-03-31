@@ -15,8 +15,6 @@ const EmptyChatUI = ({ onNewChat, onSendMessage, disabled = false }) => {
   const fileInputReference = useRef(null)
   const store = useSelector((state) => state?.settings)
 
-  // const store = useSelector((state) => state[ct.store.SETTINGS_STORE])
-
   const handleSubmit = (event) => {
     event.preventDefault()
     if (message.trim() && !disabled) {
@@ -62,8 +60,13 @@ const EmptyChatUI = ({ onNewChat, onSendMessage, disabled = false }) => {
                     Backend URL is not configured properly
                   </p>
                   <p className="text-xs">
-                    Use <code className="bg-amber-100 dark:bg-amber-900 px-1.5 py-0.5 rounded">?backendUrl=YOUR_URL</code> in the URL or click the{" "}
-                    <Settings className="h-3 w-3 inline mx-0.5" /> Settings icon to configure
+                    Use{" "}
+                    <code className="bg-amber-100 dark:bg-amber-900 px-1.5 py-0.5 rounded">
+                      ?backendUrl=YOUR_URL
+                    </code>{" "}
+                    in the URL or click the{" "}
+                    <Settings className="h-3 w-3 inline mx-0.5" /> Settings icon
+                    to configure
                   </p>
                 </div>
               </div>

@@ -24,6 +24,7 @@ import {
   setConfig,
   setInitState,
   setStreamingResponse,
+  setShowToolMessageContent,
   setRecursionLimit,
   setReadonlyData,
   setResponseGranularity,
@@ -44,10 +45,16 @@ const ThreadSettingsSheet = ({ isOpen, onClose, threadId, threadData }) => {
   const [localInitState, setLocalInitState] = useState("")
 
   useEffect(() => {
+    if (threadId) {
+      dispatch(setThreadId(threadId))
+    }
+
     if (threadData) {
       // Only update title if threadData has it, don't set thread_id automatically
-      if (threadData.title) {
-        dispatch(setThreadTitle(threadData.title))
+      const resolvedTitle = threadData.title || threadData.thread_name
+
+      if (resolvedTitle) {
+        dispatch(setThreadTitle(resolvedTitle))
       }
       dispatch(
         setReadonlyData({
@@ -60,7 +67,7 @@ const ThreadSettingsSheet = ({ isOpen, onClose, threadId, threadData }) => {
         })
       )
     }
-  }, [threadData, dispatch])
+  }, [threadData, threadId, dispatch])
 
   useEffect(() => {
     setLocalConfig(JSON.stringify(threadSettings.config, null, 2))
@@ -78,6 +85,9 @@ const ThreadSettingsSheet = ({ isOpen, onClose, threadId, threadData }) => {
           break
         case "streamingResponse":
           dispatch(setStreamingResponse(value))
+          break
+        case "showToolMessageContent":
+          dispatch(setShowToolMessageContent(value))
           break
         case "recursionLimit": {
           const limit = parseInt(value) || 0
@@ -175,6 +185,29 @@ const ThreadSettingsSheet = ({ isOpen, onClose, threadId, threadData }) => {
                 with invoke/stream api calls. Only use when necessary.
               </span>
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="show-tool-message-content">
+                Show Tool Message Details
+              </Label>
+              <input
+                id="show-tool-message-content"
+                type="checkbox"
+                className="ml-2"
+                checked={threadSettings.show_tool_message_content}
+                onChange={(event) =>
+                  handleFieldChange(
+                    "showToolMessageContent",
+                    event.target.checked
+                  )
+                }
+              />
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Show full tool call and result payloads. When turned off, only
+                the function name is shown.
+              </p>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="thread-id">Thread ID</Label>
               <Input

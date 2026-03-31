@@ -13,8 +13,11 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet"
 import { useToast } from "@/components/ui/use-toast"
+import {
+  fetchThreadState,
+  updateThreadState,
+} from "@/services/store/slices/state.slice"
 import ct from "@constants/"
-import { fetchThreadState, updateThreadState } from "@/services/store/slices/state.slice"
 
 import AddMessageSheet from "./AddMessageSheet"
 import ContextMessagesSection from "./ContextMessagesSection"
@@ -27,7 +30,7 @@ import useFormData from "./useFormData"
  * ViewStateSheet component displays application state information
  * @param {object} props - Component props
  * @param {boolean} props.isOpen - Whether the sheet is open
- * @param {Function} props.onClose - Function to close the sheet
+ * @param {() => void} props.onClose - Function to close the sheet
  * @returns {object} Sheet component displaying application state
  */
 // eslint-disable-next-line max-lines-per-function
@@ -35,10 +38,15 @@ const ViewStateSheet = ({ isOpen, onClose }) => {
   const dispatch = useDispatch()
   const { toast } = useToast()
   const stateData = useSelector((state) => state[ct.store.STATE_STORE].state)
-  const isLoading = useSelector((state) => state[ct.store.STATE_STORE].isLoading)
+  const stateSchema = useSelector((state) => state[ct.store.STATE_STORE].schema)
+  const isLoading = useSelector(
+    (state) => state[ct.store.STATE_STORE].isLoading
+  )
   const isSaving = useSelector((state) => state[ct.store.STATE_STORE].isSaving)
-  const activeThreadId = useSelector((state) => state[ct.store.CHAT_STORE].activeThreadId)
-  
+  const activeThreadId = useSelector(
+    (state) => state[ct.store.CHAT_STORE].activeThreadId
+  )
+
   const [isExecutionMetaOpen, setIsExecutionMetaOpen] = useState(false)
   const [isAddMessageOpen, setIsAddMessageOpen] = useState(false)
   const [newMessage, setNewMessage] = useState({
@@ -46,9 +54,13 @@ const ViewStateSheet = ({ isOpen, onClose }) => {
     role: "user",
     content: "",
   })
+  const noActiveThreadTitle = "No Active Thread"
+  const noActiveThreadDescription = "Please select or create a thread first"
 
-  const { formData, updateField, addArrayItem, removeArrayItem } =
-    useFormData(stateData)
+  const { formData, updateField, addArrayItem, removeArrayItem } = useFormData(
+    stateData,
+    stateSchema
+  )
 
   // Fetch thread state when sheet opens and there's an active thread
   useEffect(() => {
@@ -84,8 +96,8 @@ const ViewStateSheet = ({ isOpen, onClose }) => {
   const handleSyncState = async () => {
     if (!activeThreadId) {
       toast({
-        title: "No Active Thread",
-        description: "Please select or create a thread first",
+        title: noActiveThreadTitle,
+        description: noActiveThreadDescription,
         variant: "destructive",
       })
       return
@@ -109,8 +121,8 @@ const ViewStateSheet = ({ isOpen, onClose }) => {
   const handleSaveState = async () => {
     if (!activeThreadId) {
       toast({
-        title: "No Active Thread",
-        description: "Please select or create a thread first",
+        title: noActiveThreadTitle,
+        description: noActiveThreadDescription,
         variant: "destructive",
       })
       return
@@ -159,8 +171,7 @@ const ViewStateSheet = ({ isOpen, onClose }) => {
 
   // Get dynamic fields from schema instead of formData keys
   const getDynamicFields = () => {
-    // The schema data structure is: stateSchema.data.data.properties
-    const schemaProperties = stateData
+    const schemaProperties = stateSchema
 
     if (!schemaProperties) return []
 
@@ -176,7 +187,7 @@ const ViewStateSheet = ({ isOpen, onClose }) => {
   // Get field info from schema
   const getFieldInfo = (fieldKey) => {
     const defaultDescription = "Additional state data field"
-    const schemaProperties = stateData
+    const schemaProperties = stateSchema
 
     if (!schemaProperties?.[fieldKey]) {
       return {
@@ -223,7 +234,9 @@ const ViewStateSheet = ({ isOpen, onClose }) => {
                   disabled={isLoading || !activeThreadId}
                   className="bg-primary/5 hover:bg-primary/10 border-primary/20 hover:border-primary/30"
                 >
-                  <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
+                  <RefreshCw
+                    className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`}
+                  />
                   Sync
                 </Button>
                 <Button

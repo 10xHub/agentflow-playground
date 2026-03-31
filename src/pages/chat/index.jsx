@@ -9,7 +9,7 @@ import {
 import ct from "@constants/"
 
 import EmptyChatUI from "./component/empty"
-import FullMessageUI from "./component/full"
+import MessageView from "./component/full/MessageView"
 
 /**
  * Chat page component renders the chat content area
@@ -50,7 +50,7 @@ const Chat = () => {
   return (
     <div className="flex flex-col h-full">
       {activeThread ? (
-        <FullMessageUI thread={activeThread} />
+        <MessageView thread={activeThread} />
       ) : (
         <EmptyChatUI
           onNewChat={handleNewChat}
