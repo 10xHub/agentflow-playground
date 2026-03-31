@@ -35,8 +35,9 @@ const Chat = () => {
       // If no active thread, create one then send
       if (!activeThread) {
         const newId = Date.now().toString()
+        const title = typeof message === "string" ? message : message?.content || "New Chat"
         dispatch(
-          createThread({ id: newId, title: `${message.slice(0, 50)}...` })
+          createThread({ id: newId, title: `${title.slice(0, 50)}...` })
         )
         navigate(`/chat/${newId}`)
         await dispatch(sendMessageThunk(newId, message))

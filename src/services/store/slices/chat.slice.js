@@ -796,10 +796,10 @@ export const {
 export default chatSlice.reducer
 
 export const sendMessage =
-  (threadId, content) => async (dispatch, getState) => {
+  (threadId, content, attachments = []) => async (dispatch, getState) => {
     const normalizedContent = normalizeUserContent(content)
 
-    if (!normalizedContent) {
+    if (!normalizedContent && attachments.length === 0) {
       return
     }
 
@@ -810,10 +810,11 @@ export const sendMessage =
         threadId,
         message: {
           id: `${threadId}:user:${Date.now()}`,
-          content: normalizedContent,
-          rawContent: normalizedContent,
+          content: normalizedContent || "(attachment)",
+          rawContent: normalizedContent || "(attachment)",
           role: "user",
           kind: MESSAGE_KIND.USER,
+          attachments: attachments.length > 0 ? attachments : undefined,
         },
       })
     )
@@ -825,8 +826,46 @@ export const sendMessage =
       config.thread_name = settings.thread_title
     }
 
+    // Build multimodal message if attachments are present
+    let messages
+    if (attachments.length > 0) {
+      const contentBlocks = []
+      if (normalizedContent) {
+        contentBlocks.push({ type: "text", text: normalizedContent })
+      }
+      for (const att of attachments) {
+        if (att.type?.startsWith("image/") && att.dataUrl) {
+          // Extract base64 from data URL
+          const base64 = att.dataUrl.split(",")[1]
+          contentBlocks.push({
+            type: "image",
+            media: {
+              kind: "data",
+              data_base64: base64,
+              mime_type: att.type,
+              filename: att.name,
+            },
+          })
+        } else if (att.dataUrl) {
+          const base64 = att.dataUrl.split(",")[1]
+          contentBlocks.push({
+            type: "document",
+            media: {
+              kind: "data",
+              data_base64: base64,
+              mime_type: att.type,
+              filename: att.name,
+            },
+          })
+        }
+      }
+      messages = [new Message("user", contentBlocks)]
+    } else {
+      messages = [Message.text_message(normalizedContent, "user")]
+    }
+
     const body = {
-      messages: [Message.text_message(normalizedContent, "user")],
+      messages,
       initial_state: settings.init_state || {},
       config,
       recursion_limit: settings.recursion_limit || 25,

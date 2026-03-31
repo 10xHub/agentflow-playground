@@ -48,34 +48,41 @@ const MarkdownComponents = {
 }
 
 /**
- * File attachment preview component
+ * File attachment preview component with image thumbnail support
  */
-const FileAttachment = ({ file, index }) => (
-  <div
-    key={`file-${file.name}-${index}`}
-    className="flex items-center gap-3 p-2 bg-muted/50 rounded-lg"
-  >
-    <div className="w-8 h-8 rounded bg-background flex items-center justify-center">
-      {file.type?.startsWith("image/") ? (
-        <Image className="w-4 h-4" />
-      ) : (
-        <FileText className="w-4 h-4" />
-      )}
+const FileAttachment = ({ file, index }) => {
+  const isImage = file.type?.startsWith("image/")
+
+  return (
+    <div
+      key={`file-${file.name}-${index}`}
+      className="flex items-center gap-3 p-2 bg-muted/50 rounded-lg"
+    >
+      <div className="w-8 h-8 rounded bg-background flex items-center justify-center overflow-hidden">
+        {isImage && file.previewUrl ? (
+          <img src={file.previewUrl} alt={file.name} className="w-8 h-8 object-cover rounded" />
+        ) : isImage ? (
+          <Image className="w-4 h-4" />
+        ) : (
+          <FileText className="w-4 h-4" />
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium truncate">{file.name}</p>
+        <p className="text-xs text-muted-foreground">
+          {file.size ? `${Math.round(file.size / 1024)} KB` : "Unknown size"}
+        </p>
+      </div>
     </div>
-    <div className="flex-1 min-w-0">
-      <p className="text-sm font-medium truncate">{file.name}</p>
-      <p className="text-xs text-muted-foreground">
-        {file.size ? `${Math.round(file.size / 1024)} KB` : "Unknown size"}
-      </p>
-    </div>
-  </div>
-)
+  )
+}
 
 FileAttachment.propTypes = {
   file: PropTypes.shape({
     name: PropTypes.string.isRequired,
     type: PropTypes.string,
     size: PropTypes.number,
+    previewUrl: PropTypes.string,
   }).isRequired,
   index: PropTypes.number.isRequired,
 }
@@ -143,6 +150,25 @@ const Message = ({ message, onCopy }) => {
           }`}
         >
           <CardContent className="p-4">
+            {/* Multimodal content blocks (images from API responses) */}
+            {Array.isArray(message.rawContent) && message.rawContent.some(b => b?.type === "image") && (
+              <div className="space-y-2 mb-3">
+                {message.rawContent.filter(b => b?.type === "image").map((block, idx) => {
+                  const src = block.media?.url || (block.media?.data_base64
+                    ? `data:${block.media.mime_type || "image/png"};base64,${block.media.data_base64}`
+                    : null)
+                  return src ? (
+                    <img
+                      key={`block-img-${idx}`}
+                      src={src}
+                      alt={block.media?.filename || "Image"}
+                      className="max-w-sm rounded-lg shadow-sm"
+                    />
+                  ) : null
+                })}
+              </div>
+            )}
+
             {/* File Attachments */}
             {message.attachments && message.attachments.length > 0 && (
               <div className="space-y-2 mb-3">

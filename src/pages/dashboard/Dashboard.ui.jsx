@@ -107,8 +107,9 @@ const DashboardUI = () => {
       // If no active thread, create one then send
       if (!activeThread) {
         const newId = Date.now().toString()
+        const title = typeof message === "string" ? message : message?.content || "New Chat"
         dispatch(
-          createThread({ id: newId, title: `${message.slice(0, 50)}...` })
+          createThread({ id: newId, title: `${title.slice(0, 50)}...` })
         )
         dispatch(setActiveThread(newId))
         await dispatch(sendMessageThunk(newId, message))

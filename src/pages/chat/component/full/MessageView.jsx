@@ -262,6 +262,53 @@ const Message = ({ message }) => {
             className={`${isUser ? "rounded-2xl px-5 py-3 shadow-sm max-w-full" : isError ? "" : "py-1"} ${bubbleClassName}`}
           >
             <div className="text-[15px] leading-relaxed">
+              {/* Render multimodal content blocks (images, documents) */}
+              {Array.isArray(message.rawContent) && message.rawContent.some(b => b?.type === "image" || b?.type === "document" || b?.type === "audio" || b?.type === "video") && (
+                <div className="space-y-2 mb-2">
+                  {message.rawContent.filter(b => b?.type === "image").map((block, idx) => {
+                    const src = block.media?.url || block.media?.data_base64
+                      ? (block.media.url || `data:${block.media.mime_type || "image/png"};base64,${block.media.data_base64}`)
+                      : null
+                    return src ? (
+                      <img
+                        key={`img-${idx}`}
+                        src={src}
+                        alt={block.media?.filename || "Image"}
+                        className="max-w-sm rounded-lg shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+                        onClick={() => window.open(src, "_blank")}
+                      />
+                    ) : null
+                  })}
+                  {message.rawContent.filter(b => b?.type === "document").map((block, idx) => (
+                    <div key={`doc-${idx}`} className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg">
+                      <FileText className="w-5 h-5 text-red-500 flex-shrink-0" />
+                      <span className="text-sm truncate">{block.media?.filename || "Document"}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Render attached file previews (user-side File objects) */}
+              {message.attachments && message.attachments.length > 0 && (
+                <div className="space-y-2 mb-2">
+                  {message.attachments.filter(f => f.type?.startsWith("image/") && f.previewUrl).map((file, idx) => (
+                    <img
+                      key={`att-img-${idx}`}
+                      src={file.previewUrl}
+                      alt={file.name}
+                      className="max-w-sm rounded-lg shadow-sm"
+                    />
+                  ))}
+                  {message.attachments.filter(f => !f.type?.startsWith("image/")).map((file, idx) => (
+                    <div key={`att-file-${idx}`} className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg">
+                      <FileText className="w-4 h-4 text-slate-500 flex-shrink-0" />
+                      <span className="text-sm truncate">{file.name}</span>
+                      {file.size && <span className="text-xs text-muted-foreground">{Math.round(file.size / 1024)} KB</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {isUser ? (
                 <p className="whitespace-pre-wrap">{message.content}</p>
               ) : isError ? (
@@ -393,17 +440,28 @@ const TypingIndicator = () => {
 }
 
 /**
- * File attachment preview component
+ * File attachment preview component with image thumbnails
  */
 const AttachmentPreview = ({ file, onRemove }) => {
-  const isImage = file.type.startsWith("image/")
+  const isImage = file.type?.startsWith("image/")
   const isPDF = file.type === "application/pdf"
+  const [thumbnailUrl, setThumbnailUrl] = useState(null)
+
+  useEffect(() => {
+    if (isImage && file instanceof Blob) {
+      const url = URL.createObjectURL(file)
+      setThumbnailUrl(url)
+      return () => URL.revokeObjectURL(url)
+    }
+  }, [file, isImage])
 
   return (
     <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg border">
-      <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-        {isImage ? (
-          <Image className="w-5 h-5 text-slate-600" />
+      <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center overflow-hidden">
+        {isImage && thumbnailUrl ? (
+          <img src={thumbnailUrl} alt={file.name} className="w-10 h-10 object-cover rounded-lg" />
+        ) : isPDF ? (
+          <FileText className="w-5 h-5 text-red-500" />
         ) : (
           <FileText className="w-5 h-5 text-slate-600" />
         )}
@@ -439,22 +497,44 @@ const MessageInput = ({
   const [message, setMessage] = useState("")
   const [attachedFiles, setAttachedFiles] = useState([])
   const [isDragOver, setIsDragOver] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
   const textareaRef = useRef(null)
   const fileInputRef = useRef(null)
 
+  const readFileAsDataUrl = (file) =>
+    new Promise((resolve) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(reader.result)
+      reader.onerror = () => resolve(null)
+      reader.readAsDataURL(file)
+    })
+
   const handleSubmit = useCallback(
-    (event) => {
+    async (event) => {
       event.preventDefault()
-      if ((message.trim() || attachedFiles.length > 0) && !disabled) {
-        let finalMessage = message.trim()
+      if ((message.trim() || attachedFiles.length > 0) && !disabled && !isUploading) {
+        setIsUploading(true)
+        try {
+          const attachmentData = await Promise.all(
+            attachedFiles.map(async (file) => {
+              const dataUrl = await readFileAsDataUrl(file)
+              return {
+                name: file.name,
+                type: file.type,
+                size: file.size,
+                dataUrl,
+                previewUrl: file.type?.startsWith("image/") ? dataUrl : null,
+              }
+            })
+          )
 
-        // Add file information to message if files are attached
-        if (attachedFiles.length > 0) {
-          const fileList = attachedFiles.map((f) => f.name).join(", ")
-          finalMessage += `\n\n📎 Files attached: ${fileList}`
+          onSendMessage({
+            content: message.trim(),
+            attachments: attachmentData,
+          })
+        } finally {
+          setIsUploading(false)
         }
-
-        onSendMessage(finalMessage)
         setMessage("")
         setAttachedFiles([])
         if (textareaRef.current) {
@@ -462,7 +542,7 @@ const MessageInput = ({
         }
       }
     },
-    [message, attachedFiles, disabled, onSendMessage]
+    [message, attachedFiles, disabled, isUploading, onSendMessage]
   )
 
   const handleKeyDown = useCallback(
@@ -630,7 +710,7 @@ const MessageInput = ({
                     size="icon"
                     disabled={
                       (!message.trim() && attachedFiles.length === 0) ||
-                      disabled
+                      disabled || isUploading
                     }
                     className="h-8 w-8 rounded-full animate-in fade-in zoom-in bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground disabled:opacity-50"
                   >
@@ -680,9 +760,17 @@ const MessageView = ({ thread, disabled = false }) => {
   }, [thread.messages])
 
   const handleSendMessage = useCallback(
-    async (content) => {
-      if (!content.trim() || disabled) return
-      await dispatch(sendMessageThunk(thread.id, content))
+    async (payload) => {
+      // payload can be string (legacy) or { content, attachments }
+      const content = typeof payload === "string" ? payload : payload?.content || ""
+      const attachments = typeof payload === "string" ? [] : payload?.attachments || []
+
+      if (!content.trim() && attachments.length === 0) return
+      if (disabled) return
+
+      await dispatch(
+        sendMessageThunk(thread.id, content, attachments)
+      )
     },
     [dispatch, thread.id, disabled]
   )
