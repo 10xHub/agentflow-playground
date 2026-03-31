@@ -13,8 +13,8 @@ import {
 import ct from "@constants"
 
 /**
- * ViewGraphSheet component displays network graph visualization using Reagraph
- * Reads graph data directly from Redux store
+ * ViewGraphSheet component displays the network graph visualization.
+ * Reads graph data directly from Redux store.
  * @returns {object} Sheet component displaying network graph
  */
 const ViewGraphSheet = ({ isOpen, onClose }) => {
