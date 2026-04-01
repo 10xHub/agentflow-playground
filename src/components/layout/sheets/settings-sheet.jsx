@@ -200,7 +200,7 @@ const SettingsSheet = ({ isOpen, onClose }) => {
                 <Input
                   id="auth-token"
                   type="password"
-                  placeholder="Bearer token or API key"
+                  placeholder="Token, Bearer token, or API key"
                   {...register("authToken")}
                   className="w-full"
                 />
@@ -210,7 +210,9 @@ const SettingsSheet = ({ isOpen, onClose }) => {
                   </p>
                 )}
                 <p className="text-sm text-slate-500 dark:text-slate-400">
-                  Enter your API authentication token (if required)
+                  Sent as <code>Authorization: your-value</code>. If your API
+                  requires Bearer auth, enter <code>Bearer your-token</code>
+                  explicitly.
                 </p>
               </div>
 

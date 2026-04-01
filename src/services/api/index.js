@@ -26,7 +26,7 @@ instance.interceptors.request.use(
 
       if (authToken) {
         request.headers = request.headers || {}
-        request.headers.Authorization = `Bearer ${authToken}`
+        request.headers.Authorization = `${authToken}`
       }
     } catch (error) {
       // If URL validation fails, propagate error to caller

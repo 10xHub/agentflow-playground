@@ -149,13 +149,18 @@ const ConfigurationCard = ({ onStartChat = null }) => {
             <Input
               id="dashboard-auth-token"
               type="password"
-              placeholder="Bearer token or API key"
+              placeholder="Token, Bearer token, or API key"
               {...register("authToken")}
               className="w-full"
             />
             {errors.authToken && (
               <p className="text-xs text-red-500">{errors.authToken.message}</p>
             )}
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Sent as <code>Authorization: your-value</code>. Add{" "}
+              <code>Bearer </code>
+              yourself only when your API needs it.
+            </p>
           </div>
         </div>
 

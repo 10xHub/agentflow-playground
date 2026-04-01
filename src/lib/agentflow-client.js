@@ -1,11 +1,9 @@
 import { AgentFlowClient } from "@10xscale/agentflow-client"
 
-/**
- * Get or create an AgentFlowClient instance from localStorage settings
- * @returns {AgentFlowClient} - Configured client instance
- * @throws {Error} - If backend URL is not set
- */
-export const getAgentFlowClient = () => {
+let agentFlowClientInstance = null
+let agentFlowClientConfigKey = null
+
+const buildClientConfig = () => {
   const backendUrl = localStorage.getItem("backendUrl")
   const authToken = localStorage.getItem("authToken")
 
@@ -16,12 +14,40 @@ export const getAgentFlowClient = () => {
   // Normalize URL (remove trailing slash)
   const normalizedUrl = backendUrl.trim().replace(/\/$/, "")
 
-  return new AgentFlowClient({
+  return {
     baseUrl: normalizedUrl,
     authToken: authToken || undefined,
     timeout: 600000, // 10 minutes (same as axios instance)
     debug: false,
-  })
+  }
+}
+
+/**
+ * Get or create an AgentFlowClient instance from localStorage settings
+ * @returns {AgentFlowClient} - Configured client instance
+ * @throws {Error} - If backend URL is not set
+ */
+export const getAgentFlowClient = () => {
+  const config = buildClientConfig()
+  const configKey = JSON.stringify(config)
+
+  if (agentFlowClientInstance && agentFlowClientConfigKey === configKey) {
+    return agentFlowClientInstance
+  }
+
+  agentFlowClientInstance = new AgentFlowClient(config)
+  agentFlowClientConfigKey = configKey
+
+  return agentFlowClientInstance
+}
+
+/**
+ * Reset the cached AgentFlowClient instance.
+ * Useful for tests and when the environment is reinitialized.
+ */
+export const resetAgentFlowClient = () => {
+  agentFlowClientInstance = null
+  agentFlowClientConfigKey = null
 }
 
 /**

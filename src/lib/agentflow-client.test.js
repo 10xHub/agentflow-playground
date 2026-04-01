@@ -12,6 +12,7 @@ vi.mock("@10xscale/agentflow-client", () => ({
 
 import {
   getAgentFlowClient,
+  resetAgentFlowClient,
   validateAndNormalizeUrl,
 } from "@/lib/agentflow-client"
 
@@ -19,6 +20,7 @@ describe("agentflow-client", () => {
   beforeEach(() => {
     localStorage.clear()
     vi.clearAllMocks()
+    resetAgentFlowClient()
   })
 
   it("creates a client with normalized settings", () => {
@@ -34,6 +36,28 @@ describe("agentflow-client", () => {
       debug: false,
     })
     expect(client).toBeInstanceOf(AgentFlowClientMock)
+  })
+
+  it("returns the same client instance for repeated calls with unchanged settings", () => {
+    localStorage.setItem("backendUrl", "https://example.com/")
+    localStorage.setItem("authToken", "secret-token")
+
+    const firstClient = getAgentFlowClient()
+    const secondClient = getAgentFlowClient()
+
+    expect(firstClient).toBe(secondClient)
+    expect(AgentFlowClientMock).toHaveBeenCalledTimes(1)
+  })
+
+  it("rebuilds the client when the stored settings change", () => {
+    localStorage.setItem("backendUrl", "https://example.com/")
+    const firstClient = getAgentFlowClient()
+
+    localStorage.setItem("authToken", "new-token")
+    const secondClient = getAgentFlowClient()
+
+    expect(firstClient).not.toBe(secondClient)
+    expect(AgentFlowClientMock).toHaveBeenCalledTimes(2)
   })
 
   it("omits the auth token when it is missing", () => {
