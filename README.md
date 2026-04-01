@@ -1,16 +1,15 @@
 # Agentflow Playground
 
-Agentflow Playground is a React + Vite frontend that demonstrates integration with the `@10xscale/agentflow-client` and associated agent orchestration features.
+Agentflow Playground is a React + Vite frontend for interacting with an AgentFlow backend through the `@10xscale/agentflow-client`.
 
 ## 🛠️ Features
 
 - React 19 + Vite 6
-- Redux Toolkit + React Query (TanStack)
-- Agent flow UI components (conversations, graph explorer, dashboards)
+- Redux Toolkit + persisted state
+- Chat, thread, graph, and state inspection UI
 - i18n (English/Hindi)
 - Tailwind CSS styling with Radix UI primitives
-- Mock API support with MSW (Mock Service Worker)
-- Unit and integration tests with Vitest, Playwright support
+- Unit tests with Vitest
 
 ## 🚀 Quickstart
 
@@ -78,10 +77,10 @@ npm run format
 - `src/` - React app source code
 - `src/components` - reusable UI components
 - `src/pages` - route pages
-- `src/services` - API, query, store logic
+- `src/services` - client wrappers and store logic
 - `src/hooks` - custom hooks
 - `src/lib` - shared utilities
-- `public/` - static assets and MSW service worker
+- `public/` - static assets and translation files
 
 ## 🌎 Localization
 

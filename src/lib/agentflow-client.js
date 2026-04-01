@@ -17,7 +17,7 @@ const buildClientConfig = () => {
   return {
     baseUrl: normalizedUrl,
     authToken: authToken || undefined,
-    timeout: 600000, // 10 minutes (same as axios instance)
+    timeout: 600000, // 10 minutes for long-running agent calls
     debug: false,
   }
 }

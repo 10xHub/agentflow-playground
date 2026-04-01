@@ -11,8 +11,6 @@ const ChatThreadRedirect = () => {
 
 const mainRoutes = [
   { path: ct.route.ROOT, element: <Dashboard /> },
-  // Redirect chat routes to dashboard
-  { path: ct.route.CHAT, element: <Navigate to="/" replace /> },
   {
     path: ct.route.CHAT_THREAD,
     element: <ChatThreadRedirect />,
