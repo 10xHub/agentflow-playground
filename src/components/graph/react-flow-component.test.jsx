@@ -1,47 +1,7 @@
-import { cloneElement } from "react"
 import { fireEvent, render, screen } from "@testing-library/react"
-import { describe, expect, it, vi } from "vitest"
+import { describe, expect, it } from "vitest"
 
 import ReFlowComponent from "./react-flow-component"
-
-vi.mock("reaflow", () => ({
-  Canvas: ({ nodes = [], edges = [], node: renderNode }) => (
-    <svg data-testid="mock-network-canvas">
-      {edges.map((edge) => (
-        <path
-          key={edge.id}
-          data-edge-id={edge.id}
-          d={`M${edge.from || 0},0 L${edge.to || 0},1`}
-        />
-      ))}
-
-      {nodes.map((nodeData) => {
-        if (!renderNode) {
-          return <text key={nodeData.id}>{nodeData.text}</text>
-        }
-
-        const renderedNode = renderNode({ properties: nodeData })
-        return (
-          <g key={nodeData.id} data-node-id={nodeData.id}>
-            {cloneElement(renderedNode, { properties: nodeData })}
-          </g>
-        )
-      })}
-    </svg>
-  ),
-  Node: ({ properties, onClick }) => (
-    <g>
-      <rect
-        data-testid={`mock-node-${properties.id}`}
-        onClick={(event) => onClick?.(event, properties)}
-      />
-      <text>{properties.text}</text>
-      <text>{properties.text?.[0]}</text>
-    </g>
-  ),
-  Icon: () => null,
-  Label: () => null,
-}))
 
 describe("ReFlowComponent", () => {
   it("renders graph nodes without relying on the old graph library", () => {
