@@ -60,11 +60,25 @@ describe("thread-settings.slice", () => {
     expect(state.total_messages).toBe(12)
     expect(state.tool_token).toBe(5)
     expect(state.total_token).toBe(18)
+    expect(state.total_tokens).toBe(18)
     expect(state.total_tool_calls).toBe(3)
     expect(state.total_human_messages).toBe(7)
     expect(state.total_ai_messages).toBe(5)
     expect(state.context_total_messages).toBe(4)
     expect(state.context_total_tokens).toBe(22)
+  })
+
+  it("accepts total_tokens when readonly metadata uses the plural key", () => {
+    const state = reducer(
+      undefined,
+      setReadonlyData({
+        total_messages: 3,
+        total_tokens: 11,
+      })
+    )
+
+    expect(state.total_token).toBe(11)
+    expect(state.total_tokens).toBe(11)
   })
 
   it("resets to the initial state", () => {

@@ -60,14 +60,14 @@ const renderMessage = (showToolMessageContent) =>
   )
 
 describe("MessageComponent", () => {
-  it("shows only the function name when tool details are disabled", () => {
+  it("hides tool messages entirely when tool visibility is disabled", () => {
     renderMessage(false)
 
-    expect(screen.getByText("get_weather")).toBeInTheDocument()
+    expect(screen.queryByText("get_weather")).not.toBeInTheDocument()
     expect(screen.queryByText(/temperature/i)).not.toBeInTheDocument()
   })
 
-  it("shows full tool output when tool details are enabled", () => {
+  it("shows tool output when tool visibility is enabled", () => {
     renderMessage(true)
 
     expect(screen.getByText("get_weather")).toBeInTheDocument()

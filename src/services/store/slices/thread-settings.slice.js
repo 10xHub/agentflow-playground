@@ -16,6 +16,8 @@ const initialState = {
   context_total_messages: 0,
   context_total_tokens: 0,
   total_messages: 0,
+  tool_token: 0,
+  total_token: 0,
   total_tokens: 0,
   total_tool_calls: 0,
   total_human_messages: 0,
@@ -72,13 +74,16 @@ const threadSettingsSlice = createSlice({
         total_messages,
         tool_token,
         total_token,
+        total_tokens,
         total_tool_calls,
         total_human_messages,
         total_ai_messages,
       } = action.payload
+      const resolvedTotalTokens = total_tokens ?? total_token ?? 0
       state.total_messages = total_messages || 0
       state.tool_token = tool_token || 0
-      state.total_token = total_token || 0
+      state.total_token = resolvedTotalTokens
+      state.total_tokens = resolvedTotalTokens
       state.total_tool_calls = total_tool_calls || 0
       state.total_human_messages = total_human_messages || 0
       state.total_ai_messages = total_ai_messages || 0

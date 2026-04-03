@@ -60,6 +60,11 @@ const Message = ({ message }) => {
   const showToolMessageContent = useSelector(
     (state) => state.threadSettingsStore.show_tool_message_content
   )
+
+  if ((isToolCall || isToolResult) && !showToolMessageContent) {
+    return null
+  }
+
   const displayContent = isUser
     ? message.content
     : buildMessageText(message.rawContent ?? message.content, {
