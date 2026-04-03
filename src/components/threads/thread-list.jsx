@@ -1,6 +1,6 @@
 import {
   MessageSquarePlus,
-  MoreVertical,
+  MoreHorizontal,
   Trash2,
   MessagesSquare,
 } from "lucide-react"
@@ -26,81 +26,174 @@ import {
 } from "@/services/store/slices/chat.slice"
 import ct from "@constants/"
 
-// Helper function to format dates
-const formatDate = (dateString) => {
-  const date = new Date(dateString)
-  const now = new Date()
-  const diffInHours = (now - date) / (1000 * 60 * 60)
+const getThreadPreview = (thread) => {
+  const latestMessage = thread.messages?.[thread.messages.length - 1]
+  const content = String(latestMessage?.content || "").replace(/\s+/g, " ").trim()
 
-  if (diffInHours < 24) {
-    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-  } else if (diffInHours < 168) {
-    // 7 days
-    return date.toLocaleDateString([], { weekday: "short" })
-  } else {
-    return date.toLocaleDateString([], { month: "short", day: "numeric" })
-  }
+  return content || "No messages yet"
 }
 
-// ThreadItem component to handle individual thread rendering
+const getDayStart = (date) =>
+  new Date(date.getFullYear(), date.getMonth(), date.getDate())
+
+const getSectionLabel = (dateString) => {
+  const date = new Date(dateString)
+  const today = getDayStart(new Date())
+  const target = getDayStart(date)
+  const diffInDays = Math.round((today - target) / (1000 * 60 * 60 * 24))
+
+  if (diffInDays <= 0) return "Today"
+  if (diffInDays === 1) return "Yesterday"
+  if (diffInDays <= 7) return "Previous 7 Days"
+  if (diffInDays <= 30) return "Previous 30 Days"
+  return "Older"
+}
+
+const formatItemDate = (dateString) => {
+  const date = new Date(dateString)
+  const now = new Date()
+  const sameDay = date.toDateString() === now.toDateString()
+
+  if (sameDay) {
+    return date.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+  }
+
+  return `${date.toLocaleDateString([], {
+    month: "short",
+    day: "numeric",
+  })}, ${date.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  })}`
+}
+
+const groupThreads = (threads) => {
+  const sections = []
+  const sectionIndex = new Map()
+
+  threads.forEach((thread) => {
+    const label = getSectionLabel(thread.updatedAt)
+    const existingIndex = sectionIndex.get(label)
+
+    if (existingIndex !== undefined) {
+      sections[existingIndex].threads.push(thread)
+      return
+    }
+
+    sectionIndex.set(label, sections.length)
+    sections.push({
+      label,
+      threads: [thread],
+    })
+  })
+
+  return sections
+}
+
 const ThreadItem = ({ thread, isActive, onSelect, onDelete }) => (
   <div
     role="button"
     tabIndex={0}
     className={cn(
-      "group relative flex items-start gap-2.5 px-3 py-2.5 rounded-md cursor-pointer transition-all duration-100 w-full text-left select-none outline-none",
+      "group relative w-full rounded-xl border px-3 py-3 text-left outline-none transition-colors",
       isActive
-        ? "bg-accent text-accent-foreground"
-        : "hover:bg-accent/50 text-foreground/70 hover:text-foreground"
+        ? "border-sidebar-primary/30 bg-sidebar-accent text-sidebar-accent-foreground shadow-[inset_0_0_0_1px_rgba(59,130,246,0.15)]"
+        : "border-transparent text-sidebar-foreground/78 hover:border-sidebar-border hover:bg-sidebar-accent/65"
     )}
     onClick={() => onSelect(thread.id)}
     onKeyDown={(event) => event.key === "Enter" && onSelect(thread.id)}
   >
-    <div className="flex-1 min-w-0">
-      <p
-        className={cn(
-          "text-[13px] truncate leading-snug",
-          isActive ? "font-medium text-foreground" : "font-normal"
-        )}
-      >
-        {thread.title}
-      </p>
-      <p className="text-[11px] text-muted-foreground truncate mt-0.5 leading-snug">
-        {thread.messages && thread.messages.length > 0
-          ? thread.messages[thread.messages.length - 1].content
-          : "Click to load messages"}
-      </p>
+    <div
+      className={cn(
+        "absolute left-0 top-2.5 bottom-2.5 w-0.5 rounded-r-full transition-opacity",
+        isActive ? "bg-sidebar-primary opacity-100" : "opacity-0"
+      )}
+    />
+
+    <div className="min-w-0 pr-8">
+      <div className="min-w-0">
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 gap-y-1">
+          <p
+            title={thread.title}
+            className={cn(
+              "min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-sm leading-5",
+              isActive
+                ? "font-semibold text-sidebar-foreground"
+                : "font-medium text-sidebar-foreground/92"
+            )}
+          >
+            {thread.title}
+          </p>
+          <span className="shrink-0 pt-0.5 text-[11px] font-medium tabular-nums text-sidebar-foreground/45">
+            {formatItemDate(thread.updatedAt)}
+          </span>
+
+          <p
+            title={getThreadPreview(thread)}
+            className="col-span-2 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-xs leading-5 text-sidebar-foreground/52"
+          >
+            {getThreadPreview(thread)}
+          </p>
+        </div>
+      </div>
+
     </div>
 
-    <div className="flex-shrink-0 flex items-center gap-1 pt-0.5">
-      <span className="text-[10px] tabular-nums text-muted-foreground/80">
-        {formatDate(thread.updatedAt)}
-      </span>
-      <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-5 w-5 text-muted-foreground hover:text-foreground hover:bg-transparent"
-              onClick={(event) => event.stopPropagation()}
-            >
-              <MoreVertical className="h-3 w-3" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-36">
-            <DropdownMenuItem
-              onClick={(event) => onDelete(thread.id, event)}
-              className="text-destructive focus:text-destructive focus:bg-destructive/10"
-            >
-              <Trash2 className="h-3.5 w-3.5 mr-2" />
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
+    <div
+      className={cn(
+        "absolute right-2 top-2 transition-opacity",
+        isActive
+          ? "opacity-100"
+          : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
+      )}
+    >
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 rounded-lg text-sidebar-foreground/45 hover:bg-sidebar hover:text-sidebar-foreground"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <MoreHorizontal className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-36">
+          <DropdownMenuItem
+            onClick={(event) => onDelete(thread.id, event)}
+            className="text-destructive focus:text-destructive focus:bg-destructive/10"
+          >
+            <Trash2 className="mr-2 h-3.5 w-3.5" />
+            Delete
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   </div>
+)
+
+const ThreadSection = ({ label, threads, activeThreadId, urlThreadId, onSelect, onDelete }) => (
+  <section className="space-y-1.5">
+    <div className="px-2 pt-1">
+      <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-sidebar-foreground/38">
+        {label}
+      </h3>
+    </div>
+    <div className="space-y-1">
+      {threads.map((thread) => (
+        <ThreadItem
+          key={thread.id}
+          thread={thread}
+          isActive={urlThreadId === thread.id || activeThreadId === thread.id}
+          onSelect={onSelect}
+          onDelete={onDelete}
+        />
+      ))}
+    </div>
+  </section>
 )
 
 const ThreadList = ({ className }) => {
@@ -108,7 +201,6 @@ const ThreadList = ({ className }) => {
   const navigate = useNavigate()
   const location = useLocation()
 
-  // Get threadId from URL search params
   const searchParameters = new URLSearchParams(location.search)
   const threadId = searchParameters.get("threadId")
 
@@ -119,31 +211,27 @@ const ThreadList = ({ className }) => {
   const storeSettings = useSelector((state) => state[ct.store.SETTINGS_STORE])
   const isVerified = Boolean(storeSettings?.verification?.isVerified)
 
-  // Fetch threads from API when verified
   useEffect(() => {
     if (isVerified) {
       dispatch(fetchApiThreads())
     }
   }, [isVerified, dispatch])
 
-  // Sort threads by updatedAt in descending order
-  const sortedThreads = useMemo(() => {
-    return [...threads].sort(
-      (a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)
-    )
-  }, [threads])
+  const sortedThreads = useMemo(
+    () =>
+      [...threads].sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)),
+    [threads]
+  )
+
+  const groupedThreads = useMemo(() => groupThreads(sortedThreads), [sortedThreads])
 
   const handleNewChatClick = () => {
-    // Clear active thread and navigate to home page (empty state)
-    // The thread will be created when user sends the first message
     dispatch(setActiveThread(null))
     navigate("/")
   }
 
   const handleSelectThread = (id) => {
     dispatch(selectThread(id))
-    // Navigate to home page (dashboard) without threadId in URL
-    // The Dashboard component will handle displaying the selected thread
     navigate("/")
   }
 
@@ -151,7 +239,6 @@ const ThreadList = ({ className }) => {
     event.stopPropagation()
     dispatch(deleteThread(id))
 
-    // Navigate to dashboard root if deleting current thread
     if (threadId === id || activeThreadId === id) {
       dispatch(setActiveThread(null))
       navigate("/")
@@ -159,7 +246,6 @@ const ThreadList = ({ className }) => {
   }
 
   const handleNavigateToChat = () => {
-    // Clear active thread and navigate to dashboard (home page)
     dispatch(setActiveThread(null))
     navigate("/")
   }
@@ -169,52 +255,68 @@ const ThreadList = ({ className }) => {
   }
 
   return (
-    <div className={cn("flex flex-col h-full", className)}>
-      {/* Sidebar header */}
-      <div className="flex items-center justify-between px-4 py-3 flex-shrink-0">
-        <button
-          className="flex items-center gap-2 text-[13px] font-semibold text-foreground/80 hover:text-foreground transition-colors"
-          onClick={handleNavigateToChat}
-        >
-          <MessagesSquare className="h-3.5 w-3.5" />
-          Conversations
-        </button>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={handleNewChatMaybe}
-          disabled={!isVerified}
-          className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-accent"
-          aria-label="New conversation"
-        >
-          <MessageSquarePlus className="h-4 w-4" />
-        </Button>
+    <div className={cn("flex h-full flex-col bg-sidebar", className)}>
+      <div className="border-b border-sidebar-border/70 px-4 pb-3 pt-4">
+        <div className="flex items-center justify-between gap-3">
+          <button
+            className="flex min-w-0 items-center gap-2 text-left"
+            onClick={handleNavigateToChat}
+          >
+            <MessagesSquare className="h-4.5 w-4.5 text-sidebar-foreground/60" />
+            <div className="min-w-0">
+              <h2 className="truncate text-lg font-semibold tracking-tight text-sidebar-foreground">
+                Conversations
+              </h2>
+            </div>
+          </button>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleNewChatMaybe}
+            disabled={!isVerified}
+            className="h-9 w-9 rounded-xl text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+            aria-label="New conversation"
+          >
+            <MessageSquarePlus className="h-4.5 w-4.5" />
+          </Button>
+        </div>
+
+        <p className="mt-2 pl-6 text-xs text-sidebar-foreground/45">
+          {sortedThreads.length === 0
+            ? "No saved threads"
+            : `${sortedThreads.length} conversation${sortedThreads.length > 1 ? "s" : ""}`}
+        </p>
       </div>
 
-      <ScrollArea className="flex-1 min-h-0">
-        <div className="px-2 pb-4">
-          {sortedThreads.length === 0 ? (
-            <div className="flex flex-col items-center justify-center text-center text-muted-foreground px-4 py-12 gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
-                <MessagesSquare className="h-5 w-5 opacity-50" />
+      <ScrollArea className="min-h-0 flex-1">
+        <div className="px-2 py-3">
+          {groupedThreads.length === 0 ? (
+            <div className="mx-2 mt-4 rounded-2xl border border-dashed border-sidebar-border bg-sidebar-accent/25 px-4 py-10 text-center">
+              <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-2xl bg-sidebar-accent text-sidebar-foreground/60">
+                <MessagesSquare className="h-5 w-5" />
               </div>
-              <div>
-                <p className="text-[13px] font-medium">No conversations</p>
-                <p className="text-[11px] mt-0.5">Start a new chat to begin</p>
-              </div>
+              <p className="mt-4 text-sm font-medium text-sidebar-foreground">
+                No conversations yet
+              </p>
+              <p className="mt-1 text-xs leading-5 text-sidebar-foreground/50">
+                Start a new chat and it will appear here.
+              </p>
             </div>
           ) : (
-            sortedThreads.map((thread) => (
-              <ThreadItem
-                key={thread.id}
-                thread={thread}
-                isActive={
-                  threadId === thread.id || activeThreadId === thread.id
-                }
-                onSelect={handleSelectThread}
-                onDelete={handleDeleteThread}
-              />
-            ))
+            <div className="space-y-4">
+              {groupedThreads.map((section) => (
+                <ThreadSection
+                  key={section.label}
+                  label={section.label}
+                  threads={section.threads}
+                  activeThreadId={activeThreadId}
+                  urlThreadId={threadId}
+                  onSelect={handleSelectThread}
+                  onDelete={handleDeleteThread}
+                />
+              ))}
+            </div>
           )}
         </div>
       </ScrollArea>
@@ -232,6 +334,20 @@ ThreadItem.propTypes = {
   isActive: PropTypes.bool.isRequired,
   onSelect: PropTypes.func.isRequired,
   onDelete: PropTypes.func.isRequired,
+}
+
+ThreadSection.propTypes = {
+  label: PropTypes.string.isRequired,
+  threads: PropTypes.array.isRequired,
+  activeThreadId: PropTypes.string,
+  urlThreadId: PropTypes.string,
+  onSelect: PropTypes.func.isRequired,
+  onDelete: PropTypes.func.isRequired,
+}
+
+ThreadSection.defaultProps = {
+  activeThreadId: null,
+  urlThreadId: null,
 }
 
 ThreadList.propTypes = {
