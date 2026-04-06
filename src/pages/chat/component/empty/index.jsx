@@ -42,29 +42,28 @@ const SUGGESTIONS = [
  * EmptyChatView component displays when no thread is selected or active thread has no messages
  * Styled to match Claude's clean and modern empty state design
  */
-const EmptyChatUI = ({ onNewChat, onSendMessage, disabled = false }) => {
+const EmptyChatUI = ({ onSendMessage, disabled = false }) => {
   const [message, setMessage] = useState("")
+  const [attachedFiles, setAttachedFiles] = useState([])
   const fileInputReference = useRef(null)
   const store = useSelector((state) => state?.settingsStore)
 
   const handleSubmit = (event) => {
     event.preventDefault()
-    if (message.trim() && !disabled) {
-      onSendMessage?.(message.trim())
+    if ((message.trim() || attachedFiles.length > 0) && !disabled) {
+      onSendMessage?.(message.trim(), attachedFiles)
       setMessage("")
+      setAttachedFiles([])
     }
   }
-
-  // const handleFileAttach = () => {
-  //   fileInputReference.current?.click()
-  // }
 
   const handleFileChange = (event) => {
     const { files } = event.target
     if (files && files.length > 0) {
-      // Start new chat with file attachment
-      onNewChat()
-      // Here you could handle file processing and add to the new chat
+      const newFiles = [...files].filter(
+        (file) => file.size <= 10 * 1024 * 1024
+      )
+      setAttachedFiles((previous) => [...previous, ...newFiles])
     }
   }
 
@@ -72,6 +71,10 @@ const EmptyChatUI = ({ onNewChat, onSendMessage, disabled = false }) => {
     if (!disabled) {
       setMessage(prompt)
     }
+  }
+
+  const handleRemoveFile = (fileToRemove) => {
+    setAttachedFiles((previous) => previous.filter((f) => f !== fileToRemove))
   }
 
   return (
@@ -118,6 +121,8 @@ const EmptyChatUI = ({ onNewChat, onSendMessage, disabled = false }) => {
           setMessage={setMessage}
           onHandleFileChange={handleFileChange}
           fileInputReference={fileInputReference}
+          attachedFiles={attachedFiles}
+          onRemoveFile={handleRemoveFile}
           disabled={disabled}
         />
 

@@ -47,6 +47,180 @@ import {
   stopStreaming,
 } from "@/services/store/slices/chat.slice"
 import { buildMessageText, getMessageCopyText } from "@/lib/messageContent"
+import { resolveFileUrl } from "@/lib/media-resolver"
+
+/**
+ * Renders multimodal content blocks for assistant messages.
+ * Falls back to markdown text for blocks that cannot be rendered visually.
+ */
+const MultimodalContent = ({ content, resolvedMedia, MarkdownComponents }) => {
+  const elements = []
+
+  content.forEach((block, index) => {
+    if (!block || typeof block !== "object") return
+
+    switch (block.type) {
+      case "text": {
+        const text = block.text || ""
+        if (!text) return
+        elements.push(
+          <ReactMarkdown
+            key={`text-${index}`}
+            remarkPlugins={[remarkGfm]}
+            components={MarkdownComponents}
+          >
+            {text}
+          </ReactMarkdown>
+        )
+        break
+      }
+      case "image": {
+        const media = block.media || {}
+        let src = null
+        if (media.kind === "data" && media.data_base64) {
+          const mime = media.mime_type || "image/png"
+          src = `data:${mime};base64,${media.data_base64}`
+        } else if (media.kind === "url" && media.url) {
+          src = media.url
+        } else if (media.kind === "file_id" && media.file_id) {
+          const resolved = resolvedMedia[media.file_id]
+          src = resolved?.url || null
+        }
+        if (src) {
+          elements.push(
+            <img
+              key={`image-${index}`}
+              src={src}
+              alt={media.alt || "Assistant generated image"}
+              className="max-w-sm rounded-lg border border-border/50 shadow-sm my-2"
+            />
+          )
+        }
+        break
+      }
+      case "audio": {
+        const media = block.media || {}
+        const transcript = block.transcript || media.transcript
+        let src = null
+        if (media.kind === "data" && media.data_base64) {
+          const mime = media.mime_type || "audio/wav"
+          src = `data:${mime};base64,${media.data_base64}`
+        } else if (media.kind === "url" && media.url) {
+          src = media.url
+        } else if (media.kind === "file_id" && media.file_id) {
+          const resolved = resolvedMedia[media.file_id]
+          src = resolved?.url || null
+        }
+        if (src) {
+          elements.push(
+            <audio key={`audio-${index}`} controls className="my-2 w-full max-w-sm">
+              <source src={src} type={media.mime_type || "audio/wav"} />
+            </audio>
+          )
+        }
+        if (transcript) {
+          elements.push(
+            <p key={`audio-transcript-${index}`} className="text-sm text-muted-foreground italic mt-1">
+              Transcript: {transcript}
+            </p>
+          )
+        }
+        break
+      }
+      case "video": {
+        const media = block.media || {}
+        let src = null
+        if (media.kind === "data" && media.data_base64) {
+          const mime = media.mime_type || "video/mp4"
+          src = `data:${mime};base64,${media.data_base64}`
+        } else if (media.kind === "url" && media.url) {
+          src = media.url
+        } else if (media.kind === "file_id" && media.file_id) {
+          const resolved = resolvedMedia[media.file_id]
+          src = resolved?.url || null
+        }
+        if (src) {
+          elements.push(
+            <video key={`video-${index}`} controls className="my-2 w-full max-w-sm rounded-lg">
+              <source src={src} type={media.mime_type || "video/mp4"} />
+            </video>
+          )
+        }
+        break
+      }
+      case "document": {
+        const media = block.media || {}
+        if (block.text) {
+          elements.push(
+            <ReactMarkdown
+              key={`doc-text-${index}`}
+              remarkPlugins={[remarkGfm]}
+              components={MarkdownComponents}
+            >
+              {block.text}
+            </ReactMarkdown>
+          )
+        } else if (media.kind === "file_id" && media.file_id) {
+          const resolved = resolvedMedia[media.file_id]
+          elements.push(
+            <div key={`doc-${index}`} className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg border my-2">
+              <FileText className="w-4 h-4 text-muted-foreground" />
+              {resolved?.url ? (
+                <a href={resolved.url} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 dark:text-blue-400 underline">
+                  {media.filename || "document"}
+                </a>
+              ) : (
+                <span className="text-sm truncate">{media.filename || "document"}</span>
+              )}
+            </div>
+          )
+        }
+        break
+      }
+      case "reasoning": {
+        const reasoningText = block.summary || block.details || ""
+        if (reasoningText) {
+          elements.push(
+            <div key={`reasoning-${index}`} className="text-sm text-muted-foreground border-l-2 border-slate-300 dark:border-slate-700 pl-3 my-2">
+              <span className="font-semibold text-xs uppercase tracking-wider">Reasoning</span>
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={MarkdownComponents}
+              >
+                {reasoningText}
+              </ReactMarkdown>
+            </div>
+          )
+        }
+        break
+      }
+      case "tool_call":
+      case "tool_result":
+        // These are handled by the message kind system, skip here
+        break
+      default:
+        // Fallback: render as text via buildMessageText
+        const fallback = buildMessageText(block)
+        if (fallback.trim()) {
+          elements.push(
+            <ReactMarkdown
+              key={`fallback-${index}`}
+              remarkPlugins={[remarkGfm]}
+              components={MarkdownComponents}
+            >
+              {fallback}
+            </ReactMarkdown>
+          )
+        }
+    }
+  })
+
+  if (elements.length === 0) {
+    return null
+  }
+
+  return <div className="space-y-1">{elements}</div>
+}
 
 /**
  * Message component renders individual chat messages with modern design
@@ -57,9 +231,35 @@ const Message = ({ message }) => {
   const isToolCall = message.kind === "tool_call"
   const isToolResult = message.kind === "tool_result" || message.role === "tool"
   const isError = message.kind === "error"
+  const attachments = message.attachments || []
   const showToolMessageContent = useSelector(
     (state) => state.threadSettingsStore.show_tool_message_content
   )
+
+  // Resolved media URLs for assistant multimodal content
+  const [resolvedMedia, setResolvedMedia] = useState({})
+
+  useEffect(() => {
+    if (isUser) return
+    const rawContent = message.rawContent ?? message.content
+    if (!Array.isArray(rawContent)) return
+
+    const resolve = async () => {
+      const urls = {}
+      for (const block of rawContent) {
+        if (block?.media?.kind === "file_id" && block.media.file_id) {
+          const url = await resolveFileUrl(block.media.file_id)
+          if (url) {
+            urls[block.media.file_id] = { url, mime_type: block.media.mime_type }
+          }
+        }
+      }
+      if (Object.keys(urls).length > 0) {
+        setResolvedMedia(urls)
+      }
+    }
+    resolve()
+  }, [isUser, message.rawContent, message.content])
 
   if ((isToolCall || isToolResult) && !showToolMessageContent) {
     return null
@@ -268,17 +468,72 @@ const Message = ({ message }) => {
           >
             <div className="text-[15px] leading-relaxed">
               {isUser ? (
-                <p className="whitespace-pre-wrap">{message.content}</p>
+                <div className="space-y-2">
+                  {attachments.length > 0 && (
+                    <div className="space-y-2 mb-2">
+                      {attachments.map((attachment, idx) => {
+                        const isImage = attachment.mime_type?.startsWith("image/")
+                        const isPDF = attachment.mime_type === "application/pdf"
+                        if (isImage && attachment.url) {
+                          return (
+                            <img
+                              key={idx}
+                              src={attachment.url}
+                              alt={attachment.filename || "Attached image"}
+                              className="max-w-xs rounded-lg border border-border/50 shadow-sm"
+                            />
+                          )
+                        }
+                        if (isPDF) {
+                          return (
+                            <div
+                              key={idx}
+                              className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg border"
+                            >
+                              <FileText className="w-4 h-4 text-muted-foreground" />
+                              <span className="text-sm truncate">
+                                {attachment.filename || "document.pdf"}
+                              </span>
+                            </div>
+                          )
+                        }
+                        return (
+                          <div
+                            key={idx}
+                            className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg border"
+                          >
+                            <FileText className="w-4 h-4 text-muted-foreground" />
+                            <span className="text-sm truncate">
+                              {attachment.filename || "file"}
+                            </span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                  {message.content && (
+                    <p className="whitespace-pre-wrap">{message.content}</p>
+                  )}
+                </div>
               ) : isError ? (
                 <p className="whitespace-pre-wrap text-sm">{message.content}</p>
               ) : (
                 <div className="prose prose-sm max-w-none dark:prose-invert prose-slate">
-                  <ReactMarkdown
-                    remarkPlugins={[remarkGfm]}
-                    components={MarkdownComponents}
-                  >
-                    {displayContent}
-                  </ReactMarkdown>
+                  {/* Render multimodal content blocks directly when available */}
+                  {Array.isArray(message.rawContent ?? message.content) ? (
+                    <MultimodalContent
+                      content={message.rawContent ?? message.content}
+                      resolvedMedia={resolvedMedia}
+                      MarkdownComponents={MarkdownComponents}
+                    />
+                  ) : (
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      components={MarkdownComponents}
+                    >
+                      {displayContent}
+                    </ReactMarkdown>
+                  )}
                 </div>
               )}
             </div>
@@ -451,15 +706,7 @@ const MessageInput = ({
     (event) => {
       event.preventDefault()
       if ((message.trim() || attachedFiles.length > 0) && !disabled) {
-        let finalMessage = message.trim()
-
-        // Add file information to message if files are attached
-        if (attachedFiles.length > 0) {
-          const fileList = attachedFiles.map((f) => f.name).join(", ")
-          finalMessage += `\n\n📎 Files attached: ${fileList}`
-        }
-
-        onSendMessage(finalMessage)
+        onSendMessage(message.trim(), attachedFiles)
         setMessage("")
         setAttachedFiles([])
         if (textareaRef.current) {
@@ -493,7 +740,7 @@ const MessageInput = ({
     const newFiles = Array.from(files).filter(
       (file) => file.size <= 10 * 1024 * 1024 // 10MB limit
     )
-    setAttachedFiles((prev) => [...prev, ...newFiles])
+    setAttachedFiles((previous) => [...previous, ...newFiles])
   }
 
   const handleFileInputChange = (event) => {
@@ -521,7 +768,7 @@ const MessageInput = ({
   }
 
   const removeFile = (fileToRemove) => {
-    setAttachedFiles((prev) => prev.filter((f) => f !== fileToRemove))
+    setAttachedFiles((previous) => previous.filter((f) => f !== fileToRemove))
   }
 
   const handleVoiceInput = () => {
@@ -685,9 +932,9 @@ const MessageView = ({ thread, disabled = false }) => {
   }, [thread.messages])
 
   const handleSendMessage = useCallback(
-    async (content) => {
-      if (!content.trim() || disabled) return
-      await dispatch(sendMessageThunk(thread.id, content))
+    async (content, files = []) => {
+      if ((!content.trim() && files.length === 0) || disabled) return
+      await dispatch(sendMessageThunk(thread.id, content, files))
     },
     [dispatch, thread.id, disabled]
   )

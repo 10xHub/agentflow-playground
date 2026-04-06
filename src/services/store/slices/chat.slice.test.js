@@ -2,17 +2,38 @@
 import { configureStore } from "@reduxjs/toolkit"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
+const { uploadFileMock, getAgentFlowClientMock } = vi.hoisted(() => ({
+  uploadFileMock: vi.fn(),
+  getAgentFlowClientMock: vi.fn(),
+}))
+
+vi.mock("@/lib/agentflow-client", () => ({
+  getAgentFlowClient: getAgentFlowClientMock,
+}))
+
 vi.mock("@/services/api/graph.api", () => ({
   invokeGraph: vi.fn(),
   streamGraph: vi.fn(),
 }))
 
-vi.mock("@10xscale/agentflow-client", () => ({
-  Message: {
-    text_message: vi.fn((content, role) => ({ content, role })),
-  },
-}))
+vi.mock("@10xscale/agentflow-client", () => {
+  class MockMessage {
+    constructor(role, content, message_id = null) {
+      this.role = role
+      this.content = content
+      this.message_id = message_id
+    }
+  }
 
+  const textMessageMock = vi.fn((content, role) => ({ content, role }))
+  MockMessage.text_message = textMessageMock
+
+  return {
+    Message: MockMessage,
+  }
+})
+
+import { getAgentFlowClient } from "@/lib/agentflow-client"
 import { invokeGraph, streamGraph } from "@/services/api/graph.api"
 import { Message } from "@10xscale/agentflow-client"
 
@@ -57,6 +78,9 @@ describe("chat slice", () => {
   beforeEach(() => {
     vi.clearAllMocks()
     invokeGraph.mockResolvedValue({ messages: [], meta: {}, context: [] })
+    getAgentFlowClientMock.mockReturnValue({
+      uploadFile: uploadFileMock,
+    })
   })
 
   it("does not add blank messages to thread state", () => {
@@ -318,5 +342,248 @@ describe("chat slice", () => {
     expect(nextState.threadSettingsStore.thread_title).toBe(NEXT_THREAD_TITLE)
     expect(nextState.stateStore.state.context_summary).toBe(WEATHER_SUMMARY)
     expect(nextState.stateStore.state.execution_meta.current_node).toBe("MAIN")
+  })
+})
+
+describe("chat slice file uploads", () => {
+  const mockImageFile = new File(["image-data"], "photo.png", {
+    type: "image/png",
+  })
+  const mockPdfFile = new File(["pdf-data"], "document.pdf", {
+    type: "application/pdf",
+  })
+  const mockAudioFile = new File(["audio-data"], "recording.mp3", {
+    type: "audio/mpeg",
+  })
+  const mockVideoFile = new File(["video-data"], "clip.mp4", {
+    type: "video/mp4",
+  })
+  const mockTextFile = new File(["text-data"], "notes.txt", {
+    type: "text/plain",
+  })
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    invokeGraph.mockResolvedValue({ messages: [], meta: {}, context: [] })
+    getAgentFlowClientMock.mockReturnValue({
+      uploadFile: uploadFileMock,
+    })
+    uploadFileMock.mockResolvedValue({
+      file_id: "file-123",
+      mime_type: "image/png",
+      size_bytes: 1024,
+      filename: "photo.png",
+    })
+  })
+
+  it("does not dispatch when content is empty and no files provided", async () => {
+    const store = createTestStore()
+
+    await store.dispatch(sendMessage(THREAD_ID, "", []))
+
+    expect(getThreadMessages(store)).toHaveLength(0)
+    expect(invokeGraph).not.toHaveBeenCalled()
+  })
+
+  it("uploads image file and creates multimodal message with image block", async () => {
+    uploadFileMock.mockResolvedValue({
+      file_id: "img-001",
+      mime_type: "image/png",
+      size_bytes: 2048,
+      filename: "photo.png",
+    })
+
+    const store = createTestStore()
+    await store.dispatch(sendMessage(THREAD_ID, "Describe this image", [mockImageFile]))
+
+    expect(uploadFileMock).toHaveBeenCalledWith(mockImageFile)
+
+    const thread = store.getState().chatStore.threads.find((t) => t.id === THREAD_ID)
+    expect(thread.messages).toHaveLength(1)
+    expect(thread.messages[0].role).toBe("user")
+    expect(thread.messages[0].attachments).toHaveLength(1)
+    expect(thread.messages[0].attachments[0]).toMatchObject({
+      filename: "photo.png",
+      mime_type: "image/png",
+    })
+  })
+
+  it("uploads multiple files of different types and builds correct content blocks", async () => {
+    uploadFileMock
+      .mockResolvedValueOnce({
+        file_id: "img-001",
+        mime_type: "image/png",
+        filename: "photo.png",
+      })
+      .mockResolvedValueOnce({
+        file_id: "doc-001",
+        mime_type: "application/pdf",
+        filename: "document.pdf",
+      })
+      .mockResolvedValueOnce({
+        file_id: "aud-001",
+        mime_type: "audio/mpeg",
+        filename: "recording.mp3",
+      })
+      .mockResolvedValueOnce({
+        file_id: "vid-001",
+        mime_type: "video/mp4",
+        filename: "clip.mp4",
+      })
+
+    const store = createTestStore()
+    await store.dispatch(
+      sendMessage(THREAD_ID, "Review these files", [
+        mockImageFile,
+        mockPdfFile,
+        mockAudioFile,
+        mockVideoFile,
+      ])
+    )
+
+    expect(uploadFileMock).toHaveBeenCalledTimes(4)
+
+    const messages = getThreadMessages(store)
+    expect(messages).toHaveLength(1)
+    expect(messages[0].attachments).toHaveLength(4)
+    expect(messages[0].attachments[0].filename).toBe("photo.png")
+    expect(messages[0].attachments[1].filename).toBe("document.pdf")
+    expect(messages[0].attachments[2].filename).toBe("recording.mp3")
+    expect(messages[0].attachments[3].filename).toBe("clip.mp4")
+  })
+
+  it("uploads document file and creates document content block", async () => {
+    uploadFileMock.mockResolvedValue({
+      file_id: "doc-001",
+      mime_type: "application/pdf",
+      filename: "document.pdf",
+    })
+
+    const store = createTestStore()
+    await store.dispatch(sendMessage(THREAD_ID, "Summarize this document", [mockPdfFile]))
+
+    expect(uploadFileMock).toHaveBeenCalledWith(mockPdfFile)
+
+    const messages = getThreadMessages(store)
+    expect(messages).toHaveLength(1)
+    expect(messages[0].attachments).toHaveLength(1)
+    expect(messages[0].attachments[0]).toMatchObject({
+      filename: "document.pdf",
+      mime_type: "application/pdf",
+    })
+  })
+
+  it("sends text-only message when no files provided", async () => {
+    const store = createTestStore()
+    await store.dispatch(sendMessage(THREAD_ID, "Hello without files", []))
+
+    expect(uploadFileMock).not.toHaveBeenCalled()
+    expect(Message.text_message).toHaveBeenCalledWith("Hello without files", "user")
+
+    const messages = getThreadMessages(store)
+    expect(messages).toHaveLength(1)
+    expect(messages[0].attachments).toBeNull()
+  })
+
+  it("sends message with only files and no text content", async () => {
+    uploadFileMock.mockResolvedValue({
+      file_id: "img-001",
+      mime_type: "image/png",
+      filename: "photo.png",
+    })
+
+    const store = createTestStore()
+    await store.dispatch(sendMessage(THREAD_ID, "", [mockImageFile]))
+
+    expect(uploadFileMock).toHaveBeenCalledWith(mockImageFile)
+
+    const messages = getThreadMessages(store)
+    expect(messages).toHaveLength(1)
+    expect(messages[0].content).toBe("")
+    expect(messages[0].attachments).toHaveLength(1)
+  })
+
+  it("stores attachment metadata with correct file information", async () => {
+    const customFile = new File(["data"], "report.csv", {
+      type: "text/csv",
+    })
+    Object.defineProperty(customFile, "size", { value: 5120 })
+
+    uploadFileMock.mockResolvedValue({
+      file_id: "csv-001",
+      mime_type: "text/csv",
+      size_bytes: 5120,
+      filename: "report.csv",
+    })
+
+    const store = createTestStore()
+    await store.dispatch(sendMessage(THREAD_ID, "Process this CSV", [customFile]))
+
+    const messages = getThreadMessages(store)
+    expect(messages[0].attachments).toHaveLength(1)
+    expect(messages[0].attachments[0]).toMatchObject({
+      filename: "report.csv",
+      mime_type: "text/csv",
+      size: 5120,
+    })
+  })
+
+  it("handles upload failure gracefully", async () => {
+    uploadFileMock.mockRejectedValue(new Error("Upload failed"))
+
+    const store = createTestStore()
+
+    await expect(
+      store.dispatch(sendMessage(THREAD_ID, "This will fail", [mockImageFile]))
+    ).rejects.toThrow("Upload failed")
+  })
+
+  it("uses streaming path when streaming is enabled with files", async () => {
+    uploadFileMock.mockResolvedValue({
+      file_id: "img-001",
+      mime_type: "image/png",
+      filename: "photo.png",
+    })
+
+    streamGraph.mockImplementation(async function* mockStream() {
+      yield {
+        data: {
+          message: {
+            role: "assistant",
+            content: [{ type: "text", text: "I can see the image" }],
+          },
+        },
+      }
+    })
+
+    const store = configureStore({
+      reducer: {
+        chatStore: chatReducer,
+        stateStore: stateReducer,
+        threadSettingsStore: threadSettingsReducer,
+      },
+      middleware: (getDefaultMiddleware) =>
+        getDefaultMiddleware({ serializableCheck: false }),
+      preloadedState: {
+        threadSettingsStore: {
+          streaming_response: true,
+          config: {},
+          thread_id: THREAD_ID,
+          thread_title: "",
+          init_state: {},
+          recursion_limit: 25,
+          response_granularity: "low",
+          include_raw: false,
+        },
+      },
+    })
+
+    store.dispatch(createThread({ id: THREAD_ID, title: "New Chat" }))
+
+    await store.dispatch(sendMessage(THREAD_ID, "Look at this", [mockImageFile]))
+
+    expect(uploadFileMock).toHaveBeenCalledWith(mockImageFile)
+    expect(streamGraph).toHaveBeenCalled()
+    expect(invokeGraph).not.toHaveBeenCalled()
   })
 })

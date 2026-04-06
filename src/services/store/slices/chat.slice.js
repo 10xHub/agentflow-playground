@@ -7,6 +7,8 @@ import {
   hasRenderableMessageContent,
   normalizeTimestamp,
 } from "@/lib/messageContent"
+import { getAgentFlowClient } from "@/lib/agentflow-client"
+import { getCurrentSettings } from "@/lib/settings-utils"
 import { invokeGraph, streamGraph } from "@/services/api/graph.api"
 import { listThreads as apiListThreads } from "@/services/api/thread.api"
 import { listMessages as apiListMessages } from "@/services/api/message.api"
@@ -155,6 +157,7 @@ const buildStoredMessage = (message = {}) => {
     reasoning: message.reasoning || "",
     toolsCalls: message.toolsCalls || message.tools_calls || null,
     streamGroup: message.streamGroup || null,
+    attachments: message.attachments || null,
   }
 }
 
@@ -836,26 +839,105 @@ export const {
 
 export default chatSlice.reducer
 
-export const sendMessage =
-  (threadId, content) => async (dispatch, getState) => {
-    const normalizedContent = normalizeUserContent(content)
+const buildContentBlockForFile = (mimeType, fileId) => {
+  const media = {
+    kind: "file_id",
+    file_id: fileId,
+    mime_type: mimeType,
+  }
 
-    if (!normalizedContent) {
+  if (mimeType?.startsWith("image/")) {
+    return { type: "image", media }
+  }
+  if (mimeType?.startsWith("audio/")) {
+    return { type: "audio", media }
+  }
+  if (mimeType?.startsWith("video/")) {
+    return { type: "video", media }
+  }
+  return { type: "document", media }
+}
+
+const buildMultimodalMessage = async (content, files) => {
+  const settings = getCurrentSettings()
+  const backendUrl = settings.backendUrl?.trim().replace(/\/$/, "")
+  const client = getAgentFlowClient()
+  const contentBlocks = []
+
+  if (content) {
+    contentBlocks.push({ type: "text", text: content })
+  }
+
+  for (const file of files) {
+    // Upload directly via HTTP since client.uploadFile() doesn't exist
+    const formData = new FormData()
+    formData.append("file", file)
+
+    const headers = {}
+    const auth = settings.auth
+    if (auth?.type === "bearer") {
+      headers["Authorization"] = `Bearer ${auth.token}`
+    } else if (auth?.type === "header") {
+      headers[auth.name] = auth.prefix ? `${auth.prefix} ${auth.value}` : auth.value
+    } else if (settings.authToken) {
+      headers["Authorization"] = `Bearer ${settings.authToken}`
+    }
+
+    const response = await fetch(`${backendUrl}/v1/files/upload`, {
+      method: "POST",
+      headers,
+      body: formData,
+    })
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: "Upload failed" }))
+      throw new Error(error.detail || `Upload failed: ${response.status}`)
+    }
+
+    const result = await response.json()
+    const uploadData = result.data || result
+    const fileId = uploadData.file_id
+    const mimeType = uploadData.mime_type || file.type
+    contentBlocks.push(buildContentBlockForFile(mimeType, fileId))
+  }
+
+  return new Message("user", contentBlocks)
+}
+
+export const sendMessage =
+  (threadId, content, files = []) =>
+  async (dispatch, getState) => {
+    const normalizedContent = normalizeUserContent(content)
+    const hasFiles = files && files.length > 0
+
+    if (!normalizedContent && !hasFiles) {
       return
     }
 
     const settings = getState().threadSettingsStore
 
+    const userMessagePayload = {
+      id: `${threadId}:user:${Date.now()}`,
+      content: normalizedContent,
+      rawContent: normalizedContent,
+      role: "user",
+      kind: MESSAGE_KIND.USER,
+      allowEmpty: hasFiles,
+    }
+
+    if (hasFiles) {
+      userMessagePayload.attachments = files.map((f) => ({
+        filename: f.name,
+        mime_type: f.type,
+        size: f.size,
+        url: f.preview || null,
+      }))
+    }
+
     dispatch(
       addMessage({
         threadId,
-        message: {
-          id: `${threadId}:user:${Date.now()}`,
-          content: normalizedContent,
-          rawContent: normalizedContent,
-          role: "user",
-          kind: MESSAGE_KIND.USER,
-        },
+        message: userMessagePayload,
       })
     )
 
@@ -866,8 +948,12 @@ export const sendMessage =
       config.thread_name = settings.thread_title
     }
 
+    const clientMessage = hasFiles
+      ? await buildMultimodalMessage(normalizedContent, files)
+      : Message.text_message(normalizedContent, "user")
+
     const body = {
-      messages: [Message.text_message(normalizedContent, "user")],
+      messages: [clientMessage],
       initial_state: settings.init_state || {},
       config,
       recursion_limit: settings.recursion_limit || 25,

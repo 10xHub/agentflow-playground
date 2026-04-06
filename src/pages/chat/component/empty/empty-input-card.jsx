@@ -1,9 +1,47 @@
-import { Send, Paperclip } from "lucide-react"
+import { Send, Paperclip, Image, FileText, X } from "lucide-react"
 import PropTypes from "prop-types"
 
 import { ShineBorder } from "@/components/magicui/shine-border"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+
+const FilePreview = ({ file, handleRemove }) => {
+  const isImage = file.type.startsWith("image/")
+
+  const handleRemoveClick = () => handleRemove(file)
+
+  return (
+    <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg border">
+      <div className="w-8 h-8 rounded-md bg-muted flex items-center justify-center flex-shrink-0">
+        {isImage ? (
+          <Image className="w-4 h-4 text-muted-foreground" />
+        ) : (
+          <FileText className="w-4 h-4 text-muted-foreground" />
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-xs font-medium truncate">{file.name}</p>
+        <p className="text-[10px] text-muted-foreground">
+          {Math.round(file.size / 1024)} KB
+        </p>
+      </div>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={handleRemoveClick}
+        className="h-6 w-6 p-0 hover:bg-destructive/10 hover:text-destructive"
+      >
+        <X className="w-3 h-3" />
+      </Button>
+    </div>
+  )
+}
+
+FilePreview.propTypes = {
+  file: PropTypes.object.isRequired,
+  handleRemove: PropTypes.func.isRequired,
+}
 
 const EmptyInputCard = ({
   onHandleSubmit,
@@ -11,6 +49,8 @@ const EmptyInputCard = ({
   setMessage,
   onHandleFileChange,
   fileInputReference,
+  attachedFiles = [],
+  onRemoveFile,
   disabled = false,
 }) => {
   const handleSubmit = onHandleSubmit
@@ -27,6 +67,17 @@ const EmptyInputCard = ({
         />
         <form onSubmit={handleSubmit} className="relative z-10 h-full">
           <CardContent className="p-2 flex flex-col gap-2">
+            {attachedFiles.length > 0 && (
+              <div className="space-y-1 mb-1">
+                {attachedFiles.map((file) => (
+                  <FilePreview
+                    key={`${file.name}-${file.size}`}
+                    file={file}
+                    handleRemove={onRemoveFile}
+                  />
+                ))}
+              </div>
+            )}
             <textarea
               value={message}
               onChange={(event) => setMessage(event.target.value)}
@@ -56,7 +107,7 @@ const EmptyInputCard = ({
                   ref={fileInputReference}
                   type="file"
                   multiple
-                  accept=".pdf,.doc,.docx,.txt,.csv,.json"
+                  accept=".pdf,.doc,.docx,.txt,.csv,.json,.png,.jpg,.jpeg,.gif,.svg"
                   onChange={handleFileChange}
                   disabled={disabled}
                   className="hidden"
@@ -67,7 +118,9 @@ const EmptyInputCard = ({
               <Button
                 type="submit"
                 size="md"
-                disabled={!message.trim() || disabled}
+                disabled={
+                  (!message.trim() && attachedFiles.length === 0) || disabled
+                }
                 className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-2 rounded-lg shadow transition-colors flex items-center gap-2 text-base font-semibold disabled:opacity-50"
               >
                 <Send className="w-5 h-5" />
@@ -86,6 +139,8 @@ EmptyInputCard.propTypes = {
   message: PropTypes.string,
   setMessage: PropTypes.func.isRequired,
   onHandleFileChange: PropTypes.func,
+  attachedFiles: PropTypes.array,
+  onRemoveFile: PropTypes.func,
   // ref can be a callback or an object created by useRef
   fileInputReference: PropTypes.oneOfType([PropTypes.func, PropTypes.object]),
   disabled: PropTypes.bool,
@@ -94,6 +149,8 @@ EmptyInputCard.propTypes = {
 EmptyInputCard.defaultProps = {
   message: "",
   onHandleFileChange: undefined,
+  attachedFiles: [],
+  onRemoveFile: () => {},
   fileInputReference: null,
   disabled: false,
 }

@@ -126,6 +126,49 @@ const formatContentBlock = (block, options = {}, index = 0) => {
       return formatToolCall(block, options)
     case "tool_result":
       return formatToolResult(block, options)
+    case "image": {
+      const media = block.media || {}
+      if (media.kind === "data" && media.data_base64) {
+        const mime = media.mime_type || "image/png"
+        return `![image](data:${mime};base64,${media.data_base64})`
+      }
+      if (media.kind === "url" && media.url) {
+        return `![image](${media.url})`
+      }
+      if (media.kind === "file_id" && media.file_id) {
+        return `[image: ${media.file_id}]`
+      }
+      return formatNamedSection("Image", safeStringify(media))
+    }
+    case "audio": {
+      const media = block.media || {}
+      const transcript = block.transcript || media.transcript
+      const desc = transcript ? ` — "${transcript}"` : ""
+      if (media.kind === "file_id" && media.file_id) {
+        return `[audio: ${media.file_id}${desc}]`
+      }
+      return formatNamedSection("Audio", transcript || safeStringify(media))
+    }
+    case "video": {
+      const media = block.media || {}
+      if (media.kind === "file_id" && media.file_id) {
+        return `[video: ${media.file_id}]`
+      }
+      return formatNamedSection("Video", safeStringify(media))
+    }
+    case "document": {
+      const media = block.media || {}
+      if (block.text) {
+        return block.text
+      }
+      if (media.kind === "file_id" && media.file_id) {
+        return `[document: ${media.file_id}]`
+      }
+      return formatNamedSection("Document", safeStringify(media))
+    }
+    case "data": {
+      return formatNamedSection("Data", safeStringify(block.data || block))
+    }
     default:
       return formatNamedSection(MESSAGE_LABEL, safeStringify(block))
   }

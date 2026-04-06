@@ -103,17 +103,20 @@ const DashboardUI = () => {
   }, [dispatch])
 
   const handleSendMessage = useCallback(
-    async (message) => {
+    async (message, files = []) => {
       // If no active thread, create one then send
       if (!activeThread) {
         const newId = Date.now().toString()
-        dispatch(
-          createThread({ id: newId, title: `${message.slice(0, 50)}...` })
-        )
+        const title = message.trim()
+          ? `${message.slice(0, 50)}...`
+          : files.length > 0
+            ? `Chat with ${files.length} file(s)`
+            : "New Chat"
+        dispatch(createThread({ id: newId, title }))
         dispatch(setActiveThread(newId))
-        await dispatch(sendMessageThunk(newId, message))
+        await dispatch(sendMessageThunk(newId, message, files))
       } else {
-        await dispatch(sendMessageThunk(activeThread.id, message))
+        await dispatch(sendMessageThunk(activeThread.id, message, files))
       }
     },
     [dispatch, activeThread]

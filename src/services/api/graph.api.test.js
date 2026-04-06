@@ -188,3 +188,180 @@ describe("graph.api", () => {
     ])
   })
 })
+
+describe("graph.api multimodal messages", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    getAgentFlowClientMock.mockReturnValue({
+      invoke: invokeMock,
+      stream: streamMock,
+    })
+  })
+
+  it("passes Message instances through without transformation", async () => {
+    const multimodalMessage = new MockMessage("user", [
+      { type: "text", text: "Describe this" },
+      {
+        type: "image",
+        media: { kind: "file_id", file_id: "img-001", mime_type: "image/png" },
+      },
+    ])
+
+    invokeMock.mockResolvedValue({ messages: [] })
+
+    await invokeGraph({ messages: [multimodalMessage] })
+
+    expect(invokeMock).toHaveBeenCalledWith(
+      [multimodalMessage],
+      expect.any(Object)
+    )
+  })
+
+  it("handles messages with array content blocks (non-string)", async () => {
+    invokeMock.mockResolvedValue({ messages: [] })
+
+    const contentBlocks = [
+      { type: "text", text: "Analyze these files" },
+      {
+        type: "document",
+        media: {
+          kind: "file_id",
+          file_id: "doc-001",
+          mime_type: "application/pdf",
+        },
+      },
+      {
+        type: "image",
+        media: { kind: "file_id", file_id: "img-001", mime_type: "image/png" },
+      },
+    ]
+
+    await invokeGraph({
+      messages: [{ role: "user", content: contentBlocks }],
+    })
+
+    expect(invokeMock).toHaveBeenCalledWith(
+      [expect.objectContaining({ role: "user", content: contentBlocks })],
+      expect.any(Object)
+    )
+  })
+
+  it("handles messages with audio content blocks", async () => {
+    invokeMock.mockResolvedValue({ messages: [] })
+
+    const audioMessage = {
+      role: "user",
+      content: [
+        { type: "text", text: "Transcribe this" },
+        {
+          type: "audio",
+          media: {
+            kind: "file_id",
+            file_id: "aud-001",
+            mime_type: "audio/mpeg",
+          },
+        },
+      ],
+    }
+
+    await invokeGraph({ messages: [audioMessage] })
+
+    expect(invokeMock).toHaveBeenCalledWith(
+      [expect.objectContaining(audioMessage)],
+      expect.any(Object)
+    )
+  })
+
+  it("handles messages with video content blocks", async () => {
+    invokeMock.mockResolvedValue({ messages: [] })
+
+    const videoMessage = {
+      role: "user",
+      content: [
+        {
+          type: "video",
+          media: {
+            kind: "file_id",
+            file_id: "vid-001",
+            mime_type: "video/mp4",
+          },
+        },
+      ],
+    }
+
+    await invokeGraph({ messages: [videoMessage] })
+
+    expect(invokeMock).toHaveBeenCalledWith(
+      [expect.objectContaining(videoMessage)],
+      expect.any(Object)
+    )
+  })
+
+  it("handles mixed message types in single invoke call", async () => {
+    invokeMock.mockResolvedValue({ messages: [] })
+
+    const textMsg = { content: "Hello", role: "user" }
+    const multimodalMsg = {
+      role: "user",
+      content: [
+        { type: "text", text: "Check this" },
+        {
+          type: "image",
+          media: { kind: "file_id", file_id: "img-001", mime_type: "image/png" },
+        },
+      ],
+    }
+    const instanceMsg = new MockMessage(
+      "assistant",
+      [{ type: "text", text: "Response" }],
+      "m1"
+    )
+
+    await invokeGraph({ messages: [textMsg, multimodalMsg, instanceMsg] })
+
+    expect(invokeMock).toHaveBeenCalledWith(
+      [
+        expect.objectContaining({ role: "user", content: "Hello" }),
+        expect.objectContaining(multimodalMsg),
+        instanceMsg,
+      ],
+      expect.any(Object)
+    )
+  })
+
+  it("streams multimodal messages correctly", async () => {
+    streamMock.mockReturnValue(
+      (async function* streamSource() {
+        yield {
+          data: {
+            message: {
+              role: "assistant",
+              content: [{ type: "text", text: "I see the image" }],
+            },
+          },
+        }
+      })()
+    )
+
+    const multimodalMessage = {
+      role: "user",
+      content: [
+        { type: "text", text: "What is this?" },
+        {
+          type: "image",
+          media: { kind: "file_id", file_id: "img-001", mime_type: "image/png" },
+        },
+      ],
+    }
+
+    const chunks = []
+    for await (const chunk of streamGraph({ messages: [multimodalMessage] })) {
+      chunks.push(chunk)
+    }
+
+    expect(chunks).toHaveLength(1)
+    expect(chunks[0].data.message.content).toEqual([
+      { type: "text", text: "I see the image" },
+    ])
+  })
+})
