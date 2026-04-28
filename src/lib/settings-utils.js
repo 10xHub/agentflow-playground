@@ -93,7 +93,8 @@ export const normalizeSettings = (settings = {}) => {
   const inferredMode = inferAuthMode(auth, settings.authToken)
   const requestedMode = readString(settings.authMode)
   const authMode =
-    requestedMode && ["none", "bearer", "basic", "header"].includes(requestedMode)
+    requestedMode &&
+    ["none", "bearer", "basic", "header"].includes(requestedMode)
       ? requestedMode
       : inferredMode
 
@@ -101,7 +102,10 @@ export const normalizeSettings = (settings = {}) => {
     name: readString(settings.name),
     backendUrl: readString(settings.backendUrl),
     authMode,
-    authToken: authMode === "bearer" ? auth?.token || readString(settings.authToken) : "",
+    authToken:
+      authMode === "bearer"
+        ? auth?.token || readString(settings.authToken)
+        : "",
     auth: authMode === "none" ? null : auth,
     credentials: VALID_CREDENTIALS.includes(settings.credentials)
       ? settings.credentials
@@ -162,13 +166,13 @@ export const saveCurrentSettings = (settings) => {
   }
 
   const normalizedSettings = normalizeSettings(settings)
-  localStorage.setItem(
-    SETTINGS_STORAGE_KEY,
-    JSON.stringify(normalizedSettings)
-  )
+  localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(normalizedSettings))
   localStorage.setItem(LEGACY_BACKEND_URL_KEY, normalizedSettings.backendUrl)
 
-  if (normalizedSettings.authMode === "bearer" && normalizedSettings.authToken) {
+  if (
+    normalizedSettings.authMode === "bearer" &&
+    normalizedSettings.authToken
+  ) {
     localStorage.setItem(LEGACY_AUTH_TOKEN_KEY, normalizedSettings.authToken)
   } else {
     localStorage.removeItem(LEGACY_AUTH_TOKEN_KEY)

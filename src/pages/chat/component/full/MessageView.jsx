@@ -113,14 +113,21 @@ const MultimodalContent = ({ content, resolvedMedia, MarkdownComponents }) => {
         }
         if (src) {
           elements.push(
-            <audio key={`audio-${index}`} controls className="my-2 w-full max-w-sm">
+            <audio
+              key={`audio-${index}`}
+              controls
+              className="my-2 w-full max-w-sm"
+            >
               <source src={src} type={media.mime_type || "audio/wav"} />
             </audio>
           )
         }
         if (transcript) {
           elements.push(
-            <p key={`audio-transcript-${index}`} className="text-sm text-muted-foreground italic mt-1">
+            <p
+              key={`audio-transcript-${index}`}
+              className="text-sm text-muted-foreground italic mt-1"
+            >
               Transcript: {transcript}
             </p>
           )
@@ -141,7 +148,11 @@ const MultimodalContent = ({ content, resolvedMedia, MarkdownComponents }) => {
         }
         if (src) {
           elements.push(
-            <video key={`video-${index}`} controls className="my-2 w-full max-w-sm rounded-lg">
+            <video
+              key={`video-${index}`}
+              controls
+              className="my-2 w-full max-w-sm rounded-lg"
+            >
               <source src={src} type={media.mime_type || "video/mp4"} />
             </video>
           )
@@ -163,14 +174,24 @@ const MultimodalContent = ({ content, resolvedMedia, MarkdownComponents }) => {
         } else if (media.kind === "file_id" && media.file_id) {
           const resolved = resolvedMedia[media.file_id]
           elements.push(
-            <div key={`doc-${index}`} className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg border my-2">
+            <div
+              key={`doc-${index}`}
+              className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg border my-2"
+            >
               <FileText className="w-4 h-4 text-muted-foreground" />
               {resolved?.url ? (
-                <a href={resolved.url} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 dark:text-blue-400 underline">
+                <a
+                  href={resolved.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-blue-600 dark:text-blue-400 underline"
+                >
                   {media.filename || "document"}
                 </a>
               ) : (
-                <span className="text-sm truncate">{media.filename || "document"}</span>
+                <span className="text-sm truncate">
+                  {media.filename || "document"}
+                </span>
               )}
             </div>
           )
@@ -181,8 +202,13 @@ const MultimodalContent = ({ content, resolvedMedia, MarkdownComponents }) => {
         const reasoningText = block.summary || block.details || ""
         if (reasoningText) {
           elements.push(
-            <div key={`reasoning-${index}`} className="text-sm text-muted-foreground border-l-2 border-slate-300 dark:border-slate-700 pl-3 my-2">
-              <span className="font-semibold text-xs uppercase tracking-wider">Reasoning</span>
+            <div
+              key={`reasoning-${index}`}
+              className="text-sm text-muted-foreground border-l-2 border-slate-300 dark:border-slate-700 pl-3 my-2"
+            >
+              <span className="font-semibold text-xs uppercase tracking-wider">
+                Reasoning
+              </span>
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 components={MarkdownComponents}
@@ -250,7 +276,10 @@ const Message = ({ message }) => {
         if (block?.media?.kind === "file_id" && block.media.file_id) {
           const url = await resolveFileUrl(block.media.file_id)
           if (url) {
-            urls[block.media.file_id] = { url, mime_type: block.media.mime_type }
+            urls[block.media.file_id] = {
+              url,
+              mime_type: block.media.mime_type,
+            }
           }
         }
       }
@@ -472,7 +501,8 @@ const Message = ({ message }) => {
                   {attachments.length > 0 && (
                     <div className="space-y-2 mb-2">
                       {attachments.map((attachment, idx) => {
-                        const isImage = attachment.mime_type?.startsWith("image/")
+                        const isImage =
+                          attachment.mime_type?.startsWith("image/")
                         const isPDF = attachment.mime_type === "application/pdf"
                         if (isImage && attachment.url) {
                           return (

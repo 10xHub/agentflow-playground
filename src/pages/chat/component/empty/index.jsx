@@ -38,6 +38,56 @@ const SUGGESTIONS = [
   },
 ]
 
+const DisabledWarning = () => (
+  <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg max-w-md mx-auto">
+    <div className="flex items-start gap-2">
+      <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+      <div className="text-sm text-amber-800 dark:text-amber-200">
+        <p className="font-medium mb-1">
+          Backend URL is not configured properly
+        </p>
+        <p className="text-xs">
+          Use{" "}
+          <code className="bg-amber-100 dark:bg-amber-900 px-1.5 py-0.5 rounded">
+            ?backendUrl=YOUR_URL
+          </code>{" "}
+          in the URL or click the <Settings className="h-3 w-3 inline mx-0.5" />{" "}
+          Settings icon to configure
+        </p>
+      </div>
+    </div>
+  </div>
+)
+
+const SuggestionGrid = ({ onSuggestion: handleSuggestion }) => (
+  <div className="mt-5 w-full">
+    <p className="text-xs text-muted-foreground text-center mb-3 font-medium uppercase tracking-wider">
+      Try asking about
+    </p>
+    <div className="grid grid-cols-2 gap-2">
+      {SUGGESTIONS.map(({ icon: Icon, label, prompt }) => (
+        <button
+          key={label}
+          type="button"
+          onClick={() => handleSuggestion(prompt)}
+          className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl border border-border/60 bg-background/60 hover:bg-muted/60 hover:border-border transition-all text-left group"
+        >
+          <span className="flex-shrink-0 w-7 h-7 rounded-lg bg-muted flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+            <Icon className="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
+          </span>
+          <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors font-medium truncate">
+            {label}
+          </span>
+        </button>
+      ))}
+    </div>
+  </div>
+)
+
+SuggestionGrid.propTypes = {
+  onSuggestion: PropTypes.func.isRequired,
+}
+
 /**
  * EmptyChatView component displays when no thread is selected or active thread has no messages
  * Styled to match Claude's clean and modern empty state design
@@ -68,9 +118,7 @@ const EmptyChatUI = ({ onSendMessage, disabled = false }) => {
   }
 
   const handleSuggestion = (prompt) => {
-    if (!disabled) {
-      setMessage(prompt)
-    }
+    if (!disabled) setMessage(prompt)
   }
 
   const handleRemoveFile = (fileToRemove) => {
@@ -92,29 +140,8 @@ const EmptyChatUI = ({ onSendMessage, disabled = false }) => {
           <p className="text-base text-muted-foreground">
             Powered by AI Intelligence
           </p>
-          {disabled && (
-            <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg max-w-md mx-auto">
-              <div className="flex items-start gap-2">
-                <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
-                <div className="text-sm text-amber-800 dark:text-amber-200">
-                  <p className="font-medium mb-1">
-                    Backend URL is not configured properly
-                  </p>
-                  <p className="text-xs">
-                    Use{" "}
-                    <code className="bg-amber-100 dark:bg-amber-900 px-1.5 py-0.5 rounded">
-                      ?backendUrl=YOUR_URL
-                    </code>{" "}
-                    in the URL or click the{" "}
-                    <Settings className="h-3 w-3 inline mx-0.5" /> Settings icon
-                    to configure
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
+          {disabled && <DisabledWarning />}
         </div>
-
         <EmptyInputCard
           onHandleSubmit={handleSubmit}
           message={message}
@@ -125,32 +152,7 @@ const EmptyChatUI = ({ onSendMessage, disabled = false }) => {
           onRemoveFile={handleRemoveFile}
           disabled={disabled}
         />
-
-        {/* Quick suggestion chips */}
-        {!disabled && (
-          <div className="mt-5 w-full">
-            <p className="text-xs text-muted-foreground text-center mb-3 font-medium uppercase tracking-wider">
-              Try asking about
-            </p>
-            <div className="grid grid-cols-2 gap-2">
-              {SUGGESTIONS.map(({ icon: Icon, label, prompt }) => (
-                <button
-                  key={label}
-                  type="button"
-                  onClick={() => handleSuggestion(prompt)}
-                  className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl border border-border/60 bg-background/60 hover:bg-muted/60 hover:border-border transition-all text-left group"
-                >
-                  <span className="flex-shrink-0 w-7 h-7 rounded-lg bg-muted flex items-center justify-center group-hover:bg-primary/10 transition-colors">
-                    <Icon className="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
-                  </span>
-                  <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors font-medium truncate">
-                    {label}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+        {!disabled && <SuggestionGrid onSuggestion={handleSuggestion} />}
       </div>
     </div>
   )

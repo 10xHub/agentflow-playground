@@ -89,4 +89,24 @@ describe("useFormData", () => {
     expect(result.current.formData.context_summary).toBe("Updated")
     expect(result.current.formData.execution_meta.status).toBe("done")
   })
+
+  it("preserves runtime-only fields that are missing from the schema", () => {
+    const { result } = renderHook(() =>
+      useFormData(
+        {
+          context: [],
+          context_summary: "",
+          execution_meta: {},
+          preferred_occasions: ["date night"],
+          company_name: "Fashionista Inc.",
+          user_preferences: { fit: "relaxed" },
+        },
+        {}
+      )
+    )
+
+    expect(result.current.formData.preferred_occasions).toEqual(["date night"])
+    expect(result.current.formData.company_name).toBe("Fashionista Inc.")
+    expect(result.current.formData.user_preferences).toEqual({ fit: "relaxed" })
+  })
 })

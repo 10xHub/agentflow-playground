@@ -7,7 +7,6 @@ import {
   hasRenderableMessageContent,
   normalizeTimestamp,
 } from "@/lib/messageContent"
-import { getAgentFlowClient } from "@/lib/agentflow-client"
 import { getCurrentSettings } from "@/lib/settings-utils"
 import { invokeGraph, streamGraph } from "@/services/api/graph.api"
 import { listThreads as apiListThreads } from "@/services/api/thread.api"
@@ -861,7 +860,6 @@ const buildContentBlockForFile = (mimeType, fileId) => {
 const buildMultimodalMessage = async (content, files) => {
   const settings = getCurrentSettings()
   const backendUrl = settings.backendUrl?.trim().replace(/\/$/, "")
-  const client = getAgentFlowClient()
   const contentBlocks = []
 
   if (content) {
@@ -874,13 +872,15 @@ const buildMultimodalMessage = async (content, files) => {
     formData.append("file", file)
 
     const headers = {}
-    const auth = settings.auth
+    const { auth } = settings
     if (auth?.type === "bearer") {
-      headers["Authorization"] = `Bearer ${auth.token}`
+      headers.Authorization = `Bearer ${auth.token}`
     } else if (auth?.type === "header") {
-      headers[auth.name] = auth.prefix ? `${auth.prefix} ${auth.value}` : auth.value
+      headers[auth.name] = auth.prefix
+        ? `${auth.prefix} ${auth.value}`
+        : auth.value
     } else if (settings.authToken) {
-      headers["Authorization"] = `Bearer ${settings.authToken}`
+      headers.Authorization = `Bearer ${settings.authToken}`
     }
 
     const response = await fetch(`${backendUrl}/v1/files/upload`, {
@@ -890,7 +890,9 @@ const buildMultimodalMessage = async (content, files) => {
     })
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ detail: "Upload failed" }))
+      const error = await response
+        .json()
+        .catch(() => ({ detail: "Upload failed" }))
       throw new Error(error.detail || `Upload failed: ${response.status}`)
     }
 

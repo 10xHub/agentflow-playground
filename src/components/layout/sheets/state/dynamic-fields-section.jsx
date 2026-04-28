@@ -12,11 +12,11 @@ const DynamicFieldsSection = ({
   dynamicFields,
   getFieldInfo,
   formData,
-  handleUpdateField,
+  onUpdateField,
 }) => {
   return dynamicFields.map((fieldKey) => {
     const fieldInfo = getFieldInfo(fieldKey)
-    const value = formData[fieldKey] || ""
+    const value = formData[fieldKey] ?? ""
 
     return (
       <Card key={fieldKey} className="p-2">
@@ -44,10 +44,10 @@ const DynamicFieldsSection = ({
             try {
               // Try to parse as JSON first
               const parsed = JSON.parse(event.target.value)
-              handleUpdateField(fieldKey, parsed)
+              onUpdateField(fieldKey, parsed)
             } catch {
               // If not valid JSON, treat as string
-              handleUpdateField(fieldKey, event.target.value)
+              onUpdateField(fieldKey, event.target.value)
             }
           }}
           className="w-full p-2 text-xs resize-vertical border border-border/50 rounded-lg bg-background/50"
@@ -62,7 +62,7 @@ DynamicFieldsSection.propTypes = {
   dynamicFields: PropTypes.arrayOf(PropTypes.string).isRequired,
   getFieldInfo: PropTypes.func.isRequired,
   formData: PropTypes.object.isRequired,
-  handleUpdateField: PropTypes.func.isRequired,
+  onUpdateField: PropTypes.func.isRequired,
 }
 
 export default DynamicFieldsSection

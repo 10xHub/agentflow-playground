@@ -44,6 +44,50 @@ const getEventTone = (event) => {
   }
 }
 
+const EventEntry = ({ entry }) => (
+  <div className="rounded-2xl border bg-card/80 p-4 shadow-sm">
+    <div className="flex items-start justify-between gap-3">
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-2">
+          <span
+            className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${getEventTone(entry.event)}`}
+          >
+            {entry.event}
+          </span>
+          {entry.threadId && (
+            <span className="rounded-full border px-2 py-0.5 text-[11px] text-muted-foreground">
+              Thread {entry.threadId}
+            </span>
+          )}
+          {entry.runId && (
+            <span className="rounded-full border px-2 py-0.5 text-[11px] text-muted-foreground">
+              Run {entry.runId}
+            </span>
+          )}
+        </div>
+        <pre className="mt-3 overflow-x-auto rounded-xl border bg-slate-950 p-3 text-xs leading-6 text-slate-100">
+          {formatPayload(entry.payload)}
+        </pre>
+      </div>
+      <p className="shrink-0 text-xs text-muted-foreground">
+        {formatEventTimestamp(entry.timestamp)}
+      </p>
+    </div>
+  </div>
+)
+
+EventEntry.propTypes = {
+  entry: PropTypes.shape({
+    id: PropTypes.string.isRequired,
+    event: PropTypes.string.isRequired,
+    payload: PropTypes.any,
+    timestamp: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
+      .isRequired,
+    threadId: PropTypes.string,
+    runId: PropTypes.string,
+  }).isRequired,
+}
+
 /**
  * EventsHistorySheet component displays application events history
  * @returns {object} Sheet component displaying events history
@@ -58,6 +102,7 @@ const EventsHistorySheet = ({ isOpen, onClose }) => {
 
   const totalEntries = entries.length
   const [latestEvent] = entries
+  const handleClear = () => dispatch(clearEvents())
 
   return (
     <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -71,7 +116,6 @@ const EventsHistorySheet = ({ isOpen, onClose }) => {
             Raw backend stream chunks for the active streaming request only.
           </SheetDescription>
         </SheetHeader>
-
         <div className="mt-6 grid grid-cols-3 gap-3">
           <div className="rounded-xl border bg-card px-4 py-3">
             <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
@@ -99,7 +143,6 @@ const EventsHistorySheet = ({ isOpen, onClose }) => {
             </p>
           </div>
         </div>
-
         <div className="mt-4 flex items-center justify-between">
           <p className="text-xs text-muted-foreground">
             {latestEvent
@@ -110,7 +153,7 @@ const EventsHistorySheet = ({ isOpen, onClose }) => {
             type="button"
             variant="outline"
             size="sm"
-            onClick={() => dispatch(clearEvents())}
+            onClick={handleClear}
             disabled={entries.length === 0}
             className="gap-2"
           >
@@ -118,7 +161,6 @@ const EventsHistorySheet = ({ isOpen, onClose }) => {
             Clear log
           </Button>
         </div>
-
         <ScrollArea className="mt-4 flex-1 pr-4">
           {entries.length === 0 ? (
             <div className="flex h-full min-h-[240px] flex-col items-center justify-center rounded-2xl border border-dashed bg-muted/20 px-6 text-center">
@@ -135,42 +177,9 @@ const EventsHistorySheet = ({ isOpen, onClose }) => {
             </div>
           ) : (
             <div className="space-y-3 pb-6">
-              {entries.map((entry) => {
-                return (
-                  <div
-                    key={entry.id}
-                    className="rounded-2xl border bg-card/80 p-4 shadow-sm"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span
-                            className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${getEventTone(entry.event)}`}
-                          >
-                            {entry.event}
-                          </span>
-                          {entry.threadId && (
-                            <span className="rounded-full border px-2 py-0.5 text-[11px] text-muted-foreground">
-                              Thread {entry.threadId}
-                            </span>
-                          )}
-                          {entry.runId && (
-                            <span className="rounded-full border px-2 py-0.5 text-[11px] text-muted-foreground">
-                              Run {entry.runId}
-                            </span>
-                          )}
-                        </div>
-                        <pre className="mt-3 overflow-x-auto rounded-xl border bg-slate-950 p-3 text-xs leading-6 text-slate-100">
-                          {formatPayload(entry.payload)}
-                        </pre>
-                      </div>
-                      <p className="shrink-0 text-xs text-muted-foreground">
-                        {formatEventTimestamp(entry.timestamp)}
-                      </p>
-                    </div>
-                  </div>
-                )
-              })}
+              {entries.map((entry) => (
+                <EventEntry key={entry.id} entry={entry} />
+              ))}
             </div>
           )}
         </ScrollArea>

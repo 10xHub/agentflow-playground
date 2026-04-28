@@ -1,5 +1,5 @@
 /* eslint-disable unicorn/filename-case */
-import { useState, useEffect } from "react"
+import { useEffect, useState } from "react"
 
 const initialExecutionMeta = {
   current_node: "",
@@ -14,67 +14,68 @@ const initialExecutionMeta = {
 
 const staticFields = ["context", "execution_meta", "context_summary"]
 
+const getDefaultValue = (type) => {
+  switch (type) {
+    case "string":
+      return ""
+    case "number":
+      return 0
+    case "array":
+      return []
+    case "object":
+      return {}
+    case "boolean":
+      return false
+    default:
+      return null
+  }
+}
+
+const computeFormData = (stateData, stateSchema) => {
+  const next = {
+    context: Array.isArray(stateData?.context) ? stateData.context : [],
+    context_summary: stateData?.context_summary || "",
+    execution_meta: {
+      ...initialExecutionMeta,
+      ...(stateData?.execution_meta || {}),
+    },
+  }
+
+  Object.keys(stateData || {}).forEach((key) => {
+    if (staticFields.includes(key)) return
+    next[key] = stateData[key]
+  })
+
+  Object.keys(stateSchema || {}).forEach((key) => {
+    if (staticFields.includes(key)) return
+    if (stateData?.[key] !== undefined) {
+      next[key] = stateData[key]
+      return
+    }
+    next[key] =
+      stateSchema[key]?.default ?? getDefaultValue(stateSchema[key]?.type)
+  })
+
+  return next
+}
+
 /**
  * Custom hook for form data management
  */
-// eslint-disable-next-line max-lines-per-function
 const useFormData = (stateData, stateSchema = {}) => {
-  const [formData, setFormData] = useState({
-    context: [],
-    context_summary: "",
-    execution_meta: initialExecutionMeta,
-  })
+  const [formData, setFormData] = useState(() =>
+    computeFormData(stateData, stateSchema)
+  )
 
-  const getDefaultValue = (type) => {
-    switch (type) {
-      case "string":
-        return ""
-      case "number":
-        return 0
-      case "array":
-        return []
-      case "object":
-        return {}
-      case "boolean":
-        return false
-      default:
-        return null
-    }
-  }
+  const stableStateKey = JSON.stringify(stateData || {})
+  // Stringify schema to get a stable primitive key (avoids new-reference-each-render issue)
+  const stableSchemaKey = JSON.stringify(stateSchema)
 
   useEffect(() => {
-    const nextFormData = {
-      context: Array.isArray(stateData?.context) ? stateData.context : [],
-      context_summary: stateData?.context_summary || "",
-      execution_meta: {
-        ...initialExecutionMeta,
-        ...(stateData?.execution_meta || {}),
-      },
-    }
-
-    Object.keys(stateSchema || {}).forEach((key) => {
-      if (staticFields.includes(key)) {
-        return
-      }
-
-      if (stateData?.[key] !== undefined) {
-        nextFormData[key] = stateData[key]
-        return
-      }
-
-      nextFormData[key] =
-        stateSchema[key]?.default ?? getDefaultValue(stateSchema[key]?.type)
-    })
-
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setFormData((previousFormData) => {
-      if (JSON.stringify(previousFormData) === JSON.stringify(nextFormData)) {
-        return previousFormData
-      }
-
-      return nextFormData
-    })
-  }, [stateData, stateSchema])
+    setFormData(
+      computeFormData(JSON.parse(stableStateKey), JSON.parse(stableSchemaKey))
+    )
+  }, [stableStateKey, stableSchemaKey])
 
   const updateField = (path, value) => {
     setFormData((previousFormData) => {
