@@ -204,7 +204,7 @@ const ReFlowComponent = ({ graphData, graphInfo }) => {
 
   if (nodes.length === 0) {
     return (
-      <div className="grid h-full gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="flex min-h-64 items-center justify-center rounded-xl border border-dashed bg-slate-50 px-6 text-center text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-300">
           No graph data available yet.
         </div>
@@ -218,7 +218,10 @@ const ReFlowComponent = ({ graphData, graphInfo }) => {
 
   return (
     <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
-      <div aria-label="Network graph" className="h-[32rem]">
+      <div
+        aria-label="Network graph"
+        className="h-[calc(100dvh-16rem)] min-h-[28rem] max-h-[48rem]"
+      >
         <Canvas
           className="size-full overflow-hidden"
           nodes={nodes}

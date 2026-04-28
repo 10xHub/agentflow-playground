@@ -9,6 +9,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import ct from "@constants"
 
 /**
@@ -47,22 +48,25 @@ const ViewGraphSheet = ({ isOpen, onClose }) => {
 
   return (
     <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent side="bottom" className="h-full">
-        <SheetHeader>
+      <SheetContent
+        side="bottom"
+        className="flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden"
+      >
+        <SheetHeader className="shrink-0">
           <SheetTitle>Network Graph</SheetTitle>
           <SheetDescription>
             Visualize application flow and network connections
           </SheetDescription>
         </SheetHeader>
 
-        <div className="mt-6">
-          <div className="">
+        <ScrollArea className="mt-6 min-h-0 flex-1 pr-4">
+          <div className="min-h-full pb-6">
             <ReFlowComponent
               graphData={displayData}
               graphInfo={displayData.info || {}}
             />
           </div>
-        </div>
+        </ScrollArea>
       </SheetContent>
     </Sheet>
   )
