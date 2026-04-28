@@ -42,9 +42,7 @@ describe("EmptyInputCard", () => {
 
   it("enables send button when files are attached", () => {
     const mockFile = new File(["data"], "test.png", { type: "image/png" })
-    render(
-      <EmptyInputCard {...defaultProps} attachedFiles={[mockFile]} />
-    )
+    render(<EmptyInputCard {...defaultProps} attachedFiles={[mockFile]} />)
 
     expect(screen.getByRole("button", { name: /send/i })).toBeEnabled()
   })

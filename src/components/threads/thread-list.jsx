@@ -28,7 +28,9 @@ import ct from "@constants/"
 
 const getThreadPreview = (thread) => {
   const latestMessage = thread.messages?.[thread.messages.length - 1]
-  const content = String(latestMessage?.content || "").replace(/\s+/g, " ").trim()
+  const content = String(latestMessage?.content || "")
+    .replace(/\s+/g, " ")
+    .trim()
 
   return content || "No messages yet"
 }
@@ -139,7 +141,6 @@ const ThreadItem = ({ thread, isActive, onSelect, onDelete }) => (
           </p>
         </div>
       </div>
-
     </div>
 
     <div
@@ -175,7 +176,14 @@ const ThreadItem = ({ thread, isActive, onSelect, onDelete }) => (
   </div>
 )
 
-const ThreadSection = ({ label, threads, activeThreadId, urlThreadId, onSelect, onDelete }) => (
+const ThreadSection = ({
+  label,
+  threads,
+  activeThreadId,
+  urlThreadId,
+  onSelect,
+  onDelete,
+}) => (
   <section className="space-y-1.5">
     <div className="px-2 pt-1">
       <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-sidebar-foreground/38">
@@ -219,11 +227,16 @@ const ThreadList = ({ className }) => {
 
   const sortedThreads = useMemo(
     () =>
-      [...threads].sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)),
+      [...threads].sort(
+        (a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)
+      ),
     [threads]
   )
 
-  const groupedThreads = useMemo(() => groupThreads(sortedThreads), [sortedThreads])
+  const groupedThreads = useMemo(
+    () => groupThreads(sortedThreads),
+    [sortedThreads]
+  )
 
   const handleNewChatClick = () => {
     dispatch(setActiveThread(null))

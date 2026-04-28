@@ -237,7 +237,9 @@ const buildLayout = (nodes, edges) => {
   })
 
   const positions = new Map()
-  const maxColumnSize = Math.max(...columns.values().map((column) => column.length))
+  const maxColumnSize = Math.max(
+    ...columns.values().map((column) => column.length)
+  )
   const width =
     Math.max(columns.size, 1) * NODE_WIDTH +
     Math.max(columns.size - 1, 0) * COLUMN_GAP_X +
@@ -253,7 +255,8 @@ const buildLayout = (nodes, edges) => {
       const totalColumnHeight =
         columnNodes.length * NODE_HEIGHT +
         Math.max(columnNodes.length - 1, 0) * NODE_GAP_Y
-      const columnTop = CANVAS_PADDING + (height - CANVAS_PADDING * 2 - totalColumnHeight) / 2
+      const columnTop =
+        CANVAS_PADDING + (height - CANVAS_PADDING * 2 - totalColumnHeight) / 2
 
       columnNodes.forEach((node, index) => {
         positions.set(node.id, {

@@ -67,7 +67,9 @@ const countWords = (value) => {
 
 const estimateTokens = (messages = []) => {
   const totalWords = messages.reduce((accumulator, message) => {
-    return accumulator + countWords(message?.content || message?.rawContent || "")
+    return (
+      accumulator + countWords(message?.content || message?.rawContent || "")
+    )
   }, 0)
 
   return Math.ceil((totalWords / 750) * 1000)
@@ -109,7 +111,9 @@ const stringifyJson = (value) => {
 }
 
 const summarizeThread = (threadData, threadSettings) => {
-  const messages = Array.isArray(threadData?.messages) ? threadData.messages : []
+  const messages = Array.isArray(threadData?.messages)
+    ? threadData.messages
+    : []
   const totalMessages = messages.length
   const estimatedTokens = estimateTokens(messages)
   const userMessages = messages.filter(
@@ -283,10 +287,13 @@ const ThreadSettingsSheet = ({ isOpen, onClose, threadId, threadData }) => {
       dispatch(setThreadTitle(resolvedTitle))
     }
 
-    const messages = Array.isArray(threadData.messages) ? threadData.messages : []
+    const messages = Array.isArray(threadData.messages)
+      ? threadData.messages
+      : []
     const totalTokens = estimateTokens(messages)
     const userMessages = messages.filter(
-      (message) => message?.kind === MESSAGE_KIND.USER || message?.role === "user"
+      (message) =>
+        message?.kind === MESSAGE_KIND.USER || message?.role === "user"
     ).length
     const assistantMessages = messages.filter(
       (message) => message?.kind === MESSAGE_KIND.ASSISTANT
@@ -352,7 +359,8 @@ const ThreadSettingsSheet = ({ isOpen, onClose, threadId, threadData }) => {
         dispatch(setInitState(parsed))
       }
     } catch {
-      const message = "Invalid JSON. Changes will be saved once the JSON is valid."
+      const message =
+        "Invalid JSON. Changes will be saved once the JSON is valid."
 
       if (field === "config") {
         setConfigError(message)
@@ -426,7 +434,9 @@ const ThreadSettingsSheet = ({ isOpen, onClose, threadId, threadData }) => {
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge variant="outline">
                     <Radio className="h-3 w-3" />
-                    {threadSettings.streaming_response ? "Streaming on" : "Streaming off"}
+                    {threadSettings.streaming_response
+                      ? "Streaming on"
+                      : "Streaming off"}
                   </Badge>
                   <Badge variant="outline">
                     <Sparkles className="h-3 w-3" />
@@ -589,7 +599,9 @@ const ThreadSettingsSheet = ({ isOpen, onClose, threadId, threadData }) => {
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="response-granularity">Response Granularity</Label>
+                <Label htmlFor="response-granularity">
+                  Response Granularity
+                </Label>
                 <select
                   id="response-granularity"
                   className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"

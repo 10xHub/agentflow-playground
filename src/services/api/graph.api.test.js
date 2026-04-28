@@ -307,7 +307,11 @@ describe("graph.api multimodal messages", () => {
         { type: "text", text: "Check this" },
         {
           type: "image",
-          media: { kind: "file_id", file_id: "img-001", mime_type: "image/png" },
+          media: {
+            kind: "file_id",
+            file_id: "img-001",
+            mime_type: "image/png",
+          },
         },
       ],
     }
@@ -349,7 +353,11 @@ describe("graph.api multimodal messages", () => {
         { type: "text", text: "What is this?" },
         {
           type: "image",
-          media: { kind: "file_id", file_id: "img-001", mime_type: "image/png" },
+          media: {
+            kind: "file_id",
+            file_id: "img-001",
+            mime_type: "image/png",
+          },
         },
       ],
     }

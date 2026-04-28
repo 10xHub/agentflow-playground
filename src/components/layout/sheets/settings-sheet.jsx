@@ -151,8 +151,10 @@ const buildFormValues = (settings = {}) => {
       authMode === "bearer"
         ? settings.auth?.token || settings.authToken || ""
         : settings.authToken || "",
-    basicUsername: settings.auth?.type === "basic" ? settings.auth.username : "",
-    basicPassword: settings.auth?.type === "basic" ? settings.auth.password : "",
+    basicUsername:
+      settings.auth?.type === "basic" ? settings.auth.username : "",
+    basicPassword:
+      settings.auth?.type === "basic" ? settings.auth.password : "",
     headerName: settings.auth?.type === "header" ? settings.auth.name : "",
     headerValue: settings.auth?.type === "header" ? settings.auth.value : "",
     headerPrefix:
@@ -491,7 +493,9 @@ const SettingsSheet = ({ isOpen, onClose }) => {
                             : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300 dark:hover:border-slate-700 dark:hover:bg-slate-900"
                         }`}
                       >
-                        <div className="text-sm font-medium">{option.label}</div>
+                        <div className="text-sm font-medium">
+                          {option.label}
+                        </div>
                         <p className="mt-1 text-xs leading-5">
                           {option.description}
                         </p>

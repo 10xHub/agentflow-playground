@@ -394,11 +394,15 @@ describe("chat slice file uploads", () => {
     })
 
     const store = createTestStore()
-    await store.dispatch(sendMessage(THREAD_ID, "Describe this image", [mockImageFile]))
+    await store.dispatch(
+      sendMessage(THREAD_ID, "Describe this image", [mockImageFile])
+    )
 
     expect(uploadFileMock).toHaveBeenCalledWith(mockImageFile)
 
-    const thread = store.getState().chatStore.threads.find((t) => t.id === THREAD_ID)
+    const thread = store
+      .getState()
+      .chatStore.threads.find((t) => t.id === THREAD_ID)
     expect(thread.messages).toHaveLength(1)
     expect(thread.messages[0].role).toBe("user")
     expect(thread.messages[0].attachments).toHaveLength(1)
@@ -460,7 +464,9 @@ describe("chat slice file uploads", () => {
     })
 
     const store = createTestStore()
-    await store.dispatch(sendMessage(THREAD_ID, "Summarize this document", [mockPdfFile]))
+    await store.dispatch(
+      sendMessage(THREAD_ID, "Summarize this document", [mockPdfFile])
+    )
 
     expect(uploadFileMock).toHaveBeenCalledWith(mockPdfFile)
 
@@ -478,7 +484,10 @@ describe("chat slice file uploads", () => {
     await store.dispatch(sendMessage(THREAD_ID, "Hello without files", []))
 
     expect(uploadFileMock).not.toHaveBeenCalled()
-    expect(Message.text_message).toHaveBeenCalledWith("Hello without files", "user")
+    expect(Message.text_message).toHaveBeenCalledWith(
+      "Hello without files",
+      "user"
+    )
 
     const messages = getThreadMessages(store)
     expect(messages).toHaveLength(1)
@@ -517,7 +526,9 @@ describe("chat slice file uploads", () => {
     })
 
     const store = createTestStore()
-    await store.dispatch(sendMessage(THREAD_ID, "Process this CSV", [customFile]))
+    await store.dispatch(
+      sendMessage(THREAD_ID, "Process this CSV", [customFile])
+    )
 
     const messages = getThreadMessages(store)
     expect(messages[0].attachments).toHaveLength(1)
@@ -580,7 +591,9 @@ describe("chat slice file uploads", () => {
 
     store.dispatch(createThread({ id: THREAD_ID, title: "New Chat" }))
 
-    await store.dispatch(sendMessage(THREAD_ID, "Look at this", [mockImageFile]))
+    await store.dispatch(
+      sendMessage(THREAD_ID, "Look at this", [mockImageFile])
+    )
 
     expect(uploadFileMock).toHaveBeenCalledWith(mockImageFile)
     expect(streamGraph).toHaveBeenCalled()

@@ -81,11 +81,17 @@ describe("ReFlowComponent", () => {
       />
     )
 
-    fireEvent.click(screen.getByRole("button", { name: "Open details for MAIN" }))
+    fireEvent.click(
+      screen.getByRole("button", { name: "Open details for MAIN" })
+    )
 
     expect(screen.getByLabelText("Graph sidebar")).toBeInTheDocument()
-    expect(screen.getByRole("heading", { name: "Node Details" })).toBeInTheDocument()
-    expect(screen.getByText("Inspect the selected node and its graph connections.")).toBeInTheDocument()
+    expect(
+      screen.getByRole("heading", { name: "Node Details" })
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText("Inspect the selected node and its graph connections.")
+    ).toBeInTheDocument()
     expect(screen.getByRole("heading", { name: "MAIN" })).toBeInTheDocument()
     expect(screen.getAllByText("Agent node").length).toBeGreaterThan(0)
     expect(screen.getAllByText("TOOL").length).toBeGreaterThan(0)
