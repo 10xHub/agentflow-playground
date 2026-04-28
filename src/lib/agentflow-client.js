@@ -105,7 +105,6 @@ export const validateAndNormalizeUrl = (url) => {
 
   // Validate URL format
   try {
-    // eslint-disable-next-line no-undef
     new URL(normalizedUrl)
   } catch {
     throw new Error("Invalid backend URL format")

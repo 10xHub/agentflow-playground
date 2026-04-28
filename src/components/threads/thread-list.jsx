@@ -204,7 +204,69 @@ const ThreadSection = ({
   </section>
 )
 
-// eslint-disable-next-line max-lines-per-function
+const EmptyThreadsView = () => (
+  <div className="mx-2 mt-4 rounded-2xl border border-dashed border-sidebar-border bg-sidebar-accent/25 px-4 py-10 text-center">
+    <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-2xl bg-sidebar-accent text-sidebar-foreground/60">
+      <MessagesSquare className="h-5 w-5" />
+    </div>
+    <p className="mt-4 text-sm font-medium text-sidebar-foreground">
+      No conversations yet
+    </p>
+    <p className="mt-1 text-xs leading-5 text-sidebar-foreground/50">
+      Start a new chat and it will appear here.
+    </p>
+  </div>
+)
+
+const ThreadListHeader = ({
+  sortedThreads,
+  isVerified,
+  onNavigateToChat,
+  onNewChat,
+}) => {
+  const handleNavigateToChat = onNavigateToChat
+  const handleNewChat = onNewChat
+  return (
+    <div className="border-b border-sidebar-border/70 px-4 pb-3 pt-4">
+      <div className="flex items-center justify-between gap-3">
+        <button
+          className="flex min-w-0 items-center gap-2 text-left"
+          onClick={handleNavigateToChat}
+        >
+          <MessagesSquare className="h-4.5 w-4.5 text-sidebar-foreground/60" />
+          <div className="min-w-0">
+            <h2 className="truncate text-lg font-semibold tracking-tight text-sidebar-foreground">
+              Conversations
+            </h2>
+          </div>
+        </button>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={handleNewChat}
+          disabled={!isVerified}
+          className="h-9 w-9 rounded-xl text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+          aria-label="New conversation"
+        >
+          <MessageSquarePlus className="h-4.5 w-4.5" />
+        </Button>
+      </div>
+      <p className="mt-2 pl-6 text-xs text-sidebar-foreground/45">
+        {sortedThreads.length === 0
+          ? "No saved threads"
+          : `${sortedThreads.length} conversation${sortedThreads.length > 1 ? "s" : ""}`}
+      </p>
+    </div>
+  )
+}
+
+ThreadListHeader.propTypes = {
+  sortedThreads: PropTypes.array.isRequired,
+  isVerified: PropTypes.bool.isRequired,
+  onNavigateToChat: PropTypes.func.isRequired,
+  onNewChat: PropTypes.func.isRequired,
+}
+
 const ThreadList = ({ className }) => {
   const dispatch = useDispatch()
   const navigate = useNavigate()
@@ -239,11 +301,6 @@ const ThreadList = ({ className }) => {
     [sortedThreads]
   )
 
-  const handleNewChatClick = () => {
-    dispatch(setActiveThread(null))
-    navigate("/")
-  }
-
   const handleSelectThread = (id) => {
     dispatch(selectThread(id))
     navigate("/")
@@ -252,7 +309,6 @@ const ThreadList = ({ className }) => {
   const handleDeleteThread = (id, event) => {
     event.stopPropagation()
     dispatch(deleteThread(id))
-
     if (threadId === id || activeThreadId === id) {
       dispatch(setActiveThread(null))
       navigate("/")
@@ -265,58 +321,24 @@ const ThreadList = ({ className }) => {
   }
 
   const handleNewChatMaybe = () => {
-    if (isVerified) handleNewChatClick()
+    if (isVerified) {
+      dispatch(setActiveThread(null))
+      navigate("/")
+    }
   }
 
   return (
     <div className={cn("flex h-full flex-col bg-sidebar", className)}>
-      <div className="border-b border-sidebar-border/70 px-4 pb-3 pt-4">
-        <div className="flex items-center justify-between gap-3">
-          <button
-            className="flex min-w-0 items-center gap-2 text-left"
-            onClick={handleNavigateToChat}
-          >
-            <MessagesSquare className="h-4.5 w-4.5 text-sidebar-foreground/60" />
-            <div className="min-w-0">
-              <h2 className="truncate text-lg font-semibold tracking-tight text-sidebar-foreground">
-                Conversations
-              </h2>
-            </div>
-          </button>
-
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleNewChatMaybe}
-            disabled={!isVerified}
-            className="h-9 w-9 rounded-xl text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground"
-            aria-label="New conversation"
-          >
-            <MessageSquarePlus className="h-4.5 w-4.5" />
-          </Button>
-        </div>
-
-        <p className="mt-2 pl-6 text-xs text-sidebar-foreground/45">
-          {sortedThreads.length === 0
-            ? "No saved threads"
-            : `${sortedThreads.length} conversation${sortedThreads.length > 1 ? "s" : ""}`}
-        </p>
-      </div>
-
+      <ThreadListHeader
+        sortedThreads={sortedThreads}
+        isVerified={isVerified}
+        onNavigateToChat={handleNavigateToChat}
+        onNewChat={handleNewChatMaybe}
+      />
       <ScrollArea className="min-h-0 flex-1">
         <div className="px-2 py-3">
           {groupedThreads.length === 0 ? (
-            <div className="mx-2 mt-4 rounded-2xl border border-dashed border-sidebar-border bg-sidebar-accent/25 px-4 py-10 text-center">
-              <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-2xl bg-sidebar-accent text-sidebar-foreground/60">
-                <MessagesSquare className="h-5 w-5" />
-              </div>
-              <p className="mt-4 text-sm font-medium text-sidebar-foreground">
-                No conversations yet
-              </p>
-              <p className="mt-1 text-xs leading-5 text-sidebar-foreground/50">
-                Start a new chat and it will appear here.
-              </p>
-            </div>
+            <EmptyThreadsView />
           ) : (
             <div className="space-y-4">
               {groupedThreads.map((section) => (

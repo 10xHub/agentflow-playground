@@ -33,7 +33,12 @@ export default [
       },
     },
   },
+
   {
+    rules: {
+      // disable handler naming rule for our project conventions
+      "react/jsx-handler-names": "off",
+    },
     languageOptions: {
       globals: {
         console: "readonly",
@@ -49,6 +54,7 @@ export default [
         setInterval: "readonly",
         setTimeout: "readonly",
         URLSearchParams: "readonly",
+        URL: "readonly",
       },
     },
   },

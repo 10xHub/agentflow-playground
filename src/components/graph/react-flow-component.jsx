@@ -358,6 +358,152 @@ const NodeInspector = ({ selectedNode, connectedNodes }) => {
   )
 }
 
+const GraphEdgesSvg = ({ edges, positions, width, height }) => (
+  <svg
+    className="absolute inset-0 h-full w-full"
+    viewBox={`0 0 ${Math.max(width, 720)} ${Math.max(height, 512)}`}
+    preserveAspectRatio="xMinYMin meet"
+  >
+    <defs>
+      <marker
+        id="graph-arrowhead"
+        markerWidth="10"
+        markerHeight="10"
+        refX="8"
+        refY="5"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b" />
+      </marker>
+    </defs>
+    {edges.map((edge) => {
+      const fromPosition = positions.get(edge.from)
+      const toPosition = positions.get(edge.to)
+      if (!fromPosition || !toPosition) return null
+      return (
+        <path
+          key={edge.id}
+          d={buildEdgePath(fromPosition, toPosition)}
+          fill="none"
+          stroke="#94a3b8"
+          strokeWidth="2.5"
+          markerEnd="url(#graph-arrowhead)"
+          opacity="0.95"
+        />
+      )
+    })}
+  </svg>
+)
+
+GraphEdgesSvg.propTypes = {
+  edges: PropTypes.array.isRequired,
+  positions: PropTypes.instanceOf(Map).isRequired,
+  width: PropTypes.number.isRequired,
+  height: PropTypes.number.isRequired,
+}
+
+const GraphNodeButton = ({ node, position, isSelected, onSelect }) => (
+  <button
+    key={node.id}
+    type="button"
+    onClick={() => onSelect(node.id)}
+    className={`absolute flex h-[72px] w-[168px] items-center gap-3 rounded-2xl border px-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 ${isSelected ? "border-sky-500 bg-sky-50 shadow-md dark:border-sky-400 dark:bg-sky-950/40" : "border-slate-200 bg-white/95 dark:border-slate-700 dark:bg-slate-900/95"}`}
+    style={{ left: `${position.x}px`, top: `${position.y}px` }}
+    aria-label={`Select ${node.text}`}
+  >
+    <span
+      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-semibold text-white"
+      style={{ backgroundColor: node.fill }}
+      aria-hidden="true"
+    >
+      {node.text?.charAt(0) || "N"}
+    </span>
+    <span className="min-w-0">
+      <span className="block truncate text-sm font-semibold text-slate-900 dark:text-slate-50">
+        {node.text}
+      </span>
+      <span className="block truncate text-xs uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+        {getNodeTypeLabel(node.data)}
+      </span>
+    </span>
+  </button>
+)
+
+GraphNodeButton.propTypes = {
+  node: PropTypes.shape({
+    id: PropTypes.string.isRequired,
+    text: PropTypes.string,
+    fill: PropTypes.string,
+    data: PropTypes.object,
+  }).isRequired,
+  position: PropTypes.shape({
+    x: PropTypes.number.isRequired,
+    y: PropTypes.number.isRequired,
+  }).isRequired,
+  isSelected: PropTypes.bool.isRequired,
+  onSelect: PropTypes.func.isRequired,
+}
+
+const GraphCanvas = ({
+  nodes,
+  edges,
+  positions,
+  width,
+  height,
+  selectedNodeId,
+  onSelectNode,
+}) => (
+  <div className="min-h-[32rem] rounded-xl border border-slate-200/80 bg-white/70 p-3 shadow-sm dark:border-slate-800 dark:bg-slate-950/40">
+    <div
+      aria-label="Network graph"
+      className="relative overflow-auto rounded-lg border border-slate-200/80 bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.08),_transparent_45%),linear-gradient(180deg,_rgba(255,255,255,0.96),_rgba(241,245,249,0.94))] dark:border-slate-800 dark:bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.14),_transparent_40%),linear-gradient(180deg,_rgba(15,23,42,0.92),_rgba(2,6,23,0.98))]"
+    >
+      <div
+        className="relative min-h-[32rem] min-w-full"
+        style={{
+          width: `${Math.max(width, 720)}px`,
+          height: `${Math.max(height, 512)}px`,
+        }}
+      >
+        <GraphEdgesSvg
+          edges={edges}
+          positions={positions}
+          width={width}
+          height={height}
+        />
+        {nodes.map((node) => {
+          const position = positions.get(node.id)
+          if (!position) return null
+          const handleNodeSelect = onSelectNode
+          return (
+            <GraphNodeButton
+              key={node.id}
+              node={node}
+              position={position}
+              isSelected={node.id === selectedNodeId}
+              onSelect={handleNodeSelect}
+            />
+          )
+        })}
+      </div>
+    </div>
+  </div>
+)
+
+GraphCanvas.propTypes = {
+  nodes: PropTypes.array.isRequired,
+  edges: PropTypes.array.isRequired,
+  positions: PropTypes.instanceOf(Map).isRequired,
+  width: PropTypes.number.isRequired,
+  height: PropTypes.number.isRequired,
+  selectedNodeId: PropTypes.string,
+  onSelectNode: PropTypes.func.isRequired,
+}
+
+GraphCanvas.defaultProps = {
+  selectedNodeId: null,
+}
+
 /**
  * ReagraphComponent - Lightweight graph visualization using Reagraph
  * @param {object} props - Component props
@@ -367,6 +513,7 @@ const NodeInspector = ({ selectedNode, connectedNodes }) => {
  */
 const ReFlowComponent = ({ graphData, graphInfo }) => {
   const [selectedNodeId, setSelectedNodeId] = useState(null)
+  const handleSelectNode = setSelectedNodeId
   const { nodes, edges } = _transformToReagraphFormat(graphData)
   const selectedNode = nodes.find((node) => node.id === selectedNodeId) || null
   const connectedNodes = getConnectedNodes(selectedNode, nodes, edges)
@@ -378,7 +525,6 @@ const ReFlowComponent = ({ graphData, graphInfo }) => {
         <div className="flex min-h-64 items-center justify-center rounded-xl border border-dashed bg-slate-50 px-6 text-center text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-300">
           No graph data available yet.
         </div>
-
         <div className="space-y-4">
           <NodeInspector selectedNode={null} connectedNodes={[]} />
           <GraphInfoPanel graphInfo={graphInfo || {}} />
@@ -389,106 +535,15 @@ const ReFlowComponent = ({ graphData, graphInfo }) => {
 
   return (
     <div className="grid h-full gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
-      <div className="min-h-[32rem] rounded-xl border border-slate-200/80 bg-white/70 p-3 shadow-sm dark:border-slate-800 dark:bg-slate-950/40">
-        <div
-          aria-label="Network graph"
-          className="relative overflow-auto rounded-lg border border-slate-200/80 bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.08),_transparent_45%),linear-gradient(180deg,_rgba(255,255,255,0.96),_rgba(241,245,249,0.94))] dark:border-slate-800 dark:bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.14),_transparent_40%),linear-gradient(180deg,_rgba(15,23,42,0.92),_rgba(2,6,23,0.98))]"
-        >
-          <div
-            className="relative min-h-[32rem] min-w-full"
-            style={{
-              width: `${Math.max(width, 720)}px`,
-              height: `${Math.max(height, 512)}px`,
-            }}
-          >
-            <svg
-              className="absolute inset-0 h-full w-full"
-              viewBox={`0 0 ${Math.max(width, 720)} ${Math.max(height, 512)}`}
-              preserveAspectRatio="xMinYMin meet"
-            >
-              <defs>
-                <marker
-                  id="graph-arrowhead"
-                  markerWidth="10"
-                  markerHeight="10"
-                  refX="8"
-                  refY="5"
-                  orient="auto"
-                >
-                  <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b" />
-                </marker>
-              </defs>
-
-              {edges.map((edge) => {
-                const fromPosition = positions.get(edge.from)
-                const toPosition = positions.get(edge.to)
-
-                if (!fromPosition || !toPosition) {
-                  return null
-                }
-
-                return (
-                  <path
-                    key={edge.id}
-                    d={buildEdgePath(fromPosition, toPosition)}
-                    fill="none"
-                    stroke="#94a3b8"
-                    strokeWidth="2.5"
-                    markerEnd="url(#graph-arrowhead)"
-                    opacity="0.95"
-                  />
-                )
-              })}
-            </svg>
-
-            {nodes.map((node) => {
-              const position = positions.get(node.id)
-
-              if (!position) {
-                return null
-              }
-
-              const isSelected = node.id === selectedNodeId
-
-              return (
-                <button
-                  key={node.id}
-                  type="button"
-                  onClick={() => setSelectedNodeId(node.id)}
-                  className={`absolute flex h-[72px] w-[168px] items-center gap-3 rounded-2xl border px-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 ${
-                    isSelected
-                      ? "border-sky-500 bg-sky-50 shadow-md dark:border-sky-400 dark:bg-sky-950/40"
-                      : "border-slate-200 bg-white/95 dark:border-slate-700 dark:bg-slate-900/95"
-                  }`}
-                  style={{
-                    left: `${position.x}px`,
-                    top: `${position.y}px`,
-                  }}
-                  aria-label={`Select ${node.text}`}
-                >
-                  <span
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-semibold text-white"
-                    style={{ backgroundColor: node.fill }}
-                    aria-hidden="true"
-                  >
-                    {node.text?.charAt(0) || "N"}
-                  </span>
-
-                  <span className="min-w-0">
-                    <span className="block truncate text-sm font-semibold text-slate-900 dark:text-slate-50">
-                      {node.text}
-                    </span>
-                    <span className="block truncate text-xs uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
-                      {getNodeTypeLabel(node.data)}
-                    </span>
-                  </span>
-                </button>
-              )
-            })}
-          </div>
-        </div>
-      </div>
-
+      <GraphCanvas
+        nodes={nodes}
+        edges={edges}
+        positions={positions}
+        width={width}
+        height={height}
+        selectedNodeId={selectedNodeId}
+        onSelectNode={handleSelectNode}
+      />
       <div className="sr-only">
         {nodes.map((node) => (
           <button
@@ -501,7 +556,6 @@ const ReFlowComponent = ({ graphData, graphInfo }) => {
           </button>
         ))}
       </div>
-
       <aside
         aria-label="Graph sidebar"
         className="space-y-4 xl:sticky xl:top-0 xl:max-h-[calc(100vh-12rem)] xl:overflow-auto"

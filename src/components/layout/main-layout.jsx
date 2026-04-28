@@ -7,6 +7,7 @@ import {
   Github,
   MessageSquare,
 } from "lucide-react"
+import PropTypes from "prop-types"
 import { useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import { Outlet, useLocation, useNavigate } from "react-router-dom"
@@ -36,7 +37,152 @@ import ViewMemorySheet from "./sheets/view-memory-sheet"
  * Includes developer tools: View State, View Memory, View Graph, and Events History.
  * Dev tools are disabled when backend URL is not configured.
  */
-// eslint-disable-next-line complexity, max-lines-per-function
+
+const MainHeaderCenter = ({ isChatPage, isVerified, onSheetOpen }) => {
+  if (!isChatPage) return null
+  return (
+    <div className="flex items-center gap-2">
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => onSheetOpen("thread")}
+        disabled={!isVerified}
+      >
+        <MessageSquare className="h-4 w-4" /> Thread Details
+      </Button>
+    </div>
+  )
+}
+
+MainHeaderCenter.propTypes = {
+  isChatPage: PropTypes.bool.isRequired,
+  isVerified: PropTypes.bool.isRequired,
+  onSheetOpen: PropTypes.func.isRequired,
+}
+
+const MainHeaderTools = ({
+  isChatPage,
+  isVerified,
+  activeSheet,
+  onSheetOpen,
+}) => (
+  <div className="flex items-center gap-2">
+    {isChatPage && (
+      <DevelopmentToolButton
+        icon={Eye}
+        tooltip="View State"
+        handleActivate={() => onSheetOpen("state")}
+        isActive={activeSheet === "state"}
+        disabled={!isVerified}
+      />
+    )}
+    {isChatPage && (
+      <DevelopmentToolButton
+        icon={Database}
+        tooltip="View Memory"
+        handleActivate={() => onSheetOpen("memory")}
+        isActive={activeSheet === "memory"}
+        disabled={!isVerified}
+      />
+    )}
+    <DevelopmentToolButton
+      icon={GitGraph}
+      tooltip="View Graph"
+      handleActivate={() => onSheetOpen("graph")}
+      isActive={activeSheet === "graph"}
+      disabled={!isVerified}
+    />
+    <DevelopmentToolButton
+      icon={History}
+      tooltip="Events History"
+      handleActivate={() => onSheetOpen("history")}
+      isActive={activeSheet === "history"}
+      disabled={!isVerified}
+    />
+    <Separator orientation="vertical" className="h-4 bg-border/60 mx-1" />
+    <DevelopmentToolButton
+      icon={Settings}
+      tooltip="Settings"
+      handleActivate={() => onSheetOpen("settings")}
+      isActive={activeSheet === "settings"}
+      disabled={false}
+    />
+    <ModeToggle />
+    <Separator orientation="vertical" className="h-4 bg-border/60 mx-1" />
+    <div className="flex text-sm text-gray-500 dark:text-gray-400">
+      <Github />
+      <span className="ml-1">
+        <a
+          href="https://github.com/Iamsdt/PyAgenity"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline"
+        >
+          AgentFlow
+        </a>
+      </span>
+    </div>
+  </div>
+)
+
+MainHeaderTools.propTypes = {
+  isChatPage: PropTypes.bool.isRequired,
+  isVerified: PropTypes.bool.isRequired,
+  activeSheet: PropTypes.string,
+  onSheetOpen: PropTypes.func.isRequired,
+}
+
+MainHeaderTools.defaultProps = {
+  activeSheet: null,
+}
+
+const AllSheets = ({ activeSheet, onSheetClose, threadId, threadData }) => {
+  const handleSheetClose = onSheetClose
+  return (
+    <>
+      <ViewStateSheet
+        isOpen={activeSheet === "state"}
+        onClose={handleSheetClose}
+      />
+      <ViewMemorySheet
+        isOpen={activeSheet === "memory"}
+        onClose={handleSheetClose}
+      />
+      <ViewGraphSheet
+        isOpen={activeSheet === "graph"}
+        onClose={handleSheetClose}
+      />
+      <EventsHistorySheet
+        isOpen={activeSheet === "history"}
+        onClose={handleSheetClose}
+      />
+      <SettingsSheet
+        isOpen={activeSheet === "settings"}
+        onClose={handleSheetClose}
+      />
+      <ThreadSettingsSheet
+        isOpen={activeSheet === "thread"}
+        onClose={handleSheetClose}
+        threadId={threadId}
+        threadData={threadData}
+      />
+    </>
+  )
+}
+
+AllSheets.propTypes = {
+  activeSheet: PropTypes.string,
+  onSheetClose: PropTypes.func.isRequired,
+  threadId: PropTypes.string,
+  threadData: PropTypes.object,
+}
+
+AllSheets.defaultProps = {
+  activeSheet: null,
+  threadId: null,
+  threadData: null,
+}
+
 const MainLayout = () => {
   const [activeSheet, setActiveSheet] = useState(null)
   const dispatch = useDispatch()
@@ -46,29 +192,17 @@ const MainLayout = () => {
   const chatStore = useSelector((st) => st[ct.store.CHAT_STORE])
 
   const isVerified = store?.verification?.isVerified ?? false
-
-  // Get threadId from URL search params (dashboard uses query params)
   const searchParameters = new URLSearchParams(location.search)
   const threadId = searchParameters.get("threadId") || chatStore.activeThreadId
-
-  // Check if we're on dashboard with an active thread (for showing thread-specific UI)
   const isChatPage = location.pathname === "/" && threadId && isVerified
-
-  // Get thread data from Redux store
   const threadData = threadId
     ? chatStore.threads.find((t) => t.id === threadId)
     : null
 
-  const handleSheetOpen = (sheetType) => {
-    setActiveSheet(sheetType)
-  }
-
-  const handleSheetClose = () => {
-    setActiveSheet(null)
-  }
+  const handleSheetOpen = (sheetType) => setActiveSheet(sheetType)
+  const handleSheetClose = () => setActiveSheet(null)
 
   const handleGoHome = () => {
-    // Clear active thread and navigate to home page
     dispatch(setActiveThread(null))
     navigate("/")
   }
@@ -77,7 +211,6 @@ const MainLayout = () => {
     <TooltipProvider>
       <SidebarProvider>
         <AppSidebar />
-
         <main className="flex flex-col h-screen w-full bg-background selection:bg-primary/20">
           <header className="sticky top-0 z-50 w-full flex items-center px-4 py-2.5 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
             <div className="flex items-center gap-3">
@@ -98,115 +231,26 @@ const MainLayout = () => {
                 </span>
               </span>
             </div>
-
             <div className="flex items-center justify-center flex-1">
-              {/* Thread Settings Button - Only visible on thread pages */}
-              {isChatPage && (
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleSheetOpen("thread")}
-                    disabled={!isVerified}
-                  >
-                    <MessageSquare className="h-4 w-4" /> Thread Details
-                  </Button>
-                </div>
-              )}
+              <MainHeaderCenter
+                isChatPage={Boolean(isChatPage)}
+                isVerified={isVerified}
+                onSheetOpen={handleSheetOpen}
+              />
             </div>
-
-            <div className="flex items-center gap-2">
-              {isChatPage && (
-                <DevelopmentToolButton
-                  icon={Eye}
-                  tooltip="View State"
-                  handleActivate={() => handleSheetOpen("state")}
-                  isActive={activeSheet === "state"}
-                  disabled={!isVerified}
-                />
-              )}
-
-              {isChatPage && (
-                <DevelopmentToolButton
-                  icon={Database}
-                  tooltip="View Memory"
-                  handleActivate={() => handleSheetOpen("memory")}
-                  isActive={activeSheet === "memory"}
-                  disabled={!isVerified}
-                />
-              )}
-
-              <DevelopmentToolButton
-                icon={GitGraph}
-                tooltip="View Graph"
-                handleActivate={() => handleSheetOpen("graph")}
-                isActive={activeSheet === "graph"}
-                disabled={!isVerified}
-              />
-              <DevelopmentToolButton
-                icon={History}
-                tooltip="Events History"
-                handleActivate={() => handleSheetOpen("history")}
-                isActive={activeSheet === "history"}
-                disabled={!isVerified}
-              />
-              <Separator
-                orientation="vertical"
-                className="h-4 bg-border/60 mx-1"
-              />
-              <DevelopmentToolButton
-                icon={Settings}
-                tooltip="Settings"
-                handleActivate={() => handleSheetOpen("settings")}
-                isActive={activeSheet === "settings"}
-                disabled={false}
-              />
-              <ModeToggle />
-              <Separator
-                orientation="vertical"
-                className="h-4 bg-border/60 mx-1"
-              />
-              <div className="flex text-sm text-gray-500 dark:text-gray-400">
-                <Github />{" "}
-                <span className="ml-1">
-                  <a
-                    href="https://github.com/Iamsdt/PyAgenity"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="underline"
-                  >
-                    AgentFlow
-                  </a>
-                </span>
-              </div>
-            </div>
+            <MainHeaderTools
+              isChatPage={Boolean(isChatPage)}
+              isVerified={isVerified}
+              activeSheet={activeSheet}
+              onSheetOpen={handleSheetOpen}
+            />
           </header>
           <div className="flex-1 overflow-hidden">
             <Outlet />
           </div>
-          <ViewStateSheet
-            isOpen={activeSheet === "state"}
-            onClose={handleSheetClose}
-          />
-          <ViewMemorySheet
-            isOpen={activeSheet === "memory"}
-            onClose={handleSheetClose}
-          />
-          <ViewGraphSheet
-            isOpen={activeSheet === "graph"}
-            onClose={handleSheetClose}
-          />
-          <EventsHistorySheet
-            isOpen={activeSheet === "history"}
-            onClose={handleSheetClose}
-          />
-          <SettingsSheet
-            isOpen={activeSheet === "settings"}
-            onClose={handleSheetClose}
-          />
-          <ThreadSettingsSheet
-            isOpen={activeSheet === "thread"}
-            onClose={handleSheetClose}
+          <AllSheets
+            activeSheet={activeSheet}
+            onSheetClose={handleSheetClose}
             threadId={threadId}
             threadData={threadData}
           />

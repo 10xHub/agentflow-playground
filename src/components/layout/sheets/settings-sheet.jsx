@@ -56,6 +56,52 @@ const authModeOptions = [
 
 const CREDENTIALS_SAME_ORIGIN = "same-origin"
 
+const validateBearerAuth = (value, context) => {
+  if (value.authMode === "bearer" && !value.authToken?.trim()) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["authToken"],
+      message: "Bearer token is required",
+    })
+  }
+}
+
+const validateBasicAuth = (value, context) => {
+  if (value.authMode !== "basic") return
+  if (!value.basicUsername?.trim()) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["basicUsername"],
+      message: "Username is required",
+    })
+  }
+  if (!value.basicPassword?.trim()) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["basicPassword"],
+      message: "Password is required",
+    })
+  }
+}
+
+const validateHeaderAuth = (value, context) => {
+  if (value.authMode !== "header") return
+  if (!value.headerName?.trim()) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["headerName"],
+      message: "Header name is required",
+    })
+  }
+  if (!value.headerValue?.trim()) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["headerValue"],
+      message: "Header value is required",
+    })
+  }
+}
+
 const credentialsOptions = [
   {
     value: "",
@@ -97,84 +143,73 @@ const settingsSchema = z
       .enum(["", "omit", CREDENTIALS_SAME_ORIGIN, "include"])
       .optional(),
   })
-  .superRefine(
-    // eslint-disable-next-line complexity
-    (value, context) => {
-      if (value.authMode === "bearer" && !value.authToken?.trim()) {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["authToken"],
-          message: "Bearer token is required",
-        })
-      }
+  .superRefine((value, context) => {
+    validateBearerAuth(value, context)
+    validateBasicAuth(value, context)
+    validateHeaderAuth(value, context)
+  })
 
-      if (value.authMode === "basic") {
-        if (!value.basicUsername?.trim()) {
-          context.addIssue({
-            code: z.ZodIssueCode.custom,
-            path: ["basicUsername"],
-            message: "Username is required",
-          })
-        }
+const getAuthTokenValue = (settings, authMode) => {
+  if (authMode === "bearer") {
+    return settings.auth?.token || settings.authToken || ""
+  }
+  return settings.authToken || ""
+}
 
-        if (!value.basicPassword?.trim()) {
-          context.addIssue({
-            code: z.ZodIssueCode.custom,
-            path: ["basicPassword"],
-            message: "Password is required",
-          })
-        }
-      }
+const getBasicAuthValues = (settings) => ({
+  basicUsername: settings.auth?.type === "basic" ? settings.auth.username : "",
+  basicPassword: settings.auth?.type === "basic" ? settings.auth.password : "",
+})
 
-      if (value.authMode === "header") {
-        if (!value.headerName?.trim()) {
-          context.addIssue({
-            code: z.ZodIssueCode.custom,
-            path: ["headerName"],
-            message: "Header name is required",
-          })
-        }
+const getHeaderAuthValues = (settings) => ({
+  headerName: settings.auth?.type === "header" ? settings.auth.name : "",
+  headerValue: settings.auth?.type === "header" ? settings.auth.value : "",
+  headerPrefix:
+    settings.auth?.type === "header" ? settings.auth.prefix || "" : "",
+})
 
-        if (!value.headerValue?.trim()) {
-          context.addIssue({
-            code: z.ZodIssueCode.custom,
-            path: ["headerValue"],
-            message: "Header value is required",
-          })
-        }
-      }
-    }
-  )
-
-// eslint-disable-next-line complexity
 const buildFormValues = (settings = {}) => {
   const authMode =
     settings.authMode || inferAuthMode(settings.auth, settings.authToken)
-
   return {
     name: settings.name || "",
     backendUrl: settings.backendUrl || "",
     authMode,
-    authToken:
-      authMode === "bearer"
-        ? settings.auth?.token || settings.authToken || ""
-        : settings.authToken || "",
-    basicUsername:
-      settings.auth?.type === "basic" ? settings.auth.username : "",
-    basicPassword:
-      settings.auth?.type === "basic" ? settings.auth.password : "",
-    headerName: settings.auth?.type === "header" ? settings.auth.name : "",
-    headerValue: settings.auth?.type === "header" ? settings.auth.value : "",
-    headerPrefix:
-      settings.auth?.type === "header" ? settings.auth.prefix || "" : "",
+    authToken: getAuthTokenValue(settings, authMode),
+    ...getBasicAuthValues(settings),
+    ...getHeaderAuthValues(settings),
     credentials: settings.credentials || "",
   }
 }
 
-// eslint-disable-next-line complexity
+const buildBearerPayload = (values) => {
+  const token = values.authToken?.trim() || ""
+  return { authToken: token, auth: token ? { type: "bearer", token } : null }
+}
+
+const buildBasicPayload = (values) => ({
+  auth: {
+    type: "basic",
+    username: values.basicUsername?.trim() || "",
+    password: values.basicPassword?.trim() || "",
+  },
+})
+
+const buildHeaderPayload = (values) => {
+  const prefix = values.headerPrefix?.trim() || ""
+  return {
+    auth: {
+      type: "header",
+      name: values.headerName?.trim() || "",
+      value: values.headerValue?.trim() || "",
+      prefix: prefix || null,
+    },
+  }
+}
+
 const buildSettingsPayload = (values) => {
   const authMode = values.authMode || "none"
-  const payload = {
+  const base = {
     name: values.name?.trim() || "",
     backendUrl: values.backendUrl?.trim() || "",
     authMode,
@@ -182,37 +217,10 @@ const buildSettingsPayload = (values) => {
     auth: null,
     credentials: values.credentials || "",
   }
-
-  if (authMode === "bearer") {
-    const token = values.authToken?.trim() || ""
-    payload.authToken = token
-    payload.auth = token
-      ? {
-          type: "bearer",
-          token,
-        }
-      : null
-  }
-
-  if (authMode === "basic") {
-    payload.auth = {
-      type: "basic",
-      username: values.basicUsername?.trim() || "",
-      password: values.basicPassword?.trim() || "",
-    }
-  }
-
-  if (authMode === "header") {
-    const prefix = values.headerPrefix?.trim() || ""
-    payload.auth = {
-      type: "header",
-      name: values.headerName?.trim() || "",
-      value: values.headerValue?.trim() || "",
-      prefix: prefix || null,
-    }
-  }
-
-  return payload
+  if (authMode === "bearer") return { ...base, ...buildBearerPayload(values) }
+  if (authMode === "basic") return { ...base, ...buildBasicPayload(values) }
+  if (authMode === "header") return { ...base, ...buildHeaderPayload(values) }
+  return base
 }
 
 const renderFieldError = (message) => {
@@ -239,7 +247,7 @@ const useSettingsForm = (isOpen, onClose) => {
     defaultValues: buildFormValues(store),
   })
 
-  const { reset, watch } = form
+  const { reset, getValues } = form
 
   useEffect(() => {
     if (isOpen && store) {
@@ -277,8 +285,7 @@ const useSettingsForm = (isOpen, onClose) => {
 
   const handleRetryVerification = () => {
     dispatch(resetVerification())
-    // eslint-disable-next-line react-hooks/incompatible-library
-    const currentValues = watch()
+    const currentValues = getValues()
     runVerification(buildSettingsPayload(currentValues))
   }
 
@@ -292,10 +299,206 @@ const useSettingsForm = (isOpen, onClose) => {
   }
 }
 
+const BearerTokenTab = ({ register, errors }) => (
+  <TabsContent value="bearer" className="space-y-3">
+    <p className="text-sm text-slate-500 dark:text-slate-400">
+      {authModeOptions[1].description}
+    </p>
+    <div className="space-y-2">
+      <Label htmlFor="auth-token">Bearer Token</Label>
+      <Input
+        id="auth-token"
+        type="password"
+        placeholder="your-token"
+        {...register("authToken")}
+      />
+      {renderFieldError(errors.authToken?.message)}
+      <p className="text-sm text-slate-500 dark:text-slate-400">
+        Sent as <code>Authorization: Bearer your-token</code>.
+      </p>
+    </div>
+  </TabsContent>
+)
+
+BearerTokenTab.propTypes = {
+  register: PropTypes.func.isRequired,
+  errors: PropTypes.object.isRequired,
+}
+
+const BasicCredentialsTab = ({ register, errors }) => (
+  <TabsContent value="basic" className="space-y-4">
+    <p className="text-sm text-slate-500 dark:text-slate-400">
+      {authModeOptions[2].description}
+    </p>
+    <div className="grid gap-4 sm:grid-cols-2">
+      <div className="space-y-2">
+        <Label htmlFor="basic-username">Username</Label>
+        <Input
+          id="basic-username"
+          placeholder="service-user"
+          {...register("basicUsername")}
+        />
+        {renderFieldError(errors.basicUsername?.message)}
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="basic-password">Password</Label>
+        <Input
+          id="basic-password"
+          type="password"
+          placeholder="service-password"
+          {...register("basicPassword")}
+        />
+        {renderFieldError(errors.basicPassword?.message)}
+      </div>
+    </div>
+  </TabsContent>
+)
+
+BasicCredentialsTab.propTypes = {
+  register: PropTypes.func.isRequired,
+  errors: PropTypes.object.isRequired,
+}
+
+const HeaderAuthTab = ({ register, errors }) => (
+  <TabsContent value="header" className="space-y-4">
+    <p className="text-sm text-slate-500 dark:text-slate-400">
+      {authModeOptions[3].description}
+    </p>
+    <div className="grid gap-4 sm:grid-cols-2">
+      <div className="space-y-2">
+        <Label htmlFor="header-name">Header Name</Label>
+        <Input
+          id="header-name"
+          placeholder="X-API-Key"
+          {...register("headerName")}
+        />
+        {renderFieldError(errors.headerName?.message)}
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="header-prefix">Optional Prefix</Label>
+        <Input
+          id="header-prefix"
+          placeholder="Bearer"
+          {...register("headerPrefix")}
+        />
+        {renderFieldError(errors.headerPrefix?.message)}
+      </div>
+    </div>
+    <div className="space-y-2">
+      <Label htmlFor="header-value">Header Value</Label>
+      <Input
+        id="header-value"
+        type="password"
+        placeholder="secret-key"
+        {...register("headerValue")}
+      />
+      {renderFieldError(errors.headerValue?.message)}
+      <p className="text-sm text-slate-500 dark:text-slate-400">
+        Example: <code>X-API-Key: secret-key</code> or{" "}
+        <code>Authorization: Bearer token</code>.
+      </p>
+    </div>
+  </TabsContent>
+)
+
+HeaderAuthTab.propTypes = {
+  register: PropTypes.func.isRequired,
+  errors: PropTypes.object.isRequired,
+}
+
+const SettingsAuthTabs = ({ authMode, errors, register, setValue }) => {
+  const handleAuthModeChange = (value) =>
+    setValue("authMode", value, { shouldDirty: true, shouldValidate: true })
+
+  return (
+    <div className="space-y-3">
+      <div className="space-y-1">
+        <Label>Authentication</Label>
+        <p className="text-sm text-slate-500 dark:text-slate-400">
+          Match the auth mode supported by the new client library.
+        </p>
+      </div>
+      <Tabs value={authMode} onValueChange={handleAuthModeChange}>
+        <TabsList className="grid w-full grid-cols-2 h-auto gap-1 sm:grid-cols-4">
+          {authModeOptions.map((option) => (
+            <TabsTrigger
+              key={option.value}
+              value={option.value}
+              className="px-2 py-2 text-xs sm:text-sm"
+            >
+              {option.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+        <TabsContent value="none" className="space-y-3">
+          <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-300">
+            {authModeOptions[0].description}
+          </div>
+        </TabsContent>
+        <BearerTokenTab register={register} errors={errors} />
+        <BasicCredentialsTab register={register} errors={errors} />
+        <HeaderAuthTab register={register} errors={errors} />
+      </Tabs>
+    </div>
+  )
+}
+
+SettingsAuthTabs.propTypes = {
+  authMode: PropTypes.string.isRequired,
+  errors: PropTypes.object.isRequired,
+  register: PropTypes.func.isRequired,
+  setValue: PropTypes.func.isRequired,
+}
+
+const SettingsCredentials = ({ credentialsMode, setValue }) => {
+  const handleCredentialChange = (value) =>
+    setValue("credentials", value, { shouldDirty: true, shouldValidate: true })
+
+  return (
+    <div className="space-y-3">
+      <div className="space-y-1">
+        <Label>Credentials</Label>
+        <p className="text-sm text-slate-500 dark:text-slate-400">
+          Use <code>include</code> when your backend relies on cookies or
+          session auth.
+        </p>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {credentialsOptions.map((option) => {
+          const isActive = credentialsMode === option.value
+          return (
+            <button
+              key={option.value || "default"}
+              type="button"
+              onClick={() => handleCredentialChange(option.value)}
+              className={`rounded-lg border p-3 text-left transition-colors ${
+                isActive
+                  ? "border-slate-900 bg-slate-100 text-slate-950 dark:border-slate-100 dark:bg-slate-800 dark:text-slate-50"
+                  : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300 dark:hover:border-slate-700 dark:hover:bg-slate-900"
+              }`}
+            >
+              <div className="text-sm font-medium">{option.label}</div>
+              <p className="mt-1 text-xs leading-5">{option.description}</p>
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+SettingsCredentials.propTypes = {
+  credentialsMode: PropTypes.string,
+  setValue: PropTypes.func.isRequired,
+}
+
+SettingsCredentials.defaultProps = {
+  credentialsMode: "",
+}
+
 /**
  * SettingsSheet component displays application settings form with verification
  */
-// eslint-disable-next-line max-lines-per-function, complexity
 const SettingsSheet = ({ isOpen, onClose }) => {
   const {
     register,
@@ -334,7 +537,6 @@ const SettingsSheet = ({ isOpen, onClose }) => {
             Configure your backend and choose how the client authenticates.
           </SheetDescription>
         </SheetHeader>
-
         <ScrollArea className="flex-1 pr-4">
           <div className="space-y-6 pb-6">
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -352,178 +554,23 @@ const SettingsSheet = ({ isOpen, onClose }) => {
                   Enter the base URL for your backend API.
                 </p>
               </div>
-
-              <div className="space-y-3">
-                <div className="space-y-1">
-                  <Label>Authentication</Label>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">
-                    Match the auth mode supported by the new client library.
-                  </p>
-                </div>
-
-                <Tabs
-                  value={authMode}
-                  onValueChange={(value) =>
-                    setValue("authMode", value, {
-                      shouldDirty: true,
-                      shouldValidate: true,
-                    })
-                  }
-                >
-                  <TabsList className="grid w-full grid-cols-2 h-auto gap-1 sm:grid-cols-4">
-                    {authModeOptions.map((option) => (
-                      <TabsTrigger
-                        key={option.value}
-                        value={option.value}
-                        className="px-2 py-2 text-xs sm:text-sm"
-                      >
-                        {option.label}
-                      </TabsTrigger>
-                    ))}
-                  </TabsList>
-
-                  <TabsContent value="none" className="space-y-3">
-                    <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-300">
-                      {authModeOptions[0].description}
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="bearer" className="space-y-3">
-                    <p className="text-sm text-slate-500 dark:text-slate-400">
-                      {authModeOptions[1].description}
-                    </p>
-                    <div className="space-y-2">
-                      <Label htmlFor="auth-token">Bearer Token</Label>
-                      <Input
-                        id="auth-token"
-                        type="password"
-                        placeholder="your-token"
-                        {...register("authToken")}
-                      />
-                      {renderFieldError(errors.authToken?.message)}
-                      <p className="text-sm text-slate-500 dark:text-slate-400">
-                        Sent as <code>Authorization: Bearer your-token</code>.
-                      </p>
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="basic" className="space-y-4">
-                    <p className="text-sm text-slate-500 dark:text-slate-400">
-                      {authModeOptions[2].description}
-                    </p>
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label htmlFor="basic-username">Username</Label>
-                        <Input
-                          id="basic-username"
-                          placeholder="service-user"
-                          {...register("basicUsername")}
-                        />
-                        {renderFieldError(errors.basicUsername?.message)}
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="basic-password">Password</Label>
-                        <Input
-                          id="basic-password"
-                          type="password"
-                          placeholder="service-password"
-                          {...register("basicPassword")}
-                        />
-                        {renderFieldError(errors.basicPassword?.message)}
-                      </div>
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="header" className="space-y-4">
-                    <p className="text-sm text-slate-500 dark:text-slate-400">
-                      {authModeOptions[3].description}
-                    </p>
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label htmlFor="header-name">Header Name</Label>
-                        <Input
-                          id="header-name"
-                          placeholder="X-API-Key"
-                          {...register("headerName")}
-                        />
-                        {renderFieldError(errors.headerName?.message)}
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="header-prefix">Optional Prefix</Label>
-                        <Input
-                          id="header-prefix"
-                          placeholder="Bearer"
-                          {...register("headerPrefix")}
-                        />
-                        {renderFieldError(errors.headerPrefix?.message)}
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="header-value">Header Value</Label>
-                      <Input
-                        id="header-value"
-                        type="password"
-                        placeholder="secret-key"
-                        {...register("headerValue")}
-                      />
-                      {renderFieldError(errors.headerValue?.message)}
-                      <p className="text-sm text-slate-500 dark:text-slate-400">
-                        Example: <code>X-API-Key: secret-key</code> or{" "}
-                        <code>Authorization: Bearer token</code>.
-                      </p>
-                    </div>
-                  </TabsContent>
-                </Tabs>
-              </div>
-
-              <div className="space-y-3">
-                <div className="space-y-1">
-                  <Label>Credentials</Label>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">
-                    Use <code>include</code> when your backend relies on cookies
-                    or session auth.
-                  </p>
-                </div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {credentialsOptions.map((option) => {
-                    const isActive = credentialsMode === option.value
-
-                    return (
-                      <button
-                        key={option.value || "default"}
-                        type="button"
-                        onClick={() =>
-                          setValue("credentials", option.value, {
-                            shouldDirty: true,
-                            shouldValidate: true,
-                          })
-                        }
-                        className={`rounded-lg border p-3 text-left transition-colors ${
-                          isActive
-                            ? "border-slate-900 bg-slate-100 text-slate-950 dark:border-slate-100 dark:bg-slate-800 dark:text-slate-50"
-                            : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300 dark:hover:border-slate-700 dark:hover:bg-slate-900"
-                        }`}
-                      >
-                        <div className="text-sm font-medium">
-                          {option.label}
-                        </div>
-                        <p className="mt-1 text-xs leading-5">
-                          {option.description}
-                        </p>
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-
+              <SettingsAuthTabs
+                authMode={authMode}
+                errors={errors}
+                register={register}
+                setValue={setValue}
+              />
+              <SettingsCredentials
+                credentialsMode={credentialsMode}
+                setValue={setValue}
+              />
               <SheetFooter className="flex gap-2 pt-4">
                 <Button type="button" variant="outline" onClick={handleCancel}>
                   Cancel
                 </Button>
-                <Button type="submit">Verify & Save</Button>
+                <Button type="submit">Verify &amp; Save</Button>
               </SheetFooter>
             </form>
-
             {showStepper && (
               <div className="pt-4">
                 <VerificationStepper

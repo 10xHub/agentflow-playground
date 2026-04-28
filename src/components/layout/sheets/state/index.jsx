@@ -26,91 +26,54 @@ import DynamicFieldsSection from "./dynamic-fields-section"
 import ExecutionMetadataSection from "./execution-metadata-section"
 import useFormData from "./useFormData"
 
-/**
- * ViewStateSheet component displays application state information
- * @param {object} props - Component props
- * @param {boolean} props.isOpen - Whether the sheet is open
- * @param {() => void} props.onClose - Function to close the sheet
- * @returns {object} Sheet component displaying application state
- */
-// eslint-disable-next-line max-lines-per-function
-const ViewStateSheet = ({ isOpen, onClose }) => {
-  const dispatch = useDispatch()
-  const { toast } = useToast()
-  const stateData = useSelector((state) => state[ct.store.STATE_STORE].state)
-  const stateSchema = useSelector((state) => state[ct.store.STATE_STORE].schema)
-  const isLoading = useSelector(
-    (state) => state[ct.store.STATE_STORE].isLoading
-  )
-  const isSaving = useSelector((state) => state[ct.store.STATE_STORE].isSaving)
-  const activeThreadId = useSelector(
-    (state) => state[ct.store.CHAT_STORE].activeThreadId
-  )
+const NO_ACTIVE_THREAD_TITLE = "No Active Thread"
+const NO_ACTIVE_THREAD_DESC = "Please select or create a thread first"
+const STATIC_FIELDS = ["context", "context_summary", "execution_meta"]
+const DEFAULT_FIELD_DESCRIPTION = "Additional state data field"
 
-  const [isExecutionMetaOpen, setIsExecutionMetaOpen] = useState(false)
-  const [isAddMessageOpen, setIsAddMessageOpen] = useState(false)
-  const [newMessage, setNewMessage] = useState({
-    message_id: "",
-    role: "user",
-    content: "",
-  })
-  const noActiveThreadTitle = "No Active Thread"
-  const noActiveThreadDescription = "Please select or create a thread first"
-
-  const { formData, updateField, addArrayItem, removeArrayItem } = useFormData(
-    stateData,
-    stateSchema
-  )
-
-  // Fetch thread state when sheet opens and there's an active thread
-  useEffect(() => {
-    if (isOpen && activeThreadId) {
-      dispatch(fetchThreadState(activeThreadId))
-    }
-  }, [isOpen, activeThreadId, dispatch])
-
-  const handleExecutionMetaOpenChange = (open) => {
-    setIsExecutionMetaOpen(open)
-  }
-
-  const handleAddMessageOpenChange = (open) => {
-    if (!open) {
-      setNewMessage({
-        message_id: "",
-        role: "user",
-        content: "",
-      })
-    }
-
-    setIsAddMessageOpen(open)
-  }
-
-  const handleAddMessage = () => {
-    if (newMessage.content.trim()) {
-      addArrayItem("context", {
-        message_id: newMessage.message_id || Date.now(),
-        content: newMessage.content.trim(),
-        role: newMessage.role,
-      })
-      setNewMessage({
-        message_id: "",
-        role: "user",
-        content: "",
-      })
-      handleAddMessageOpenChange(false)
+const getSchemaFields = (stateSchema) => {
+  if (!stateSchema) {
+    return {
+      dynamicFields: [],
+      getFieldInfo: () => ({
+        title: "",
+        description: DEFAULT_FIELD_DESCRIPTION,
+        type: "string",
+      }),
     }
   }
+  const dynamicFields = Object.keys(stateSchema).filter(
+    (key) => !STATIC_FIELDS.includes(key)
+  )
+  const getFieldInfo = (fieldKey) => {
+    const fieldSchema = stateSchema[fieldKey]
+    if (!fieldSchema) {
+      return {
+        title: fieldKey,
+        description: DEFAULT_FIELD_DESCRIPTION,
+        type: "string",
+      }
+    }
+    return {
+      title: fieldSchema.title || fieldKey,
+      description: fieldSchema.description || DEFAULT_FIELD_DESCRIPTION,
+      type: fieldSchema.type || "string",
+      default: fieldSchema.default,
+    }
+  }
+  return { dynamicFields, getFieldInfo }
+}
 
+const useStateActions = (activeThreadId, formData, dispatch, toast) => {
   const handleSyncState = async () => {
     if (!activeThreadId) {
       toast({
-        title: noActiveThreadTitle,
-        description: noActiveThreadDescription,
+        title: NO_ACTIVE_THREAD_TITLE,
+        description: NO_ACTIVE_THREAD_DESC,
         variant: "destructive",
       })
       return
     }
-
     try {
       await dispatch(fetchThreadState(activeThreadId)).unwrap()
       toast({
@@ -129,29 +92,21 @@ const ViewStateSheet = ({ isOpen, onClose }) => {
   const handleSaveState = async () => {
     if (!activeThreadId) {
       toast({
-        title: noActiveThreadTitle,
-        description: noActiveThreadDescription,
+        title: NO_ACTIVE_THREAD_TITLE,
+        description: NO_ACTIVE_THREAD_DESC,
         variant: "destructive",
       })
       return
     }
-
     try {
-      // Prepare state data to send to server
       const stateToSave = {
         context: formData.context || [],
         context_summary: formData.context_summary || "",
         execution_meta: formData.execution_meta || {},
       }
-
-      // Add dynamic fields
-      const staticFields = ["context", "context_summary", "execution_meta"]
       Object.keys(formData).forEach((key) => {
-        if (!staticFields.includes(key)) {
-          stateToSave[key] = formData[key]
-        }
+        if (!STATIC_FIELDS.includes(key)) stateToSave[key] = formData[key]
       })
-
       await dispatch(
         updateThreadState({
           threadId: activeThreadId,
@@ -159,7 +114,6 @@ const ViewStateSheet = ({ isOpen, onClose }) => {
           config: {},
         })
       ).unwrap()
-
       toast({
         title: "State Saved",
         description: "Successfully updated state on server",
@@ -173,46 +127,144 @@ const ViewStateSheet = ({ isOpen, onClose }) => {
     }
   }
 
-  // Wrapper functions for lint compliance (event handlers must start with 'handle')
+  return { handleSyncState, handleSaveState }
+}
+
+const StateSheetHeader = ({
+  isLoading,
+  isSaving,
+  activeThreadId,
+  onSync,
+  onSave,
+}) => {
+  const handleSync = onSync
+  const handleSave = onSave
+  return (
+    <SheetHeader className="px-5 pt-4 pb-3 border-b flex-shrink-0">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <SheetTitle className="text-sm font-semibold">
+            Application State
+          </SheetTitle>
+          <SheetDescription className="text-xs mt-0.5">
+            Thread context &amp; memory
+          </SheetDescription>
+        </div>
+        <div className="flex gap-1.5 flex-shrink-0">
+          <Button
+            onClick={handleSync}
+            variant="outline"
+            size="sm"
+            disabled={isLoading || !activeThreadId}
+          >
+            <RefreshCw
+              className={`h-3.5 w-3.5 mr-1.5 ${isLoading ? "animate-spin" : ""}`}
+            />
+            Sync
+          </Button>
+          <Button
+            onClick={handleSave}
+            size="sm"
+            disabled={isSaving || !activeThreadId}
+          >
+            <Save className="h-3.5 w-3.5 mr-1.5" />
+            {isSaving ? "Saving..." : "Save"}
+          </Button>
+        </div>
+      </div>
+    </SheetHeader>
+  )
+}
+
+StateSheetHeader.propTypes = {
+  isLoading: PropTypes.bool.isRequired,
+  isSaving: PropTypes.bool.isRequired,
+  activeThreadId: PropTypes.string,
+  onSync: PropTypes.func.isRequired,
+  onSave: PropTypes.func.isRequired,
+}
+
+StateSheetHeader.defaultProps = {
+  activeThreadId: null,
+}
+
+/**
+ * ViewStateSheet component displays application state information
+ * @param {object} props - Component props
+ * @param {boolean} props.isOpen - Whether the sheet is open
+ * @param {() => void} props.onClose - Function to close the sheet
+ * @returns {object} Sheet component displaying application state
+ */
+const EMPTY_NEW_MESSAGE = { message_id: "", role: "user", content: "" }
+
+const useAddMessageActions = (
+  addArrayItem,
+  newMessage,
+  setNewMessage,
+  setIsAddMessageOpen
+) => {
+  const handleAddMessageOpenChange = (open) => {
+    if (!open) setNewMessage(EMPTY_NEW_MESSAGE)
+    setIsAddMessageOpen(open)
+  }
+  const handleAddMessage = () => {
+    if (newMessage.content.trim()) {
+      addArrayItem("context", {
+        message_id: newMessage.message_id || Date.now(),
+        content: newMessage.content.trim(),
+        role: newMessage.role,
+      })
+      setNewMessage(EMPTY_NEW_MESSAGE)
+      handleAddMessageOpenChange(false)
+    }
+  }
+  return { handleAddMessageOpenChange, handleAddMessage }
+}
+
+const ViewStateSheet = ({ isOpen, onClose }) => {
+  const dispatch = useDispatch()
+  const { toast } = useToast()
+  const stateData = useSelector((state) => state[ct.store.STATE_STORE].state)
+  const stateSchema = useSelector((state) => state[ct.store.STATE_STORE].schema)
+  const isLoading = useSelector(
+    (state) => state[ct.store.STATE_STORE].isLoading
+  )
+  const isSaving = useSelector((state) => state[ct.store.STATE_STORE].isSaving)
+  const activeThreadId = useSelector(
+    (state) => state[ct.store.CHAT_STORE].activeThreadId
+  )
+
+  const [isExecutionMetaOpen, setIsExecutionMetaOpen] = useState(false)
+  const [isAddMessageOpen, setIsAddMessageOpen] = useState(false)
+  const [newMessage, setNewMessage] = useState(EMPTY_NEW_MESSAGE)
+
+  const { formData, updateField, addArrayItem, removeArrayItem } = useFormData(
+    stateData,
+    stateSchema
+  )
+  const { dynamicFields, getFieldInfo } = getSchemaFields(stateSchema)
+  const { handleSyncState, handleSaveState } = useStateActions(
+    activeThreadId,
+    formData,
+    dispatch,
+    toast
+  )
+
+  useEffect(() => {
+    if (isOpen && activeThreadId) {
+      dispatch(fetchThreadState(activeThreadId))
+    }
+  }, [isOpen, activeThreadId, dispatch])
+
+  const { handleAddMessageOpenChange, handleAddMessage } = useAddMessageActions(
+    addArrayItem,
+    newMessage,
+    setNewMessage,
+    setIsAddMessageOpen
+  )
+  const handleExecutionMetaOpenChange = setIsExecutionMetaOpen
   const handleUpdateField = updateField
   const handleMessageChange = setNewMessage
-
-  // Get dynamic fields from schema instead of formData keys
-  const getDynamicFields = () => {
-    const schemaProperties = stateSchema
-
-    if (!schemaProperties) return []
-
-    const staticFields = ["context", "context_summary", "execution_meta"]
-
-    return Object.keys(schemaProperties).filter(
-      (key) => !staticFields.includes(key)
-    )
-  }
-
-  const dynamicFields = getDynamicFields()
-
-  // Get field info from schema
-  const getFieldInfo = (fieldKey) => {
-    const defaultDescription = "Additional state data field"
-    const schemaProperties = stateSchema
-
-    if (!schemaProperties?.[fieldKey]) {
-      return {
-        title: fieldKey,
-        description: defaultDescription,
-        type: "string",
-      }
-    }
-
-    const fieldSchema = schemaProperties[fieldKey]
-    return {
-      title: fieldSchema.title || fieldKey,
-      description: fieldSchema.description || defaultDescription,
-      type: fieldSchema.type || "string",
-      default: fieldSchema.default,
-    }
-  }
 
   return (
     <>
@@ -221,44 +273,16 @@ const ViewStateSheet = ({ isOpen, onClose }) => {
           side="right"
           className="flex flex-col p-0 gap-0 w-[440px] sm:w-[480px]"
         >
-          <SheetHeader className="px-5 pt-4 pb-3 border-b flex-shrink-0">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <SheetTitle className="text-sm font-semibold">
-                  Application State
-                </SheetTitle>
-                <SheetDescription className="text-xs mt-0.5">
-                  Thread context &amp; memory
-                </SheetDescription>
-              </div>
-              <div className="flex gap-1.5 flex-shrink-0">
-                <Button
-                  onClick={handleSyncState}
-                  variant="outline"
-                  size="sm"
-                  disabled={isLoading || !activeThreadId}
-                >
-                  <RefreshCw
-                    className={`h-3.5 w-3.5 mr-1.5 ${isLoading ? "animate-spin" : ""}`}
-                  />
-                  Sync
-                </Button>
-                <Button
-                  onClick={handleSaveState}
-                  size="sm"
-                  disabled={isSaving || !activeThreadId}
-                >
-                  <Save className="h-3.5 w-3.5 mr-1.5" />
-                  {isSaving ? "Saving..." : "Save"}
-                </Button>
-              </div>
-            </div>
-          </SheetHeader>
-
+          <StateSheetHeader
+            isLoading={isLoading}
+            isSaving={isSaving}
+            activeThreadId={activeThreadId}
+            onSync={handleSyncState}
+            onSave={handleSaveState}
+          />
           <div className="flex-1 overflow-hidden">
             <ScrollArea className="h-full">
               <div className="p-4 space-y-2">
-                {/* Context Messages Array */}
                 <ContextMessagesSection
                   context={formData.context}
                   handleAddMessage={() => setIsAddMessageOpen(true)}
@@ -266,23 +290,18 @@ const ViewStateSheet = ({ isOpen, onClose }) => {
                     removeArrayItem("context", messageIndex)
                   }
                 />
-
-                {/* Context Summary Field */}
                 <ContextSummarySection
                   contextSummary={formData.context_summary}
                   onUpdateSummary={(value) =>
                     updateField("context_summary", value)
                   }
                 />
-
-                {/* Execution Metadata - Collapsible */}
                 <ExecutionMetadataSection
                   isOpen={isExecutionMetaOpen}
                   onOpenChange={handleExecutionMetaOpenChange}
                   executionMeta={formData.execution_meta}
                   onUpdateField={handleUpdateField}
                 />
-
                 <DynamicFieldsSection
                   dynamicFields={dynamicFields}
                   getFieldInfo={getFieldInfo}
@@ -294,8 +313,6 @@ const ViewStateSheet = ({ isOpen, onClose }) => {
           </div>
         </SheetContent>
       </Sheet>
-
-      {/* Add Message Sheet */}
       <AddMessageSheet
         isOpen={isAddMessageOpen}
         onOpenChange={handleAddMessageOpenChange}

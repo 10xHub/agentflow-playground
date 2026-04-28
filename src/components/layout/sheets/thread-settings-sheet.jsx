@@ -264,17 +264,265 @@ JsonEditor.defaultProps = {
   error: "",
 }
 
-// eslint-disable-next-line max-lines-per-function
-const ThreadSettingsSheet = ({ isOpen, onClose, threadId, threadData }) => {
-  const { toast } = useToast()
-  const dispatch = useDispatch()
-  const threadSettings = useSelector((state) => state.threadSettingsStore)
+const ThreadMetadataPanel = ({ overview, threadSettings }) => (
+  <div>
+    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
+      Thread Metadata
+    </p>
+    <div className="mt-2.5 space-y-2 text-sm text-slate-600 dark:text-slate-400">
+      <div className="space-y-1">
+        <p className="font-medium text-slate-950 dark:text-slate-50">
+          Thread ID
+        </p>
+        <p className="break-all text-xs">
+          {threadSettings.thread_id || "Auto-generated"}
+        </p>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-2">
+        <div className="space-y-1">
+          <p className="font-medium text-slate-950 dark:text-slate-50">
+            Created
+          </p>
+          <p className="text-xs">{overview.createdAt}</p>
+        </div>
+        <div className="space-y-1">
+          <p className="font-medium text-slate-950 dark:text-slate-50">
+            Updated
+          </p>
+          <p className="text-xs">{overview.updatedAt}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+)
 
-  const [localConfig, setLocalConfig] = useState("")
-  const [localInitState, setLocalInitState] = useState("")
-  const [configError, setConfigError] = useState("")
-  const [initStateError, setInitStateError] = useState("")
+ThreadMetadataPanel.propTypes = {
+  overview: PropTypes.object.isRequired,
+  threadSettings: PropTypes.object.isRequired,
+}
 
+const MessageBreakdownPanel = ({ overview }) => (
+  <div>
+    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
+      Message Breakdown
+    </p>
+    <div className="mt-2.5 grid grid-cols-2 gap-x-3 gap-y-2 text-sm text-slate-600 dark:text-slate-400">
+      <div className="space-y-1">
+        <p className="font-medium text-slate-950 dark:text-slate-50">User</p>
+        <p className="text-xs">{overview.userMessages}</p>
+      </div>
+      <div className="space-y-1">
+        <p className="font-medium text-slate-950 dark:text-slate-50">
+          Assistant
+        </p>
+        <p className="text-xs">{overview.assistantMessages}</p>
+      </div>
+      <div className="space-y-1">
+        <p className="font-medium text-slate-950 dark:text-slate-50">
+          Tool Results
+        </p>
+        <p className="text-xs">{overview.toolResults}</p>
+      </div>
+      <div className="space-y-1">
+        <p className="font-medium text-slate-950 dark:text-slate-50">
+          Total Rows
+        </p>
+        <p className="text-xs">{overview.totalMessages}</p>
+      </div>
+      <div className="space-y-1">
+        <p className="font-medium text-slate-950 dark:text-slate-50">
+          Config Keys
+        </p>
+        <p className="text-xs">{overview.configKeys}</p>
+      </div>
+      <div className="space-y-1">
+        <p className="font-medium text-slate-950 dark:text-slate-50">
+          Init State Keys
+        </p>
+        <p className="text-xs">{overview.initStateKeys}</p>
+      </div>
+    </div>
+  </div>
+)
+
+MessageBreakdownPanel.propTypes = {
+  overview: PropTypes.object.isRequired,
+}
+
+const ThreadOverviewCard = ({ overview, threadSettings }) => (
+  <Card className="rounded-2xl">
+    <CardHeader className="space-y-2 pb-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <CardTitle className="text-2xl">Overview</CardTitle>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <Badge variant="outline">
+          <Radio className="h-3 w-3" />
+          {threadSettings.streaming_response ? "Streaming on" : "Streaming off"}
+        </Badge>
+        <Badge variant="outline">
+          <Sparkles className="h-3 w-3" />
+          {threadSettings.response_granularity}
+        </Badge>
+        {threadSettings.include_raw && (
+          <Badge variant="outline">Raw enabled</Badge>
+        )}
+      </div>
+      <CardDescription className="text-sm leading-6">
+        Compact thread summary for the current conversation.
+      </CardDescription>
+    </CardHeader>
+    <CardContent className="space-y-4">
+      <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+        <StatCard
+          label="Messages"
+          value={overview.contextMessages}
+          tone="accent"
+          icon={MessageSquare}
+        />
+        <StatCard
+          label="Tokens"
+          value={overview.contextTokens}
+          tone="accent"
+          icon={Activity}
+        />
+        <StatCard label="Tool Calls" value={overview.toolCalls} icon={Wrench} />
+        <StatCard
+          label="Reasoning"
+          value={overview.reasoningMessages}
+          icon={Brain}
+        />
+      </div>
+      <div className="grid gap-3 rounded-xl border border-slate-200 p-3 dark:border-slate-800 lg:grid-cols-2">
+        <ThreadMetadataPanel
+          overview={overview}
+          threadSettings={threadSettings}
+        />
+        <MessageBreakdownPanel overview={overview} />
+      </div>
+    </CardContent>
+  </Card>
+)
+
+ThreadOverviewCard.propTypes = {
+  overview: PropTypes.object.isRequired,
+  threadSettings: PropTypes.object.isRequired,
+}
+
+const RequestSettingsHeader = () => (
+  <div className="space-y-2">
+    <h3 className="text-2xl font-semibold tracking-tight text-slate-950 dark:text-slate-50">
+      Request Settings
+    </h3>
+    <p className="text-sm leading-6 text-slate-500 dark:text-slate-400">
+      These values are shared with invoke and stream calls for the active
+      thread. Changes are applied immediately.
+    </p>
+  </div>
+)
+
+const ThreadRequestSettings = ({ threadSettings, onFieldChange }) => {
+  const handleFieldChange = onFieldChange
+  return (
+    <>
+      <RequestSettingsHeader />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-2">
+          <Label htmlFor="thread-id">Thread ID</Label>
+          <Input
+            id="thread-id"
+            type="text"
+            value={threadSettings.thread_id || ""}
+            onChange={(event) =>
+              handleFieldChange("threadId", event.target.value)
+            }
+            placeholder="Leave empty for auto-generation"
+          />
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            Unique identifier for this thread.
+          </p>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="thread-title">Thread Title</Label>
+          <Input
+            id="thread-title"
+            type="text"
+            value={threadSettings.thread_title || ""}
+            onChange={(event) => handleFieldChange("title", event.target.value)}
+            placeholder="Enter thread title"
+          />
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            Friendly name shown in the conversations list.
+          </p>
+        </div>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-2">
+          <Label htmlFor="response-granularity">Response Granularity</Label>
+          <select
+            id="response-granularity"
+            className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+            value={threadSettings.response_granularity || "low"}
+            onChange={(event) =>
+              handleFieldChange("responseGranularity", event.target.value)
+            }
+          >
+            <option value="full">Full</option>
+            <option value="partial">Partial</option>
+            <option value="low">Low</option>
+          </select>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            Controls how much structured detail the API returns.
+          </p>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="recursion-limit">Recursion Limit</Label>
+          <Input
+            id="recursion-limit"
+            type="number"
+            min="1"
+            value={threadSettings.recursion_limit}
+            onChange={(event) =>
+              handleFieldChange("recursionLimit", event.target.value)
+            }
+          />
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            Maximum recursion depth used during invoke and stream flows.
+          </p>
+        </div>
+      </div>
+      <div className="space-y-4">
+        <ToggleField
+          id="streaming-response"
+          label="Streaming Response"
+          description="Enable token-by-token responses for this thread."
+          checked={threadSettings.streaming_response}
+          onChange={(v) => handleFieldChange("streamingResponse", v)}
+        />
+        <ToggleField
+          id="show-tool-message-content"
+          label="Show Tool Messages"
+          description="Show or hide tool call and tool result messages in the conversation view."
+          checked={threadSettings.show_tool_message_content}
+          onChange={(v) => handleFieldChange("showToolMessageContent", v)}
+        />
+        <ToggleField
+          id="include-raw"
+          label="Include Raw Response Data"
+          description="Keep raw payloads alongside normalized response data for debugging."
+          checked={threadSettings.include_raw}
+          onChange={(v) => handleFieldChange("includeRaw", v)}
+        />
+      </div>
+    </>
+  )
+}
+
+ThreadRequestSettings.propTypes = {
+  threadSettings: PropTypes.object.isRequired,
+  onFieldChange: PropTypes.func.isRequired,
+}
+const useThreadDataSync = (threadId, threadData, dispatch) => {
   useEffect(() => {
     if (threadId) {
       dispatch(setThreadId(threadId))
@@ -315,35 +563,40 @@ const ThreadSettingsSheet = ({ isOpen, onClose, threadId, threadData }) => {
       })
     )
   }, [threadData, threadId, dispatch])
+}
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setLocalConfig(stringifyJson(threadSettings.config))
-
-    setConfigError("")
-  }, [threadSettings.config])
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setLocalInitState(stringifyJson(threadSettings.init_state))
-
-    setInitStateError("")
-  }, [threadSettings.init_state])
-
-  const overview = useMemo(
-    () => summarizeThread(threadData, threadSettings),
-    [threadData, threadSettings]
+const useJsonEditors = (threadSettings, dispatch) => {
+  const [localConfig, setLocalConfig] = useState(() =>
+    stringifyJson(threadSettings.config)
   )
+  const [localInitState, setLocalInitState] = useState(() =>
+    stringifyJson(threadSettings.init_state)
+  )
+  const [configError, setConfigError] = useState("")
+  const [initStateError, setInitStateError] = useState("")
+  const [previousConfig, setPreviousConfig] = useState(threadSettings.config)
+  const [previousInitState, setPreviousInitState] = useState(
+    threadSettings.init_state
+  )
+
+  if (previousConfig !== threadSettings.config) {
+    setPreviousConfig(threadSettings.config)
+    setLocalConfig(stringifyJson(threadSettings.config))
+    setConfigError("")
+  }
+  if (previousInitState !== threadSettings.init_state) {
+    setPreviousInitState(threadSettings.init_state)
+    setLocalInitState(stringifyJson(threadSettings.init_state))
+    setInitStateError("")
+  }
 
   const handleJsonChange = (field, value) => {
     const trimmed = value.trim()
-
     if (field === "config") {
       setLocalConfig(value)
     } else {
       setLocalInitState(value)
     }
-
     if (!trimmed) {
       if (field === "config") {
         setConfigError("")
@@ -354,10 +607,8 @@ const ThreadSettingsSheet = ({ isOpen, onClose, threadId, threadData }) => {
       }
       return
     }
-
     try {
       const parsed = JSON.parse(value)
-
       if (field === "config") {
         setConfigError("")
         dispatch(setConfig(parsed))
@@ -368,7 +619,6 @@ const ThreadSettingsSheet = ({ isOpen, onClose, threadId, threadData }) => {
     } catch {
       const message =
         "Invalid JSON. Changes will be saved once the JSON is valid."
-
       if (field === "config") {
         setConfigError(message)
       } else {
@@ -377,41 +627,75 @@ const ThreadSettingsSheet = ({ isOpen, onClose, threadId, threadData }) => {
     }
   }
 
-  const handleFieldChange = (field, value) => {
-    try {
-      switch (field) {
-        case "threadId":
-          dispatch(setThreadId(value))
-          break
-        case "title":
-          dispatch(setThreadTitle(value))
-          break
-        case "streamingResponse":
-          dispatch(setStreamingResponse(value))
-          break
-        case "showToolMessageContent":
-          dispatch(setShowToolMessageContent(value))
-          break
-        case "recursionLimit":
-          dispatch(setRecursionLimit(Math.max(1, parseInt(value, 10) || 1)))
-          break
-        case "responseGranularity":
-          dispatch(setResponseGranularity(value))
-          break
-        case "includeRaw":
-          dispatch(setIncludeRaw(value))
-          break
-        default:
-          break
-      }
-    } catch {
-      toast({
-        title: "Update failed",
-        description: `Could not update ${field}.`,
-        variant: "destructive",
-      })
-    }
+  return {
+    localConfig,
+    localInitState,
+    configError,
+    initStateError,
+    handleJsonChange,
   }
+}
+
+const createFieldHandler = (dispatch, toast) => (field, value) => {
+  try {
+    switch (field) {
+      case "threadId":
+        dispatch(setThreadId(value))
+        break
+      case "title":
+        dispatch(setThreadTitle(value))
+        break
+      case "streamingResponse":
+        dispatch(setStreamingResponse(value))
+        break
+      case "showToolMessageContent":
+        dispatch(setShowToolMessageContent(value))
+        break
+      case "recursionLimit":
+        dispatch(setRecursionLimit(Math.max(1, parseInt(value, 10) || 1)))
+        break
+      case "responseGranularity":
+        dispatch(setResponseGranularity(value))
+        break
+      case "includeRaw":
+        dispatch(setIncludeRaw(value))
+        break
+      default:
+        break
+    }
+  } catch {
+    toast({
+      title: "Update failed",
+      description: `Could not update ${field}.`,
+      variant: "destructive",
+    })
+  }
+}
+
+const ThreadSettingsSheet = ({ isOpen, onClose, threadId, threadData }) => {
+  const { toast } = useToast()
+  const dispatch = useDispatch()
+  const threadSettings = useSelector((state) => state.threadSettingsStore)
+
+  const {
+    localConfig,
+    localInitState,
+    configError,
+    initStateError,
+    handleJsonChange,
+  } = useJsonEditors(threadSettings, dispatch)
+
+  useThreadDataSync(threadId, threadData, dispatch)
+
+  const overview = useMemo(
+    () => summarizeThread(threadData, threadSettings),
+    [threadData, threadSettings]
+  )
+
+  const handleFieldChange = useMemo(
+    () => createFieldHandler(dispatch, toast),
+    [dispatch, toast]
+  )
 
   return (
     <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -430,249 +714,17 @@ const ThreadSettingsSheet = ({ isOpen, onClose, threadId, threadData }) => {
             settings.
           </SheetDescription>
         </SheetHeader>
-
         <ScrollArea className="flex-1 pr-4 pb-6">
           <div className="space-y-6">
-            <Card className="rounded-2xl">
-              <CardHeader className="space-y-2 pb-4">
-                <div className="flex flex-wrap items-center gap-2">
-                  <CardTitle className="text-2xl">Overview</CardTitle>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant="outline">
-                    <Radio className="h-3 w-3" />
-                    {threadSettings.streaming_response
-                      ? "Streaming on"
-                      : "Streaming off"}
-                  </Badge>
-                  <Badge variant="outline">
-                    <Sparkles className="h-3 w-3" />
-                    {threadSettings.response_granularity}
-                  </Badge>
-                  {threadSettings.include_raw && (
-                    <Badge variant="outline">Raw enabled</Badge>
-                  )}
-                </div>
-                <CardDescription className="text-sm leading-6">
-                  Compact thread summary for the current conversation.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
-                  <StatCard
-                    label="Messages"
-                    value={overview.contextMessages}
-                    tone="accent"
-                    icon={MessageSquare}
-                  />
-                  <StatCard
-                    label="Tokens"
-                    value={overview.contextTokens}
-                    tone="accent"
-                    icon={Activity}
-                  />
-                  <StatCard
-                    label="Tool Calls"
-                    value={overview.toolCalls}
-                    icon={Wrench}
-                  />
-                  <StatCard
-                    label="Reasoning"
-                    value={overview.reasoningMessages}
-                    icon={Brain}
-                  />
-                </div>
-
-                <div className="grid gap-3 rounded-xl border border-slate-200 p-3 dark:border-slate-800 lg:grid-cols-2">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
-                      Thread Metadata
-                    </p>
-                    <div className="mt-2.5 space-y-2 text-sm text-slate-600 dark:text-slate-400">
-                      <div className="space-y-1">
-                        <p className="font-medium text-slate-950 dark:text-slate-50">
-                          Thread ID
-                        </p>
-                        <p className="break-all text-xs">
-                          {threadSettings.thread_id || "Auto-generated"}
-                        </p>
-                      </div>
-                      <div className="grid gap-2 sm:grid-cols-2">
-                        <div className="space-y-1">
-                          <p className="font-medium text-slate-950 dark:text-slate-50">
-                            Created
-                          </p>
-                          <p className="text-xs">{overview.createdAt}</p>
-                        </div>
-                        <div className="space-y-1">
-                          <p className="font-medium text-slate-950 dark:text-slate-50">
-                            Updated
-                          </p>
-                          <p className="text-xs">{overview.updatedAt}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
-                      Message Breakdown
-                    </p>
-                    <div className="mt-2.5 grid grid-cols-2 gap-x-3 gap-y-2 text-sm text-slate-600 dark:text-slate-400">
-                      <div className="space-y-1">
-                        <p className="font-medium text-slate-950 dark:text-slate-50">
-                          User
-                        </p>
-                        <p className="text-xs">{overview.userMessages}</p>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="font-medium text-slate-950 dark:text-slate-50">
-                          Assistant
-                        </p>
-                        <p className="text-xs">{overview.assistantMessages}</p>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="font-medium text-slate-950 dark:text-slate-50">
-                          Tool Results
-                        </p>
-                        <p className="text-xs">{overview.toolResults}</p>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="font-medium text-slate-950 dark:text-slate-50">
-                          Total Rows
-                        </p>
-                        <p className="text-xs">{overview.totalMessages}</p>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="font-medium text-slate-950 dark:text-slate-50">
-                          Config Keys
-                        </p>
-                        <p className="text-xs">{overview.configKeys}</p>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="font-medium text-slate-950 dark:text-slate-50">
-                          Init State Keys
-                        </p>
-                        <p className="text-xs">{overview.initStateKeys}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <div className="space-y-2">
-              <h3 className="text-2xl font-semibold tracking-tight text-slate-950 dark:text-slate-50">
-                Request Settings
-              </h3>
-              <p className="text-sm leading-6 text-slate-500 dark:text-slate-400">
-                These values are shared with invoke and stream calls for the
-                active thread. Changes are applied immediately.
-              </p>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="thread-id">Thread ID</Label>
-                <Input
-                  id="thread-id"
-                  type="text"
-                  value={threadSettings.thread_id || ""}
-                  onChange={(event) =>
-                    handleFieldChange("threadId", event.target.value)
-                  }
-                  placeholder="Leave empty for auto-generation"
-                />
-                <p className="text-sm text-slate-500 dark:text-slate-400">
-                  Unique identifier for this thread.
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="thread-title">Thread Title</Label>
-                <Input
-                  id="thread-title"
-                  type="text"
-                  value={threadSettings.thread_title || ""}
-                  onChange={(event) =>
-                    handleFieldChange("title", event.target.value)
-                  }
-                  placeholder="Enter thread title"
-                />
-                <p className="text-sm text-slate-500 dark:text-slate-400">
-                  Friendly name shown in the conversations list.
-                </p>
-              </div>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="response-granularity">
-                  Response Granularity
-                </Label>
-                <select
-                  id="response-granularity"
-                  className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                  value={threadSettings.response_granularity || "low"}
-                  onChange={(event) =>
-                    handleFieldChange("responseGranularity", event.target.value)
-                  }
-                >
-                  <option value="full">Full</option>
-                  <option value="partial">Partial</option>
-                  <option value="low">Low</option>
-                </select>
-                <p className="text-sm text-slate-500 dark:text-slate-400">
-                  Controls how much structured detail the API returns.
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="recursion-limit">Recursion Limit</Label>
-                <Input
-                  id="recursion-limit"
-                  type="number"
-                  min="1"
-                  value={threadSettings.recursion_limit}
-                  onChange={(event) =>
-                    handleFieldChange("recursionLimit", event.target.value)
-                  }
-                />
-                <p className="text-sm text-slate-500 dark:text-slate-400">
-                  Maximum recursion depth used during invoke and stream flows.
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <ToggleField
-                id="streaming-response"
-                label="Streaming Response"
-                description="Enable token-by-token responses for this thread."
-                checked={threadSettings.streaming_response}
-                onChange={(value) =>
-                  handleFieldChange("streamingResponse", value)
-                }
-              />
-              <ToggleField
-                id="show-tool-message-content"
-                label="Show Tool Messages"
-                description="Show or hide tool call and tool result messages in the conversation view."
-                checked={threadSettings.show_tool_message_content}
-                onChange={(value) =>
-                  handleFieldChange("showToolMessageContent", value)
-                }
-              />
-              <ToggleField
-                id="include-raw"
-                label="Include Raw Response Data"
-                description="Keep raw payloads alongside normalized response data for debugging."
-                checked={threadSettings.include_raw}
-                onChange={(value) => handleFieldChange("includeRaw", value)}
-              />
-            </div>
-
+            <ThreadOverviewCard
+              overview={overview}
+              threadSettings={threadSettings}
+            />
+            <ThreadRequestSettings
+              threadSettings={threadSettings}
+              onFieldChange={handleFieldChange}
+            />
             <Separator />
-
             <JsonEditor
               id="thread-config"
               title="Config"
@@ -682,7 +734,6 @@ const ThreadSettingsSheet = ({ isOpen, onClose, threadId, threadData }) => {
               onChange={(value) => handleJsonChange("config", value)}
               placeholder='{\n  "mode": "safe"\n}'
             />
-
             <JsonEditor
               id="thread-init-state"
               title="Initial State"

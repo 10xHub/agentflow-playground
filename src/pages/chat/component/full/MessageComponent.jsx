@@ -80,10 +80,122 @@ FileAttachment.propTypes = {
   index: PropTypes.number.isRequired,
 }
 
+const MessageAvatar = ({ isUser, isTool }) => (
+  <Avatar className="w-8 h-8 flex-shrink-0">
+    <AvatarFallback
+      className={
+        isUser ? "bg-blue-600" : isTool ? "bg-orange-500" : "bg-blue-500"
+      }
+    >
+      {isUser ? (
+        <User className="w-4 h-4" />
+      ) : isTool ? (
+        <Zap className="w-4 h-4" />
+      ) : (
+        <Bot className="w-4 h-4" />
+      )}
+    </AvatarFallback>
+  </Avatar>
+)
+
+MessageAvatar.propTypes = {
+  isUser: PropTypes.bool.isRequired,
+  isTool: PropTypes.bool.isRequired,
+}
+
+const MessageBubble = ({
+  message,
+  isUser,
+  isTool,
+  displayContent,
+  copyCallback,
+}) => {
+  const handleCopy = () => {
+    try {
+      const showToolDetails = false
+      const copyValue = getMessageCopyText(message, { showToolDetails })
+      navigator.clipboard.writeText(copyValue)
+      copyCallback?.(copyValue)
+    } catch (error) {
+      console.warn("Failed to copy to clipboard:", error)
+    }
+  }
+
+  const bubbleClass = isUser
+    ? "bg-blue-600 text-white border-blue-600"
+    : isTool
+      ? "bg-orange-50 dark:bg-orange-950/20 border-orange-200 dark:border-orange-800"
+      : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
+
+  return (
+    <div className={`flex flex-col max-w-[80%] ${isUser ? "items-end" : ""}`}>
+      {isTool && (
+        <Badge variant="secondary" className="mb-2 self-start">
+          Tool Result
+        </Badge>
+      )}
+      <Card className={`shadow-sm ${bubbleClass}`}>
+        <CardContent className="p-4">
+          {message.attachments && message.attachments.length > 0 && (
+            <div className="space-y-2 mb-3">
+              {message.attachments.map((file, index) => (
+                <FileAttachment key={file.name} file={file} index={index} />
+              ))}
+            </div>
+          )}
+          <div className="text-sm leading-relaxed">
+            {isUser ? (
+              <div className="whitespace-pre-wrap">{message.content}</div>
+            ) : (
+              <div className="prose prose-sm max-w-none dark:prose-invert">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  components={MarkdownComponents}
+                >
+                  {displayContent}
+                </ReactMarkdown>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+      <div className="flex items-center gap-2 mt-2 px-2 opacity-0 group-hover:opacity-100 transition-opacity">
+        <span className="text-xs text-muted-foreground">
+          {new Date(message.timestamp).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
+        </span>
+        {!isUser && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleCopy}
+            className="h-6 w-6 p-0"
+          >
+            <Copy className="w-3 h-3" />
+          </Button>
+        )}
+      </div>
+    </div>
+  )
+}
+
+MessageBubble.propTypes = {
+  message: PropTypes.object.isRequired,
+  isUser: PropTypes.bool.isRequired,
+  isTool: PropTypes.bool.isRequired,
+  displayContent: PropTypes.string.isRequired,
+  copyCallback: PropTypes.func,
+}
+
+MessageBubble.defaultProps = {
+  copyCallback: null,
+}
+
 /**
  * Message component that handles different message types
  */
-// eslint-disable-next-line complexity, max-lines-per-function
 const Message = ({ message, onCopy }) => {
   const isUser = message.role === "user"
   const isTool = message.role === "tool"
@@ -91,9 +203,7 @@ const Message = ({ message, onCopy }) => {
     (state) => state.threadSettingsStore.show_tool_message_content
   )
 
-  if (isTool && !showToolMessageContent) {
-    return null
-  }
+  if (isTool && !showToolMessageContent) return null
 
   const displayContent = isUser
     ? message.content
@@ -104,107 +214,17 @@ const Message = ({ message, onCopy }) => {
         toolCalls: message.toolsCalls,
       })
 
-  const handleCopy = () => {
-    try {
-      const copyValue = getMessageCopyText(message, {
-        showToolDetails: showToolMessageContent,
-      })
-
-      navigator.clipboard.writeText(copyValue)
-      onCopy?.(copyValue)
-    } catch (error) {
-      console.warn("Failed to copy to clipboard:", error)
-    }
-  }
-
   return (
     <div className={`flex gap-4 p-4 group ${isUser ? "justify-end" : ""}`}>
-      {/* Avatar */}
-      {!isUser && (
-        <Avatar className="w-8 h-8 flex-shrink-0">
-          <AvatarFallback className={isTool ? "bg-orange-500" : "bg-blue-500"}>
-            {isTool ? <Zap className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
-          </AvatarFallback>
-        </Avatar>
-      )}
-
-      {/* Message Content */}
-      <div className={`flex flex-col max-w-[80%] ${isUser ? "items-end" : ""}`}>
-        {/* Message Type Badge */}
-        {isTool && (
-          <Badge variant="secondary" className="mb-2 self-start">
-            Tool Result
-          </Badge>
-        )}
-
-        {/* Message Bubble */}
-        <Card
-          className={`shadow-sm ${
-            isUser
-              ? "bg-blue-600 text-white border-blue-600"
-              : isTool
-                ? "bg-orange-50 dark:bg-orange-950/20 border-orange-200 dark:border-orange-800"
-                : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
-          }`}
-        >
-          <CardContent className="p-4">
-            {/* File Attachments */}
-            {message.attachments && message.attachments.length > 0 && (
-              <div className="space-y-2 mb-3">
-                {message.attachments.map((file, index) => (
-                  <FileAttachment key={file.name} file={file} index={index} />
-                ))}
-              </div>
-            )}
-
-            {/* Message Content */}
-            <div className="text-sm leading-relaxed">
-              {isUser ? (
-                <div className="whitespace-pre-wrap">{message.content}</div>
-              ) : (
-                <div className="prose prose-sm max-w-none dark:prose-invert">
-                  <ReactMarkdown
-                    remarkPlugins={[remarkGfm]}
-                    components={MarkdownComponents}
-                  >
-                    {displayContent}
-                  </ReactMarkdown>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Message Actions */}
-        <div className="flex items-center gap-2 mt-2 px-2 opacity-0 group-hover:opacity-100 transition-opacity">
-          <span className="text-xs text-muted-foreground">
-            {new Date(message.timestamp).toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
-          </span>
-
-          {!isUser && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleCopy}
-              className="h-6 w-6 p-0"
-            >
-              <Copy className="w-3 h-3" />
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {/* User Avatar */}
-      {isUser && (
-        <Avatar className="w-8 h-8 flex-shrink-0">
-          <AvatarFallback className="bg-blue-600">
-            <User className="w-4 h-4" />
-          </AvatarFallback>
-        </Avatar>
-      )}
+      {!isUser && <MessageAvatar isUser={false} isTool={isTool} />}
+      <MessageBubble
+        message={message}
+        isUser={isUser}
+        isTool={isTool}
+        displayContent={displayContent}
+        copyCallback={onCopy}
+      />
+      {isUser && <MessageAvatar isUser isTool={false} />}
     </div>
   )
 }

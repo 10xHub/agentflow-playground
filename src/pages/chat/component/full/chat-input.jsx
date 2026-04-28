@@ -6,30 +6,99 @@ import { useToast } from "@/components/ui/use-toast"
 import ChatInputForm from "./chat-input-form"
 import FileAttachmentsPreview from "./file-attachments-preview"
 
-/**
- * Chat input component with file attachments
- */
-// eslint-disable-next-line max-lines-per-function
-const ChatInput = ({ onSendMessage, disabled, isLoading, onStop }) => {
-  const [message, setMessage] = useState("")
+const useChatAttachments = (toast) => {
   const [attachments, setAttachments] = useState([])
   const [isDragOver, setIsDragOver] = useState(false)
   const fileInputReference = useRef(null)
+
+  const handleFileSelect = useCallback(
+    (files) => {
+      const validFiles = [...files].filter((file) => {
+        if (file.size > 10 * 1024 * 1024) {
+          toast({
+            title: "File too large",
+            description: `${file.name} is larger than 10MB`,
+            variant: "destructive",
+          })
+          return false
+        }
+        return true
+      })
+      setAttachments((previous) => [...previous, ...validFiles])
+    },
+    [toast]
+  )
+
+  const handleDragOver = useCallback((event) => {
+    event.preventDefault()
+    setIsDragOver(true)
+  }, [])
+  const handleDragLeave = useCallback((event) => {
+    event.preventDefault()
+    setIsDragOver(false)
+  }, [])
+  const handleDrop = useCallback(
+    (event) => {
+      event.preventDefault()
+      setIsDragOver(false)
+      if (event.dataTransfer.files) handleFileSelect(event.dataTransfer.files)
+    },
+    [handleFileSelect]
+  )
+  const handleRemoveAttachment = useCallback(
+    (index) =>
+      setAttachments((previous) =>
+        previous.filter((_, index_) => index_ !== index)
+      ),
+    []
+  )
+  const handleFileButtonClick = useCallback(() => {
+    fileInputReference.current?.click()
+  }, [])
+
+  return {
+    attachments,
+    setAttachments,
+    isDragOver,
+    fileInputReference,
+    handleFileSelect,
+    handleDragOver,
+    handleDragLeave,
+    handleDrop,
+    handleRemoveAttachment,
+    handleFileButtonClick,
+  }
+}
+
+/**
+ * Chat input component with file attachments
+ */
+const ChatInput = ({ onSendMessage, disabled, isLoading, onStop }) => {
+  const [message, setMessage] = useState("")
   const { toast } = useToast()
+  const {
+    attachments,
+    setAttachments,
+    isDragOver,
+    fileInputReference,
+    handleFileSelect,
+    handleDragOver,
+    handleDragLeave,
+    handleDrop,
+    handleRemoveAttachment,
+    handleFileButtonClick,
+  } = useChatAttachments(toast)
 
   const handleSubmit = useCallback(
     (event) => {
       event.preventDefault()
       if ((message.trim() || attachments.length > 0) && !disabled) {
-        onSendMessage({
-          content: message.trim(),
-          attachments: attachments,
-        })
+        onSendMessage({ content: message.trim(), attachments: attachments })
         setMessage("")
         setAttachments([])
       }
     },
-    [message, attachments, disabled, onSendMessage]
+    [message, attachments, disabled, onSendMessage, setAttachments]
   )
 
   const handleKeyDown = useCallback(
@@ -42,63 +111,9 @@ const ChatInput = ({ onSendMessage, disabled, isLoading, onStop }) => {
     [handleSubmit]
   )
 
-  const handleFileSelect = useCallback(
-    (files) => {
-      const validFiles = [...files].filter((file) => {
-        // Check file size (10MB limit)
-        if (file.size > 10 * 1024 * 1024) {
-          toast({
-            title: "File too large",
-            description: `${file.name} is larger than 10MB`,
-            variant: "destructive",
-          })
-          return false
-        }
-        return true
-      })
-
-      setAttachments((previous) => [...previous, ...validFiles])
-    },
-    [toast]
-  )
-
-  const handleDragOver = useCallback((event) => {
-    event.preventDefault()
-    setIsDragOver(true)
-  }, [])
-
-  const handleDragLeave = useCallback((event) => {
-    event.preventDefault()
-    setIsDragOver(false)
-  }, [])
-
-  const handleDrop = useCallback(
-    (event) => {
-      event.preventDefault()
-      setIsDragOver(false)
-      if (event.dataTransfer.files) {
-        handleFileSelect(event.dataTransfer.files)
-      }
-    },
-    [handleFileSelect]
-  )
-
-  const handleRemoveAttachment = useCallback(
-    (index) =>
-      setAttachments((previous) =>
-        previous.filter((_, index_) => index_ !== index)
-      ),
-    []
-  )
-
-  const handleFileButtonClick = useCallback(() => {
-    fileInputReference.current?.click()
-  }, [])
-
   const handleStopClick = useCallback(() => {
     onStop()
   }, [onStop])
-
   const hasContent = message.trim() || attachments.length > 0
 
   return (

@@ -72,7 +72,6 @@ const getThreadMessages = (store, threadId = THREAD_ID) =>
   store.getState().chatStore.threads.find((thread) => thread.id === threadId)
     .messages
 
-// eslint-disable-next-line max-lines-per-function
 describe("chat slice", () => {
   const WEATHER_TEXT = "The weather is sunny."
   beforeEach(() => {
