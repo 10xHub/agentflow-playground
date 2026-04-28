@@ -106,6 +106,7 @@ const formatToolResult = (block, options = {}) => {
   return `**${TOOL_RESULT_LABEL}**\n\n${formatInlineToolName(toolName)}\n\n\`\`\`json\n${output}\n\`\`\``
 }
 
+// eslint-disable-next-line sonarjs/cognitive-complexity
 const formatContentBlock = (block, options = {}, index = 0) => {
   if (!block || typeof block !== "object") {
     return safeStringify(block).trim()

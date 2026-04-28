@@ -4,7 +4,6 @@ import {
   Activity,
   Wrench,
   Brain,
-  FileJson,
   Radio,
 } from "lucide-react"
 import PropTypes from "prop-types"
@@ -83,15 +82,17 @@ const getObjectKeyCount = (value) => {
   return Object.keys(value).length
 }
 
+const DATE_NOT_AVAILABLE = "Not available"
+
 const formatDateTime = (value) => {
   if (!value) {
-    return "Not available"
+    return DATE_NOT_AVAILABLE
   }
 
   const date = new Date(value)
 
   if (Number.isNaN(date.getTime())) {
-    return "Not available"
+    return DATE_NOT_AVAILABLE
   }
 
   return date.toLocaleString([], {
@@ -174,6 +175,7 @@ const StatCard = ({ label, value, tone = "default", icon: Icon }) => (
 const ToggleField = ({ id, label, description, checked, onChange }) => (
   <label
     htmlFor={id}
+    aria-label={label}
     className="flex items-start justify-between gap-4 rounded-2xl border border-slate-200 bg-white px-4 py-4 dark:border-slate-800 dark:bg-slate-950"
   >
     <div className="space-y-1">
@@ -262,6 +264,7 @@ JsonEditor.defaultProps = {
   error: "",
 }
 
+// eslint-disable-next-line max-lines-per-function
 const ThreadSettingsSheet = ({ isOpen, onClose, threadId, threadData }) => {
   const { toast } = useToast()
   const dispatch = useDispatch()
@@ -314,12 +317,16 @@ const ThreadSettingsSheet = ({ isOpen, onClose, threadId, threadData }) => {
   }, [threadData, threadId, dispatch])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLocalConfig(stringifyJson(threadSettings.config))
+
     setConfigError("")
   }, [threadSettings.config])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLocalInitState(stringifyJson(threadSettings.init_state))
+
     setInitStateError("")
   }, [threadSettings.init_state])
 

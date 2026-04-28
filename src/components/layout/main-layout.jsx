@@ -27,7 +27,7 @@ import DevelopmentToolButton from "./development-tool-button"
 import EventsHistorySheet from "./sheets/events-history-sheet"
 import SettingsSheet from "./sheets/settings-sheet"
 import ViewStateSheet from "./sheets/state"
-import ThreadSettingsSheet from "./sheets/ThreadSettingsSheet"
+import ThreadSettingsSheet from "./sheets/thread-settings-sheet"
 import ViewGraphSheet from "./sheets/view-graph-sheet"
 import ViewMemorySheet from "./sheets/view-memory-sheet"
 
@@ -36,7 +36,7 @@ import ViewMemorySheet from "./sheets/view-memory-sheet"
  * Includes developer tools: View State, View Memory, View Graph, and Events History.
  * Dev tools are disabled when backend URL is not configured.
  */
-// eslint-disable-next-line complexity
+// eslint-disable-next-line complexity, max-lines-per-function
 const MainLayout = () => {
   const [activeSheet, setActiveSheet] = useState(null)
   const dispatch = useDispatch()

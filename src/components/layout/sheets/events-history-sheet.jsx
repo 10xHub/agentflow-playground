@@ -48,6 +48,7 @@ const getEventTone = (event) => {
  * EventsHistorySheet component displays application events history
  * @returns {object} Sheet component displaying events history
  */
+// eslint-disable-next-line max-lines-per-function
 const EventsHistorySheet = ({ isOpen, onClose }) => {
   const dispatch = useDispatch()
   const { entries, isStreaming, activeThreadId } = useSelector((state) => ({

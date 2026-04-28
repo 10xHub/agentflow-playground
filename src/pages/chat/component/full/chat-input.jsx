@@ -9,6 +9,7 @@ import FileAttachmentsPreview from "./file-attachments-preview"
 /**
  * Chat input component with file attachments
  */
+// eslint-disable-next-line max-lines-per-function
 const ChatInput = ({ onSendMessage, disabled, isLoading, onStop }) => {
   const [message, setMessage] = useState("")
   const [attachments, setAttachments] = useState([])

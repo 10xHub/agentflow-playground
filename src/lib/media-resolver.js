@@ -1,6 +1,31 @@
-/* eslint-disable unicorn/filename-case */
 import { getAgentFlowClient } from "@/lib/agentflow-client"
 import { getCurrentSettings } from "@/lib/settings-utils"
+
+const isUrlAccessible = async (url) => {
+  try {
+    const response = await fetch(url, { method: "HEAD" })
+    return response.ok
+  } catch {
+    return false
+  }
+}
+
+const extractUrlFromResponse = (response) => {
+  if (response && response.url) return response.url
+  if (response && response.data && response.data.url) return response.data.url
+  return null
+}
+
+const resolveViaClient = async (fileId) => {
+  try {
+    const client = getAgentFlowClient()
+    if (typeof client.getFileAccessUrl !== "function") return null
+    const response = await client.getFileAccessUrl(fileId)
+    return extractUrlFromResponse(response)
+  } catch {
+    return null
+  }
+}
 
 /**
  * Resolve a file_id to a displayable URL.
@@ -11,34 +36,14 @@ export const resolveFileUrl = async (fileId) => {
   if (!fileId) return null
 
   const settings = getCurrentSettings()
-  const backendUrl = settings.backendUrl?.trim().replace(/\/$/, "")
+  const backendUrl = (settings.backendUrl || "").trim().replace(/\/$/, "")
   if (!backendUrl) return null
 
-  // Try direct binary download first
   const directUrl = `${backendUrl}/v1/files/${fileId}`
 
-  // Verify the file exists by doing a HEAD request
-  try {
-    const response = await fetch(directUrl, { method: "HEAD" })
-    if (response.ok) {
-      return directUrl
-    }
-  } catch {
-    // Fall through to client method
-  }
+  if (await isUrlAccessible(directUrl)) return directUrl
 
-  // Fallback: use client to get access URL
-  try {
-    const client = getAgentFlowClient()
-    if (typeof client.getFileAccessUrl === "function") {
-      const urlResponse = await client.getFileAccessUrl(fileId)
-      return urlResponse?.url || urlResponse?.data?.url || directUrl
-    }
-  } catch {
-    // Return direct URL as last resort
-  }
-
-  return directUrl
+  return (await resolveViaClient(fileId)) || directUrl
 }
 
 /**

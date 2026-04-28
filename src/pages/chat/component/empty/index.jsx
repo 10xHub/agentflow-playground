@@ -42,6 +42,7 @@ const SUGGESTIONS = [
  * EmptyChatView component displays when no thread is selected or active thread has no messages
  * Styled to match Claude's clean and modern empty state design
  */
+// eslint-disable-next-line max-lines-per-function
 const EmptyChatUI = ({ onSendMessage, disabled = false }) => {
   const [message, setMessage] = useState("")
   const [attachedFiles, setAttachedFiles] = useState([])

@@ -45,6 +45,7 @@ export default [
         document: "readonly",
         navigator: "readonly",
         Blob: "readonly",
+        FormData: "readonly",
         setInterval: "readonly",
         setTimeout: "readonly",
         URLSearchParams: "readonly",

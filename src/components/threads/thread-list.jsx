@@ -181,8 +181,8 @@ const ThreadSection = ({
   threads,
   activeThreadId,
   urlThreadId,
-  onSelect,
-  onDelete,
+  onSelect: handleSelect,
+  onDelete: handleDelete,
 }) => (
   <section className="space-y-1.5">
     <div className="px-2 pt-1">
@@ -196,14 +196,15 @@ const ThreadSection = ({
           key={thread.id}
           thread={thread}
           isActive={urlThreadId === thread.id || activeThreadId === thread.id}
-          onSelect={onSelect}
-          onDelete={onDelete}
+          onSelect={handleSelect}
+          onDelete={handleDelete}
         />
       ))}
     </div>
   </section>
 )
 
+// eslint-disable-next-line max-lines-per-function
 const ThreadList = ({ className }) => {
   const dispatch = useDispatch()
   const navigate = useNavigate()

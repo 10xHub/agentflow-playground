@@ -249,7 +249,7 @@ const buildLayout = (nodes, edges) => {
     Math.max(maxColumnSize - 1, 0) * NODE_GAP_Y +
     CANVAS_PADDING * 2
 
-  Array.from(columns.entries())
+  ;[...columns.entries()]
     .sort((first, second) => first[0] - second[0])
     .forEach(([level, columnNodes]) => {
       const totalColumnHeight =

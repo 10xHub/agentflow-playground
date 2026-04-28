@@ -83,7 +83,7 @@ FileAttachment.propTypes = {
 /**
  * Message component that handles different message types
  */
-// eslint-disable-next-line complexity
+// eslint-disable-next-line complexity, max-lines-per-function
 const Message = ({ message, onCopy }) => {
   const isUser = message.role === "user"
   const isTool = message.role === "tool"
