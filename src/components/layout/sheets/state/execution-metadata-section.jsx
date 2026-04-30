@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label"
  * ExecutionMetadataSection component displays execution metadata in a collapsible card
  * @returns {object} Collapsible card component with execution metadata
  */
-/* eslint-disable complexity, max-lines-per-function */
+/* eslint-disable complexity */
 const ExecutionMetadataSection = ({
   isOpen,
   onOpenChange: handleOpenChange,

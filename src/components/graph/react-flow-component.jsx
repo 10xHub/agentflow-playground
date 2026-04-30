@@ -1,7 +1,5 @@
-/* eslint-disable react/jsx-wrap-multilines */
-/* eslint-disable max-lines-per-function */
-import { useMemo, useState } from "react"
 import PropTypes from "prop-types"
+import { useMemo, useState } from "react"
 import { Canvas, Edge, Node } from "reaflow"
 
 import GraphInfoPanel from "@/components/graph/graph-info-panel"
@@ -237,9 +235,9 @@ const ReFlowComponent = ({ graphData, graphInfo }) => {
               setSelectedNodeId(null)
             }
           }}
-          node={(nodeProps) => (
+          node={(nodeProperties) => (
             <Node
-              {...nodeProps}
+              {...nodeProperties}
               rx={12}
               ry={12}
               style={{ fill: "#1e293b", stroke: "#334155", strokeWidth: 1 }}
@@ -329,7 +327,7 @@ const ReFlowComponent = ({ graphData, graphInfo }) => {
               )}
             </Node>
           )}
-          edge={(edgeProps) => <Edge {...edgeProps} />}
+          edge={(edgeProperties) => <Edge {...edgeProperties} />}
         />
       </div>
 

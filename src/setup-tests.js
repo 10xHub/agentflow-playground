@@ -21,7 +21,7 @@ vi.mock("reaflow", () => {
           )
         }
 
-        const nodeProps = {
+        const nodeProperties = {
           id: n.id,
           node: n,
           properties: n,
@@ -32,8 +32,8 @@ vi.mock("reaflow", () => {
         }
 
         return typeof node === "function"
-          ? React.cloneElement(node(nodeProps), { key: n.id })
-          : React.cloneElement(node, { ...nodeProps, key: n.id })
+          ? React.cloneElement(node(nodeProperties), { key: n.id })
+          : React.cloneElement(node, { ...nodeProperties, key: n.id })
       })
     )
 

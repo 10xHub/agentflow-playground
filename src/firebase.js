@@ -1,8 +1,8 @@
 // Import the functions you need from the SDKs you need
-/* eslint-disable import/no-unresolved */
+
 import { getAnalytics } from "firebase/analytics"
 import { initializeApp } from "firebase/app"
-/* eslint-enable import/no-unresolved */
+
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 

@@ -2,6 +2,7 @@ import PropTypes from "prop-types"
 import { useSelector } from "react-redux"
 
 import ReFlowComponent from "@/components/graph/react-flow-component"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Sheet,
   SheetContent,
@@ -9,7 +10,6 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import ct from "@constants"
 
 /**

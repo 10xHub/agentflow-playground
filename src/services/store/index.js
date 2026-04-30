@@ -33,7 +33,6 @@ const stripNonSerializableFromChat = createTransform(
 export const config = {
   key: "root",
   storage,
-
   debug: import.meta.env.DEV,
   transforms: [stripNonSerializableFromChat],
 }

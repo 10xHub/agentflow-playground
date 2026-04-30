@@ -6,7 +6,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 export default [
   {
-    ignores: ["**/*.{test,spec}.{js,jsx,ts,tsx}"],
+    ignores: ["**/*.{test,spec}.{js,jsx,ts,tsx}", "src/setup-tests.js"],
   },
   ...config,
   {
