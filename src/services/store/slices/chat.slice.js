@@ -268,7 +268,12 @@ const normalizeThreadInitialState = (thread = {}) => {
 const resolveThreadTitle = (thread = {}, fallbackTitle = "") =>
   thread.thread_name || thread.thread_title || fallbackTitle || ""
 
-const hydrateThreadSettingsFromDetails = (dispatch, threadId, thread, settings) => {
+const hydrateThreadSettingsFromDetails = (
+  dispatch,
+  threadId,
+  thread,
+  settings
+) => {
   const resolvedThreadId = String(thread.thread_id || thread.id || threadId)
   const resolvedTitle = resolveThreadTitle(thread, settings.thread_title)
   const resolvedConfig = normalizeThreadConfig(thread)
