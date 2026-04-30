@@ -14,7 +14,10 @@ import {
   testGraphEndpoint,
 } from "@/services/store/slices/settings.slice"
 import { fetchStateScheme } from "@/services/store/slices/state.slice"
-import { setThreadId as setThreadSettingsId } from "@/services/store/slices/thread-settings.slice"
+import {
+  resetThreadSettings,
+  setThreadId as setThreadSettingsId,
+} from "@/services/store/slices/thread-settings.slice"
 import ct from "@constants"
 
 import EmptyChatUI from "../chat/component/empty"
@@ -98,8 +101,10 @@ const DashboardUI = () => {
 
   const handleNewChat = useCallback(() => {
     const id = Date.now().toString()
+    dispatch(resetThreadSettings())
     dispatch(createThread({ id, title: "New Chat" }))
     dispatch(setActiveThread(id))
+    dispatch(setThreadSettingsId(id))
   }, [dispatch])
 
   const handleSendMessage = useCallback(
@@ -112,8 +117,10 @@ const DashboardUI = () => {
           : files.length > 0
             ? `Chat with ${files.length} file(s)`
             : "New Chat"
+        dispatch(resetThreadSettings())
         dispatch(createThread({ id: newId, title }))
         dispatch(setActiveThread(newId))
+        dispatch(setThreadSettingsId(newId))
         await dispatch(sendMessageThunk(newId, message, files))
       } else {
         await dispatch(sendMessageThunk(activeThread.id, message, files))

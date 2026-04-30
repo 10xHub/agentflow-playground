@@ -16,6 +16,15 @@ vi.mock("@/services/api/graph.api", () => ({
   streamGraph: vi.fn(),
 }))
 
+vi.mock("@/services/api/thread.api", () => ({
+  getThread: vi.fn(),
+  listThreads: vi.fn(),
+}))
+
+vi.mock("@/services/api/message.api", () => ({
+  listMessages: vi.fn(),
+}))
+
 vi.mock("@10xscale/agentflow-client", () => {
   class MockMessage {
     constructor(role, content, message_id = null) {
@@ -35,12 +44,15 @@ vi.mock("@10xscale/agentflow-client", () => {
 
 import { getAgentFlowClient } from "@/lib/agentflow-client"
 import { invokeGraph, streamGraph } from "@/services/api/graph.api"
+import { listMessages } from "@/services/api/message.api"
+import { getThread } from "@/services/api/thread.api"
 import { Message } from "@10xscale/agentflow-client"
 
 import chatReducer, {
   addMessage,
   createThread,
   sendMessage,
+  selectThread,
   streamAssistantAnswer,
 } from "./chat.slice"
 import stateReducer from "./state.slice"
@@ -77,6 +89,8 @@ describe("chat slice", () => {
   beforeEach(() => {
     vi.clearAllMocks()
     invokeGraph.mockResolvedValue({ messages: [], meta: {}, context: [] })
+    getThread.mockRejectedValue(new Error("Thread not found"))
+    listMessages.mockResolvedValue({ data: { messages: [] } })
     getAgentFlowClientMock.mockReturnValue({
       uploadFile: uploadFileMock,
     })
@@ -117,10 +131,87 @@ describe("chat slice", () => {
     expect(Message.text_message).toHaveBeenCalledWith(HELLO_WORLD, "user")
     expect(invokeGraph).toHaveBeenCalledWith(
       expect.objectContaining({
-        config: expect.objectContaining({ thread_id: THREAD_ID }),
+        config: expect.not.objectContaining({ thread_id: expect.anything() }),
         messages: [{ content: HELLO_WORLD, role: "user" }],
       })
     )
+  })
+
+  it("uses backend thread details for config and initial state on existing threads", async () => {
+    const store = createTestStore()
+
+    getThread.mockResolvedValue({
+      data: {
+        thread_data: {
+          thread: {
+            thread_id: THREAD_ID,
+            thread_name: "Saved Weather Thread",
+            config: { assistant_id: "agent-42" },
+            initial_state: { city: "Khulna" },
+          },
+        },
+      },
+    })
+
+    await store.dispatch(sendMessage(THREAD_ID, HELLO_WORLD))
+
+    expect(invokeGraph).toHaveBeenCalledWith(
+      expect.objectContaining({
+        config: expect.objectContaining({
+          assistant_id: "agent-42",
+          thread_id: THREAD_ID,
+          thread_name: "Saved Weather Thread",
+        }),
+        initial_state: { city: "Khulna" },
+      })
+    )
+  })
+
+  it("omits thread_id on the first invoke when thread details return null thread", async () => {
+    const store = createTestStore()
+
+    getThread.mockResolvedValue({
+      data: {
+        thread_data: {
+          thread: null,
+        },
+      },
+    })
+
+    await store.dispatch(sendMessage(THREAD_ID, HELLO_WORLD))
+
+    expect(invokeGraph).toHaveBeenCalledWith(
+      expect.objectContaining({
+        config: expect.not.objectContaining({ thread_id: expect.anything() }),
+        initial_state: {},
+      })
+    )
+  })
+
+  it("hydrates thread settings from thread details when selecting a thread", async () => {
+    const store = createTestStore()
+
+    getThread.mockResolvedValue({
+      data: {
+        thread_data: {
+          thread: {
+            thread_id: THREAD_ID,
+            thread_name: "Saved Thread",
+            config: { assistant_id: "agent-77" },
+            initial_state: { city: "Dhaka" },
+          },
+        },
+      },
+    })
+
+    await store.dispatch(selectThread(THREAD_ID))
+
+    const nextState = store.getState().threadSettingsStore
+
+    expect(nextState.thread_id).toBe(THREAD_ID)
+    expect(nextState.thread_title).toBe("Saved Thread")
+    expect(nextState.config).toEqual({ assistant_id: "agent-77" })
+    expect(nextState.init_state).toEqual({ city: "Dhaka" })
   })
 
   it("keeps streamed reasoning, tool calls, tool results, and assistant text separate", async () => {
@@ -364,6 +455,8 @@ describe("chat slice file uploads", () => {
   beforeEach(() => {
     vi.clearAllMocks()
     invokeGraph.mockResolvedValue({ messages: [], meta: {}, context: [] })
+    getThread.mockRejectedValue(new Error("Thread not found"))
+    listMessages.mockResolvedValue({ data: { messages: [] } })
     getAgentFlowClientMock.mockReturnValue({
       uploadFile: uploadFileMock,
     })

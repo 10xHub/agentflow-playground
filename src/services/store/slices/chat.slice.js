@@ -9,7 +9,10 @@ import {
 } from "@/lib/messageContent"
 import { getCurrentSettings } from "@/lib/settings-utils"
 import { invokeGraph, streamGraph } from "@/services/api/graph.api"
-import { listThreads as apiListThreads } from "@/services/api/thread.api"
+import {
+  getThread as apiGetThread,
+  listThreads as apiListThreads,
+} from "@/services/api/thread.api"
 import { listMessages as apiListMessages } from "@/services/api/message.api"
 
 import {
@@ -19,6 +22,8 @@ import {
 } from "./events.slice"
 import { updateFullState, fetchThreadState } from "./state.slice"
 import {
+  setConfig,
+  setInitState,
   setContextMetadata,
   setThreadId as setThreadSettingsId,
   setThreadTitle as setThreadSettingsTitle,
@@ -218,6 +223,119 @@ const syncThreadMetadata = (dispatch, threadId, metadata = {}) => {
   }
 
   return threadId
+}
+
+const normalizeThreadDetails = (response) => {
+  if (response?.data?.thread_data) {
+    const thread = response.data.thread_data.thread
+    return thread && typeof thread === "object" ? thread : null
+  }
+
+  if (response?.data?.thread) {
+    const thread = response.data.thread
+    return thread && typeof thread === "object" ? thread : null
+  }
+
+  const thread = response?.data || null
+
+  if (!thread || typeof thread !== "object") {
+    return null
+  }
+
+  return thread
+}
+
+const normalizeThreadConfig = (thread = {}) => {
+  const config =
+    thread.config || thread.thread_config || thread.checkpoint_config || {}
+
+  return config && typeof config === "object" ? { ...config } : {}
+}
+
+const normalizeThreadInitialState = (thread = {}) => {
+  const initialState =
+    thread.initial_state ||
+    thread.init_state ||
+    thread.thread_state ||
+    thread.state ||
+    {}
+
+  return initialState && typeof initialState === "object"
+    ? { ...initialState }
+    : {}
+}
+
+const resolveThreadTitle = (thread = {}, fallbackTitle = "") =>
+  thread.thread_name || thread.thread_title || fallbackTitle || ""
+
+const hydrateThreadSettingsFromDetails = (dispatch, threadId, thread, settings) => {
+  const resolvedThreadId = String(thread.thread_id || thread.id || threadId)
+  const resolvedTitle = resolveThreadTitle(thread, settings.thread_title)
+  const resolvedConfig = normalizeThreadConfig(thread)
+  const resolvedInitialState = normalizeThreadInitialState(thread)
+
+  dispatch(setThreadSettingsId(resolvedThreadId))
+  dispatch(setConfig(resolvedConfig))
+  dispatch(setInitState(resolvedInitialState))
+
+  if (resolvedTitle) {
+    dispatch(setThreadSettingsTitle(resolvedTitle))
+  }
+
+  return {
+    threadId: resolvedThreadId,
+    threadTitle: resolvedTitle,
+    config: resolvedConfig,
+    initialState: resolvedInitialState,
+  }
+}
+
+const resolveInvocationSettings = async (dispatch, threadId, settings) => {
+  const fallbackConfig =
+    settings.config && typeof settings.config === "object"
+      ? { ...settings.config }
+      : {}
+  const fallbackInitialState =
+    settings.init_state && typeof settings.init_state === "object"
+      ? { ...settings.init_state }
+      : {}
+
+  try {
+    const response = await apiGetThread(threadId)
+    const thread = normalizeThreadDetails(response)
+
+    if (!thread) {
+      throw new Error("Thread details not found")
+    }
+
+    const resolved = hydrateThreadSettingsFromDetails(
+      dispatch,
+      threadId,
+      thread,
+      settings
+    )
+    const config = { ...resolved.config, thread_id: resolved.threadId }
+
+    if (resolved.threadTitle) {
+      config.thread_name = resolved.threadTitle
+    }
+
+    return {
+      config,
+      initialState: resolved.initialState,
+    }
+  } catch {
+    delete fallbackConfig.thread_id
+
+    if (settings.thread_title) {
+      fallbackConfig.thread_name = settings.thread_title
+    }
+
+    return {
+      config: fallbackConfig,
+      initialState: fallbackInitialState,
+    }
+  }
 }
 
 const createMessageDraft = ({
@@ -917,6 +1035,11 @@ export const sendMessage =
     }
 
     const settings = getState().threadSettingsStore
+    const { config, initialState } = await resolveInvocationSettings(
+      dispatch,
+      threadId,
+      settings
+    )
 
     const userMessagePayload = {
       id: `${threadId}:user:${Date.now()}`,
@@ -943,20 +1066,13 @@ export const sendMessage =
       })
     )
 
-    const config = { ...settings.config }
-    config.thread_id = settings.thread_id || threadId
-
-    if (settings.thread_title) {
-      config.thread_name = settings.thread_title
-    }
-
     const clientMessage = hasFiles
       ? await buildMultimodalMessage(normalizedContent, files)
       : Message.text_message(normalizedContent, "user")
 
     const body = {
       messages: [clientMessage],
-      initial_state: settings.init_state || {},
+      initial_state: initialState,
       config,
       recursion_limit: settings.recursion_limit || 25,
       response_granularity: settings.response_granularity || "low",
@@ -1168,6 +1284,19 @@ export const fetchApiThreads = () => async (dispatch) => {
 export const selectThread = (threadId) => async (dispatch) => {
   dispatch(setActiveThread(threadId))
   dispatch(setThreadSettingsId(threadId))
+
+  try {
+    const response = await apiGetThread(threadId)
+    const thread = normalizeThreadDetails(response)
+
+    if (thread) {
+      hydrateThreadSettingsFromDetails(dispatch, threadId, thread, {
+        thread_title: "",
+      })
+    }
+  } catch (error) {
+    console.error("Failed to fetch thread details:", error)
+  }
 
   try {
     const response = await apiListMessages(threadId)
