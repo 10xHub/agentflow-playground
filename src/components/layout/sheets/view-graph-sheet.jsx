@@ -50,7 +50,7 @@ const ViewGraphSheet = ({ isOpen, onClose }) => {
     <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <SheetContent
         side="bottom"
-        className="flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden"
+        className="flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden px-4 pb-4 pt-5 sm:p-6"
       >
         <SheetHeader className="shrink-0">
           <SheetTitle>Network Graph</SheetTitle>
@@ -59,7 +59,7 @@ const ViewGraphSheet = ({ isOpen, onClose }) => {
           </SheetDescription>
         </SheetHeader>
 
-        <ScrollArea className="mt-6 min-h-0 flex-1 pr-4">
+        <ScrollArea className="mt-4 min-h-0 flex-1 pr-0 sm:mt-6 sm:pr-4">
           <div className="min-h-full pb-6">
             <ReFlowComponent
               graphData={displayData}

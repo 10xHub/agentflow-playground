@@ -10,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { useIsMobile } from "@/hooks/use-is-mobile"
 
 const COLOR_PALETTE = [
   "#3b82f6",
@@ -48,7 +49,7 @@ const getNodeTypeLabel = (node = {}) => {
   return "Graph node"
 }
 
-const transformGraphData = (graphData) => {
+const transformGraphData = (graphData, isCompact = false) => {
   if (!graphData?.nodes?.length) return { nodes: [], edges: [] }
 
   const nameToIdMap = new Map()
@@ -57,8 +58,8 @@ const transformGraphData = (graphData) => {
   const nodes = graphData.nodes.map((node, index) => ({
     id: node.id,
     text: getNodeDisplayName(node),
-    width: 200,
-    height: 76,
+    width: isCompact ? 160 : 200,
+    height: isCompact ? 68 : 76,
     data: {
       ...node,
       _color: getNodeColor(node, index),
@@ -184,7 +185,8 @@ NodeInspector.defaultProps = {
 
 const ReFlowComponent = ({ graphData, graphInfo }) => {
   const [selectedNodeId, setSelectedNodeId] = useState(null)
-  const { nodes, edges } = transformGraphData(graphData)
+  const isMobile = useIsMobile()
+  const { nodes, edges } = transformGraphData(graphData, isMobile)
 
   const selectedNode = useMemo(
     () => nodes.find((node) => node.id === selectedNodeId) || null,
@@ -202,7 +204,7 @@ const ReFlowComponent = ({ graphData, graphInfo }) => {
 
   if (nodes.length === 0) {
     return (
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
         <div className="flex min-h-64 items-center justify-center rounded-xl border border-dashed bg-slate-50 px-6 text-center text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-300">
           No graph data available yet.
         </div>
@@ -215,125 +217,127 @@ const ReFlowComponent = ({ graphData, graphInfo }) => {
   }
 
   return (
-    <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
+    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
       <div
         aria-label="Network graph"
-        className="h-[calc(100dvh-16rem)] min-h-[28rem] max-h-[48rem]"
+        className="rounded-xl border border-slate-200/80 bg-slate-950/30 p-2 shadow-sm dark:border-slate-800"
       >
-        <Canvas
-          className="size-full overflow-hidden"
-          nodes={nodes}
-          edges={edges}
-          direction="DOWN"
-          fit
-          pannable={false}
-          readonly
-          zoomable={false}
-          selections={selectedNodeId ? [selectedNodeId] : []}
-          onCanvasClick={(event) => {
-            if (event.target === event.currentTarget) {
-              setSelectedNodeId(null)
-            }
-          }}
-          node={(nodeProperties) => (
-            <Node
-              {...nodeProperties}
-              rx={12}
-              ry={12}
-              style={{ fill: "#1e293b", stroke: "#334155", strokeWidth: 1 }}
-              label={null}
-              selectable
-              removable={false}
-              draggable={false}
-              linkable={false}
-              onClick={handleNodeSelect}
-            >
-              {({ width, height, node: n }) => (
-                <foreignObject width={width} height={height} x={0} y={0}>
-                  <button
-                    type="button"
-                    aria-label={`Open details for ${n.text}`}
-                    onClick={(event) => {
-                      event.stopPropagation()
-                      setSelectedNodeId(n.id)
-                    }}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 12,
-                      padding: "0 16px",
-                      width: "100%",
-                      height: "100%",
-                      boxSizing: "border-box",
-                      background: "transparent",
-                      border: 0,
-                      cursor: "pointer",
-                      textAlign: "left",
-                    }}
-                  >
-                    <span
+        <div className="h-[clamp(18rem,52dvh,26rem)] sm:h-[clamp(22rem,58dvh,32rem)] lg:h-[calc(100dvh-18rem)] lg:min-h-[28rem] lg:max-h-[48rem]">
+          <Canvas
+            className="size-full overflow-hidden"
+            nodes={nodes}
+            edges={edges}
+            direction="DOWN"
+            fit
+            panType="drag"
+            zoomable
+            readonly
+            selections={selectedNodeId ? [selectedNodeId] : []}
+            onCanvasClick={(event) => {
+              if (event.target === event.currentTarget) {
+                setSelectedNodeId(null)
+              }
+            }}
+            node={(nodeProperties) => (
+              <Node
+                {...nodeProperties}
+                rx={12}
+                ry={12}
+                style={{ fill: "#1e293b", stroke: "#334155", strokeWidth: 1 }}
+                label={null}
+                selectable
+                removable={false}
+                draggable={false}
+                linkable={false}
+                onClick={handleNodeSelect}
+              >
+                {({ width, height, node: n }) => (
+                  <foreignObject width={width} height={height} x={0} y={0}>
+                    <button
+                      type="button"
+                      aria-label={`Open details for ${n.text}`}
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        setSelectedNodeId(n.id)
+                      }}
                       style={{
                         display: "flex",
                         alignItems: "center",
-                        justifyContent: "center",
-                        width: 40,
-                        height: 40,
-                        borderRadius: 10,
-                        backgroundColor: n.data?._color || "#6b7280",
-                        color: "#fff",
-                        fontWeight: 700,
-                        fontSize: 14,
-                        flexShrink: 0,
-                        // eslint-disable-next-line sonarjs/no-duplicate-string
-                        fontFamily: "system-ui, sans-serif",
+                        gap: 12,
+                        padding: isMobile ? "0 12px" : "0 16px",
+                        width: "100%",
+                        height: "100%",
+                        boxSizing: "border-box",
+                        background: "transparent",
+                        border: 0,
+                        cursor: "pointer",
+                        textAlign: "left",
                       }}
                     >
-                      {(n.text || "N").charAt(0).toUpperCase()}
-                    </span>
-                    <span style={{ overflow: "hidden", flex: 1 }}>
                       <span
                         style={{
-                          display: "block",
-                          fontWeight: 600,
-                          fontSize: 14,
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                          color: "#f1f5f9",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          width: isMobile ? 34 : 40,
+                          height: isMobile ? 34 : 40,
+                          borderRadius: 10,
+                          backgroundColor: n.data?._color || "#6b7280",
+                          color: "#fff",
+                          fontWeight: 700,
+                          fontSize: isMobile ? 12 : 14,
+                          flexShrink: 0,
+                          // eslint-disable-next-line sonarjs/no-duplicate-string
                           fontFamily: "system-ui, sans-serif",
                         }}
                       >
-                        {n.text}
+                        {(n.text || "N").charAt(0).toUpperCase()}
                       </span>
-                      <span
-                        style={{
-                          display: "block",
-                          fontSize: 10,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.18em",
-                          color: "#94a3b8",
-                          marginTop: 2,
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                          fontFamily: "system-ui, sans-serif",
-                        }}
-                      >
-                        {n.data?._typeLabel || "Graph Node"}
+                      <span style={{ overflow: "hidden", flex: 1 }}>
+                        <span
+                          style={{
+                            display: "block",
+                            fontWeight: 600,
+                            fontSize: isMobile ? 13 : 14,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                            color: "#f1f5f9",
+                            fontFamily: "system-ui, sans-serif",
+                          }}
+                        >
+                          {n.text}
+                        </span>
+                        <span
+                          style={{
+                            display: "block",
+                            fontSize: 10,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.18em",
+                            color: "#94a3b8",
+                            marginTop: 2,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                            fontFamily: "system-ui, sans-serif",
+                          }}
+                        >
+                          {n.data?._typeLabel || "Graph Node"}
+                        </span>
                       </span>
-                    </span>
-                  </button>
-                </foreignObject>
-              )}
-            </Node>
-          )}
-          edge={(edgeProperties) => <Edge {...edgeProperties} />}
-        />
+                    </button>
+                  </foreignObject>
+                )}
+              </Node>
+            )}
+            edge={(edgeProperties) => <Edge {...edgeProperties} />}
+          />
+        </div>
       </div>
 
       <aside
         aria-label="Graph sidebar"
-        className="space-y-4 xl:sticky xl:top-0"
+        className="space-y-4 lg:sticky lg:top-0"
       >
         <NodeInspector
           selectedNode={selectedNode}
