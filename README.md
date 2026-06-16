@@ -1,6 +1,24 @@
 # Agentflow Playground
 
-Agentflow Playground is a React + Vite frontend for interacting with an AgentFlow backend through the `@10xscale/agentflow-client`.
+> The visual playground for **Agentflow** — a production-grade framework for building multi-agent AI systems.
+
+Agentflow gives you everything you need to ship real multi-agent applications: graph-based orchestration, LLM-agnostic model support (OpenAI, Google GenAI, Anthropic), a 3-layer memory system (Redis cache + Postgres + vector store), live agents, parallel tool execution, and native MCP support — backed by a full ecosystem of backend, API, SDK, and UI.
+
+This playground is the React + Vite frontend for testing and interacting with an Agentflow backend through `@10xscale/agentflow-client`. Spin up a server with `agentflow play` and explore your agents visually.
+
+📖 **Docs:** https://10xhub.github.io/Agentflow/
+
+## 🧩 The Agentflow Ecosystem
+
+| Package | What it does | Install |
+|---|---|---|
+| **Core framework** (`10xscale-agentflow`) | Graph-based agent orchestration, 3-layer memory, parallel tools, MCP | `pip install 10xscale-agentflow` |
+| **API + CLI** (`10xscale-agentflow-cli`) | FastAPI server auto-generated from your graph, auth, RBAC, rate limiting | `pip install 10xscale-agentflow-cli` |
+| **Client SDK** (`@10xscale/agentflow-client`) | Typed TypeScript/React client with streaming hooks | `npm install @10xscale/agentflow-client` |
+| **Playground** (this repo) | Visual React UI to test agents against a local server | `agentflow play` |
+
+- **GitHub:** https://github.com/10xHub/agentflow
+- **Docs:** https://10xhub.github.io/Agentflow/
 
 ## 🛠️ Features
 
