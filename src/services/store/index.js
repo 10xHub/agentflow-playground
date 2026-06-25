@@ -30,11 +30,20 @@ const stripNonSerializableFromChat = createTransform(
   (outboundState) => outboundState
 )
 
+// Memory is live server state - never persist it so reloads always re-fetch
+// fresh memories instead of showing a stale cached list.
+const dropMemoryStore = createTransform(
+  (inboundState, key) =>
+    key === ct.store.MEMORY_STORE ? undefined : inboundState,
+  (outboundState) => outboundState,
+  { whitelist: [ct.store.MEMORY_STORE] }
+)
+
 export const config = {
   key: "root",
   storage,
   debug: import.meta.env.DEV,
-  transforms: [stripNonSerializableFromChat],
+  transforms: [stripNonSerializableFromChat, dropMemoryStore],
 }
 
 const resetEnhancer = (root) => (state, action) => {

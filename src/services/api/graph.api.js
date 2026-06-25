@@ -83,7 +83,20 @@ export async function* streamGraph(body, signal) {
   }
 }
 
+/**
+ * Fix a wedged thread by removing dangling/empty tool calls from its
+ * checkpoint so it can run again.
+ * @param {string} threadId - id of the thread to repair
+ * @returns {Promise<object>} { success, message, removed_count, state? }
+ */
+export const fixThread = async (threadId) => {
+  const client = getAgentFlowClient()
+  const response = await client.fixGraph(threadId)
+  return response.data
+}
+
 export default {
   invokeGraph,
   streamGraph,
+  fixThread,
 }

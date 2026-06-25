@@ -14,6 +14,7 @@ vi.mock("@/lib/agentflow-client", () => ({
 vi.mock("@/services/api/graph.api", () => ({
   invokeGraph: vi.fn(),
   streamGraph: vi.fn(),
+  fixThread: vi.fn(),
 }))
 
 vi.mock("@/services/api/thread.api", () => ({
@@ -43,7 +44,11 @@ vi.mock("@10xscale/agentflow-client", () => {
 })
 
 import { getAgentFlowClient } from "@/lib/agentflow-client"
-import { invokeGraph, streamGraph } from "@/services/api/graph.api"
+import {
+  invokeGraph,
+  streamGraph,
+  fixThread as fixThreadApiMock,
+} from "@/services/api/graph.api"
 import { listMessages } from "@/services/api/message.api"
 import { getThread } from "@/services/api/thread.api"
 import { Message } from "@10xscale/agentflow-client"
@@ -54,6 +59,7 @@ import chatReducer, {
   sendMessage,
   selectThread,
   streamAssistantAnswer,
+  fixThread,
 } from "./chat.slice"
 import stateReducer from "./state.slice"
 import threadSettingsReducer from "./thread-settings.slice"
@@ -432,6 +438,36 @@ describe("chat slice", () => {
     expect(nextState.threadSettingsStore.thread_title).toBe(NEXT_THREAD_TITLE)
     expect(nextState.stateStore.state.context_summary).toBe(WEATHER_SUMMARY)
     expect(nextState.stateStore.state.execution_meta.current_node).toBe("MAIN")
+  })
+
+  it("fixes a thread and reloads it from the backend", async () => {
+    const store = createTestStore()
+    fixThreadApiMock.mockResolvedValue({
+      success: true,
+      message: "ok",
+      removed_count: 2,
+    })
+    getThread.mockResolvedValue({ data: { thread_data: { thread: {} } } })
+    listMessages.mockResolvedValue({
+      data: { messages: [{ role: "user", content: "hi", message_id: "m1" }] },
+    })
+
+    const result = await store.dispatch(fixThread(THREAD_ID))
+
+    expect(fixThreadApiMock).toHaveBeenCalledWith(THREAD_ID)
+    expect(result.removed_count).toBe(2)
+    // selectThread reload pulls messages back in
+    expect(listMessages).toHaveBeenCalledWith(THREAD_ID)
+    expect(getThreadMessages(store)).toHaveLength(1)
+  })
+
+  it("propagates fix errors to the caller", async () => {
+    const store = createTestStore()
+    fixThreadApiMock.mockRejectedValue(new Error("fix boom"))
+
+    await expect(store.dispatch(fixThread(THREAD_ID))).rejects.toThrow(
+      "fix boom"
+    )
   })
 })
 

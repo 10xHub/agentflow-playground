@@ -15,6 +15,7 @@ const { clientMock, getAgentFlowClientMock } = vi.hoisted(() => ({
     deleteThread: vi.fn(),
     ping: vi.fn(),
     graph: vi.fn(),
+    fixGraph: vi.fn(),
   },
   getAgentFlowClientMock: vi.fn(),
 }))
@@ -40,6 +41,7 @@ import {
   putState,
 } from "@/services/api/state.api"
 import { deleteThread, getThread, listThreads } from "@/services/api/thread.api"
+import { fixThread } from "@/services/api/graph.api"
 
 describe("api wrappers", () => {
   beforeEach(() => {
@@ -142,6 +144,18 @@ describe("api wrappers", () => {
     })
 
     expect(clientMock.threads).toHaveBeenCalledWith("weather", 1, 10)
+  })
+
+  it("wraps fixThread onto the client fixGraph call", async () => {
+    clientMock.fixGraph.mockResolvedValue({
+      data: { success: true, removed_count: 3 },
+    })
+
+    await expect(fixThread("thread-1")).resolves.toEqual({
+      success: true,
+      removed_count: 3,
+    })
+    expect(clientMock.fixGraph).toHaveBeenCalledWith("thread-1")
   })
 
   it("wraps setup integration endpoints", async () => {

@@ -1,8 +1,8 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Settings, CheckCircle } from "lucide-react"
+import { Settings, CheckCircle, Plus, Trash2 } from "lucide-react"
 import PropTypes from "prop-types"
 import React, { useEffect, useState } from "react"
-import { useForm } from "react-hook-form"
+import { useForm, useFieldArray } from "react-hook-form"
 import { useSelector, useDispatch } from "react-redux"
 import { z } from "zod"
 
@@ -139,6 +139,14 @@ const settingsSchema = z
     headerName: z.string().optional(),
     headerValue: z.string().optional(),
     headerPrefix: z.string().optional(),
+    headers: z
+      .array(
+        z.object({
+          name: z.string().optional(),
+          value: z.string().optional(),
+        })
+      )
+      .optional(),
     credentials: z
       .enum(["", "omit", CREDENTIALS_SAME_ORIGIN, "include"])
       .optional(),
@@ -178,6 +186,12 @@ const buildFormValues = (settings = {}) => {
     authToken: getAuthTokenValue(settings, authMode),
     ...getBasicAuthValues(settings),
     ...getHeaderAuthValues(settings),
+    headers: Array.isArray(settings.headers)
+      ? settings.headers.map((header) => ({
+          name: header?.name || "",
+          value: header?.value || "",
+        }))
+      : [],
     credentials: settings.credentials || "",
   }
 }
@@ -207,6 +221,8 @@ const buildHeaderPayload = (values) => {
   }
 }
 
+const resolveHeaderValues = (headers) => (Array.isArray(headers) ? headers : [])
+
 const buildSettingsPayload = (values) => {
   const authMode = values.authMode || "none"
   const base = {
@@ -215,6 +231,7 @@ const buildSettingsPayload = (values) => {
     authMode,
     authToken: "",
     auth: null,
+    headers: resolveHeaderValues(values.headers),
     credentials: values.credentials || "",
   }
   if (authMode === "bearer") return { ...base, ...buildBearerPayload(values) }
@@ -450,6 +467,74 @@ SettingsAuthTabs.propTypes = {
   setValue: PropTypes.func.isRequired,
 }
 
+const CustomHeadersSection = ({ control, register }) => {
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: "headers",
+  })
+
+  return (
+    <div className="space-y-3">
+      <div className="space-y-1">
+        <Label>Custom Headers</Label>
+        <p className="text-sm text-slate-500 dark:text-slate-400">
+          Sent with every request in addition to the auth above. Use these for
+          custom auth schemes your backend reads (e.g. a tenant id or a
+          non-standard token header).
+        </p>
+      </div>
+      <div className="space-y-2">
+        {fields.length === 0 && (
+          <p className="text-sm text-slate-400 dark:text-slate-500">
+            No custom headers added.
+          </p>
+        )}
+        {fields.map((field, index) => (
+          <div key={field.id} className="flex items-start gap-2">
+            <div className="flex-1">
+              <Input
+                placeholder="Header name (e.g. X-Tenant-Id)"
+                aria-label={`Custom header name ${index + 1}`}
+                {...register(`headers.${index}.name`)}
+              />
+            </div>
+            <div className="flex-1">
+              <Input
+                placeholder="Header value"
+                aria-label={`Custom header value ${index + 1}`}
+                {...register(`headers.${index}.value`)}
+              />
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              aria-label={`Remove custom header ${index + 1}`}
+              onClick={() => remove(index)}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        ))}
+      </div>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={() => append({ name: "", value: "" })}
+      >
+        <Plus className="mr-2 h-4 w-4" />
+        Add Header
+      </Button>
+    </div>
+  )
+}
+
+CustomHeadersSection.propTypes = {
+  control: PropTypes.object.isRequired,
+  register: PropTypes.func.isRequired,
+}
+
 const SettingsCredentials = ({ credentialsMode, setValue }) => {
   const handleCredentialChange = (value) =>
     setValue("credentials", value, { shouldDirty: true, shouldValidate: true })
@@ -505,6 +590,7 @@ const SettingsSheet = ({ isOpen, onClose }) => {
     handleSubmit,
     watch,
     setValue,
+    control,
     formState: { errors },
     onSubmit,
     handleCancel,
@@ -560,6 +646,7 @@ const SettingsSheet = ({ isOpen, onClose }) => {
                 register={register}
                 setValue={setValue}
               />
+              <CustomHeadersSection control={control} register={register} />
               <SettingsCredentials
                 credentialsMode={credentialsMode}
                 setValue={setValue}

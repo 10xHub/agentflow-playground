@@ -5,9 +5,45 @@ import { getCurrentSettings } from "@/lib/settings-utils"
 let agentFlowClientInstance = null
 let agentFlowClientConfigKey = null
 
+const resolveAuthConfig = (auth, authToken) => {
+  if (auth?.type === "basic") {
+    return {
+      auth: { type: "basic", username: auth.username, password: auth.password },
+    }
+  }
+  if (auth?.type === "header") {
+    return {
+      auth: {
+        type: "header",
+        name: auth.name,
+        value: auth.value,
+        prefix: auth.prefix,
+      },
+    }
+  }
+  if (auth?.type === "bearer") {
+    return { auth: { type: "bearer", token: auth.token } }
+  }
+  if (authToken) {
+    return { authToken }
+  }
+  return {}
+}
+
+const headersToObject = (headers) => {
+  if (!Array.isArray(headers) || headers.length === 0) {
+    return null
+  }
+
+  return headers.reduce((accumulator, { name, value }) => {
+    accumulator[name] = value
+    return accumulator
+  }, {})
+}
+
 const buildClientConfig = () => {
   const settings = getCurrentSettings()
-  const { backendUrl, auth, authToken, credentials } = settings
+  const { backendUrl, auth, authToken, credentials, headers } = settings
 
   if (!backendUrl) {
     throw new Error("Backend URL is not set")
@@ -20,32 +56,16 @@ const buildClientConfig = () => {
     baseUrl: normalizedUrl,
     timeout: 600000, // 10 minutes for long-running agent calls
     debug: false,
-  }
-
-  if (auth?.type === "basic") {
-    config.auth = {
-      type: "basic",
-      username: auth.username,
-      password: auth.password,
-    }
-  } else if (auth?.type === "header") {
-    config.auth = {
-      type: "header",
-      name: auth.name,
-      value: auth.value,
-      prefix: auth.prefix,
-    }
-  } else if (auth?.type === "bearer") {
-    config.auth = {
-      type: "bearer",
-      token: auth.token,
-    }
-  } else if (authToken) {
-    config.authToken = authToken
+    ...resolveAuthConfig(auth, authToken),
   }
 
   if (credentials) {
     config.credentials = credentials
+  }
+
+  const headerObject = headersToObject(headers)
+  if (headerObject) {
+    config.headers = headerObject
   }
 
   return config

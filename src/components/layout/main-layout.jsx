@@ -30,7 +30,6 @@ import SettingsSheet from "./sheets/settings-sheet"
 import ViewStateSheet from "./sheets/state"
 import ThreadSettingsSheet from "./sheets/thread-settings-sheet"
 import ViewGraphSheet from "./sheets/view-graph-sheet"
-import ViewMemorySheet from "./sheets/view-memory-sheet"
 
 /**
  * MainLayout component renders the main application layout with sidebar, header, and content area.
@@ -65,6 +64,8 @@ const MainHeaderTools = ({
   isVerified,
   activeSheet,
   onSheetOpen,
+  isMemoryRoute,
+  onMemoryNav,
 }) => (
   <div className="flex items-center gap-2">
     {isChatPage && (
@@ -76,15 +77,13 @@ const MainHeaderTools = ({
         disabled={!isVerified}
       />
     )}
-    {isChatPage && (
-      <DevelopmentToolButton
-        icon={Database}
-        tooltip="View Memory"
-        handleActivate={() => onSheetOpen("memory")}
-        isActive={activeSheet === "memory"}
-        disabled={!isVerified}
-      />
-    )}
+    <DevelopmentToolButton
+      icon={Database}
+      tooltip="Memory"
+      handleActivate={onMemoryNav}
+      isActive={isMemoryRoute}
+      disabled={!isVerified}
+    />
     <DevelopmentToolButton
       icon={GitGraph}
       tooltip="View Graph"
@@ -130,6 +129,8 @@ MainHeaderTools.propTypes = {
   isVerified: PropTypes.bool.isRequired,
   activeSheet: PropTypes.string,
   onSheetOpen: PropTypes.func.isRequired,
+  isMemoryRoute: PropTypes.bool.isRequired,
+  onMemoryNav: PropTypes.func.isRequired,
 }
 
 MainHeaderTools.defaultProps = {
@@ -142,10 +143,6 @@ const AllSheets = ({ activeSheet, onSheetClose, threadId, threadData }) => {
     <>
       <ViewStateSheet
         isOpen={activeSheet === "state"}
-        onClose={handleSheetClose}
-      />
-      <ViewMemorySheet
-        isOpen={activeSheet === "memory"}
         onClose={handleSheetClose}
       />
       <ViewGraphSheet
@@ -195,6 +192,7 @@ const MainLayout = () => {
   const searchParameters = new URLSearchParams(location.search)
   const threadId = searchParameters.get("threadId") || chatStore.activeThreadId
   const isChatPage = location.pathname === "/" && threadId && isVerified
+  const isMemoryRoute = location.pathname === ct.route.MEMORY
   const threadData = threadId
     ? chatStore.threads.find((t) => t.id === threadId)
     : null
@@ -243,6 +241,8 @@ const MainLayout = () => {
               isVerified={isVerified}
               activeSheet={activeSheet}
               onSheetOpen={handleSheetOpen}
+              isMemoryRoute={isMemoryRoute}
+              onMemoryNav={() => navigate(ct.route.MEMORY)}
             />
           </header>
           <div className="flex-1 overflow-hidden">

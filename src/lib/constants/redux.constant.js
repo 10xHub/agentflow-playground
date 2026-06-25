@@ -5,6 +5,7 @@ const stores = {
   EVENTS_STORE: "eventsStore",
   STATE_STORE: "stateStore",
   THREAD_SETTINGS_STORE: "threadSettingsStore",
+  MEMORY_STORE: "memoryStore",
 }
 
 export default stores

@@ -14,6 +14,7 @@ import {
   Settings,
   AlertCircle,
   AlertTriangle,
+  Wrench,
 } from "lucide-react"
 import PropTypes from "prop-types"
 import { useState, useRef, useEffect, useCallback } from "react"
@@ -45,7 +46,9 @@ import {
 import {
   sendMessage as sendMessageThunk,
   stopStreaming,
+  fixThread as fixThreadThunk,
 } from "@/services/store/slices/chat.slice"
+import { useToast } from "@/components/ui/use-toast"
 import { buildMessageText, getMessageCopyText } from "@/lib/messageContent"
 import { resolveFileUrl } from "@/lib/media-resolver"
 
@@ -725,6 +728,8 @@ const MessageInput = ({
   disabled,
   isGenerating,
   onStopGeneration,
+  onFixThread,
+  isFixing,
 }) => {
   const [message, setMessage] = useState("")
   const [attachedFiles, setAttachedFiles] = useState([])
@@ -891,6 +896,26 @@ const MessageInput = ({
                       Voice input (coming soon)
                     </TooltipContent>
                   </Tooltip>
+
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={onFixThread}
+                        disabled={disabled || isGenerating || isFixing}
+                        className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted"
+                      >
+                        <Wrench
+                          className={`w-4 h-4 ${isFixing ? "animate-pulse" : ""}`}
+                        />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">
+                      Fix thread (remove dangling tool calls)
+                    </TooltipContent>
+                  </Tooltip>
                 </TooltipProvider>
               </div>
 
@@ -951,8 +976,10 @@ const MessageInput = ({
  */
 const MessageView = ({ thread, disabled = false }) => {
   const dispatch = useDispatch()
+  const { toast } = useToast()
   const generatingMap = useSelector((state) => state.chatStore.generating)
   const messagesEndRef = useRef(null)
+  const [isFixing, setIsFixing] = useState(false)
   const isGenerating = Boolean(generatingMap?.[thread.id])
   const isTyping = isGenerating
 
@@ -972,6 +999,29 @@ const MessageView = ({ thread, disabled = false }) => {
   const handleStopGeneration = useCallback(() => {
     dispatch(stopStreaming(thread.id))
   }, [dispatch, thread.id])
+
+  const handleFixThread = useCallback(async () => {
+    setIsFixing(true)
+    try {
+      const result = await dispatch(fixThreadThunk(thread.id))
+      const removed = result?.removed_count ?? 0
+      toast({
+        title: "Thread fixed",
+        description:
+          removed > 0
+            ? `Removed ${removed} dangling tool call${removed === 1 ? "" : "s"}.`
+            : "No dangling tool calls were found.",
+      })
+    } catch (error) {
+      toast({
+        title: "Fix failed",
+        description: error?.message || "Could not fix the thread.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsFixing(false)
+    }
+  }, [dispatch, thread.id, toast])
 
   return (
     <div className="flex flex-col h-full">
@@ -1015,6 +1065,8 @@ const MessageView = ({ thread, disabled = false }) => {
         disabled={isTyping || disabled}
         isGenerating={isGenerating}
         onStopGeneration={handleStopGeneration}
+        onFixThread={handleFixThread}
+        isFixing={isFixing}
       />
     </div>
   )

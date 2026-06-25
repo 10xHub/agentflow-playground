@@ -7,8 +7,12 @@ import {
   hasRenderableMessageContent,
   normalizeTimestamp,
 } from "@/lib/messageContent"
-import { getCurrentSettings } from "@/lib/settings-utils"
-import { invokeGraph, streamGraph } from "@/services/api/graph.api"
+import { getAgentFlowClient } from "@/lib/agentflow-client"
+import {
+  invokeGraph,
+  streamGraph,
+  fixThread as fixThreadApi,
+} from "@/services/api/graph.api"
 import {
   getThread as apiGetThread,
   listThreads as apiListThreads,
@@ -981,8 +985,7 @@ const buildContentBlockForFile = (mimeType, fileId) => {
 }
 
 const buildMultimodalMessage = async (content, files) => {
-  const settings = getCurrentSettings()
-  const backendUrl = settings.backendUrl?.trim().replace(/\/$/, "")
+  const client = getAgentFlowClient()
   const contentBlocks = []
 
   if (content) {
@@ -990,36 +993,11 @@ const buildMultimodalMessage = async (content, files) => {
   }
 
   for (const file of files) {
-    // Upload directly via HTTP since client.uploadFile() doesn't exist
-    const formData = new FormData()
-    formData.append("file", file)
-
-    const headers = {}
-    const { auth } = settings
-    if (auth?.type === "bearer") {
-      headers.Authorization = `Bearer ${auth.token}`
-    } else if (auth?.type === "header") {
-      headers[auth.name] = auth.prefix
-        ? `${auth.prefix} ${auth.value}`
-        : auth.value
-    } else if (settings.authToken) {
-      headers.Authorization = `Bearer ${settings.authToken}`
-    }
-
-    const response = await fetch(`${backendUrl}/v1/files/upload`, {
-      method: "POST",
-      headers,
-      body: formData,
-    })
-
-    if (!response.ok) {
-      const error = await response
-        .json()
-        .catch(() => ({ detail: "Upload failed" }))
-      throw new Error(error.detail || `Upload failed: ${response.status}`)
-    }
-
-    const result = await response.json()
+    // Route uploads through the client so the configured auth mode
+    // (bearer, basic, or custom header), any custom headers, and the
+    // credentials/cookie setting are applied consistently with every
+    // other request.
+    const result = await client.uploadFile(file)
     const uploadData = result.data || result
     const fileId = uploadData.file_id
     const mimeType = uploadData.mime_type || file.type
@@ -1327,4 +1305,16 @@ export const selectThread = (threadId) => async (dispatch) => {
   } catch (error) {
     console.error("Failed to fetch thread state:", error)
   }
+}
+
+/**
+ * Repair a wedged thread by removing dangling/empty tool calls from its
+ * checkpoint, then reload the thread so the cleaned-up messages and state
+ * show up. Returns the fix result ({ removed_count, ... }) and throws on
+ * failure so the caller can surface the error.
+ */
+export const fixThread = (threadId) => async (dispatch) => {
+  const result = await fixThreadApi(threadId)
+  await dispatch(selectThread(threadId))
+  return result
 }

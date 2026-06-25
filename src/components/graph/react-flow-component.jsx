@@ -23,6 +23,10 @@ const COLOR_PALETTE = [
   "#eab308",
 ]
 
+export const GRAPH_LAYOUT_OPTIONS = {
+  "org.eclipse.elk.insideSelfLoops.activate": "false",
+}
+
 const getNodeDisplayName = (node) => {
   const name = node.name || ""
   if (name.includes("__start__")) return "Start"
@@ -228,6 +232,7 @@ const ReFlowComponent = ({ graphData, graphInfo }) => {
             nodes={nodes}
             edges={edges}
             direction="DOWN"
+            layoutOptions={GRAPH_LAYOUT_OPTIONS}
             fit
             panType="drag"
             zoomable

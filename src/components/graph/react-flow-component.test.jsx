@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
 
-import ReFlowComponent from "./react-flow-component"
+import ReFlowComponent, { GRAPH_LAYOUT_OPTIONS } from "./react-flow-component"
 
 describe("ReFlowComponent", () => {
   it("renders graph nodes without relying on the old graph library", () => {
@@ -63,6 +63,12 @@ describe("ReFlowComponent", () => {
     expect(screen.getAllByText("MAIN").length).toBeGreaterThan(0)
     expect(screen.getAllByText("TOOL").length).toBeGreaterThan(0)
     expect(screen.getByLabelText("Open details for TOOL")).toBeInTheDocument()
+  })
+
+  it("disables ELK inside-self-loop routing for the graph canvas", () => {
+    expect(GRAPH_LAYOUT_OPTIONS).toMatchObject({
+      "org.eclipse.elk.insideSelfLoops.activate": "false",
+    })
   })
 
   it("shows node details in the right sidebar when a node is clicked", () => {

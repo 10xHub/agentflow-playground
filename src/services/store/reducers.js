@@ -4,6 +4,7 @@ import ct from "@constants/"
 
 import chat from "./slices/chat.slice"
 import events from "./slices/events.slice"
+import memory from "./slices/memory.slice"
 import settings from "./slices/settings.slice"
 import state from "./slices/state.slice"
 import theme from "./slices/theme.slice"
@@ -16,6 +17,7 @@ const rootReducer = combineReducers({
   [ct.store.SETTINGS_STORE]: settings,
   [ct.store.THREAD_SETTINGS_STORE]: threadSettings,
   [ct.store.STATE_STORE]: state,
+  [ct.store.MEMORY_STORE]: memory,
 })
 
 export default rootReducer

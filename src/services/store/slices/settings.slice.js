@@ -73,6 +73,7 @@ const settingsSlice = createSlice({
       state.authToken = normalizedSettings.authToken
       state.auth = normalizedSettings.auth
       state.credentials = normalizedSettings.credentials
+      state.headers = normalizedSettings.headers
       state.isBackendConfigured = false
     },
     clearSettings: (state) => {
@@ -82,6 +83,7 @@ const settingsSlice = createSlice({
       state.authToken = DEFAULT_SETTINGS.authToken
       state.auth = DEFAULT_SETTINGS.auth
       state.credentials = DEFAULT_SETTINGS.credentials
+      state.headers = []
       state.isBackendConfigured = false
       state.graphData = null
       state.verification = createVerificationState()
