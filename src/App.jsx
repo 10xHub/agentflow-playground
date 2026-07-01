@@ -1,32 +1,37 @@
-import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client"
-import { Suspense } from "react"
-import { Provider } from "react-redux"
-import { RouterProvider } from "react-router-dom"
-import { PersistGate } from "redux-persist/integration/react"
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom"
 
-import { ThemeProvider } from "@/lib/context/theme-provider"
-import { asyncStoragePersister, queryClient } from "@/lib/query-client"
-import { store, persistor } from "@store/"
+import AppShell from "@/components/shell/AppShell"
+import ChatPage from "@/pages/chat/ChatPage"
+import ConnectionPage from "@/pages/connect/ConnectionPage"
+import EvalsPage from "@/pages/evals/EvalsPage"
+import FilesPage from "@/pages/files/FilesPage"
+import GraphPage from "@/pages/graph/GraphPage"
+import LivePage from "@/pages/live/LivePage"
+import MemoryPage from "@/pages/memory/MemoryPage"
+import ObservabilityPage from "@/pages/observability/ObservabilityPage"
+import Placeholder from "@/pages/Placeholder"
+import ThreadsPage from "@/pages/threads/ThreadsPage"
+import ToolsPage from "@/pages/tools/ToolsPage"
 
-import router from "./route/index"
-
-const App = () => {
+export default function App() {
   return (
-    <Suspense fallback={null}>
-      <Provider store={store}>
-        <PersistGate loading={null} persistor={persistor}>
-          <PersistQueryClientProvider
-            client={queryClient}
-            persistOptions={{ persister: asyncStoragePersister }}
-          >
-            <ThemeProvider>
-              <RouterProvider router={router} />
-            </ThemeProvider>
-          </PersistQueryClientProvider>
-        </PersistGate>
-      </Provider>
-    </Suspense>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<ConnectionPage />} />
+        <Route element={<AppShell />}>
+          <Route path="/chat" element={<ChatPage />} />
+          <Route path="/live" element={<LivePage />} />
+          <Route path="/threads" element={<ThreadsPage />} />
+          <Route path="/observability" element={<ObservabilityPage />} />
+          <Route path="/evals" element={<EvalsPage />} />
+          <Route path="/memory" element={<MemoryPage />} />
+          <Route path="/graph" element={<GraphPage />} />
+          <Route path="/tools" element={<ToolsPage />} />
+          <Route path="/files" element={<FilesPage />} />
+          <Route path="/settings" element={<Placeholder name="Settings" />} />
+        </Route>
+        <Route path="*" element={<Navigate to="/chat" replace />} />
+      </Routes>
+    </BrowserRouter>
   )
 }
-
-export default App
