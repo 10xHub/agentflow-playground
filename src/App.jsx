@@ -1,5 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom"
 
+import { ConnectionProvider } from "@/lib/connection/ConnectionContext"
 import AppShell from "@/components/shell/AppShell"
 import ChatPage from "@/pages/chat/ChatPage"
 import ConnectionPage from "@/pages/connect/ConnectionPage"
@@ -16,7 +17,8 @@ import ToolsPage from "@/pages/tools/ToolsPage"
 export default function App() {
   return (
     <BrowserRouter>
-      <Routes>
+      <ConnectionProvider>
+        <Routes>
         <Route path="/" element={<ConnectionPage />} />
         <Route element={<AppShell />}>
           <Route path="/chat" element={<ChatPage />} />
@@ -30,8 +32,9 @@ export default function App() {
           <Route path="/files" element={<FilesPage />} />
           <Route path="/settings" element={<Placeholder name="Settings" />} />
         </Route>
-        <Route path="*" element={<Navigate to="/chat" replace />} />
-      </Routes>
+          <Route path="*" element={<Navigate to="/chat" replace />} />
+        </Routes>
+      </ConnectionProvider>
     </BrowserRouter>
   )
 }

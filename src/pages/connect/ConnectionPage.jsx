@@ -1,53 +1,103 @@
-import { Clock, Eye, EyeOff } from "lucide-react"
-import { useEffect, useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { AlertTriangle, Clock, Eye, EyeOff } from "lucide-react"
+import { useEffect, useRef, useState } from "react"
+import { useNavigate, useSearchParams } from "react-router-dom"
 
-import { AUTH_MODES, CAPABILITIES, PROBE_META, SAVED_CONNECTIONS } from "./data"
+import { useConnection } from "@/lib/connection/ConnectionContext"
+import { newConnectionId } from "@/lib/connection/connections-store"
+import { useTheme } from "@/lib/use-theme"
+
 import styles from "./connect.module.css"
+
+// Only the auth modes the installed SDK actually transmits. Basic / custom-header
+// are deferred (see authNote) rather than shown as controls that silently no-op.
+const AUTH_MODES = [
+  { value: "none", label: "None (open backend)" },
+  { value: "bearer", label: "Bearer token / JWT" },
+]
+
+function hostLabel(url) {
+  try {
+    return new URL(url).host
+  } catch {
+    return url
+  }
+}
 
 export default function ConnectionPage() {
   const navigate = useNavigate()
+  const [params, setParams] = useSearchParams()
+  const { theme, toggle } = useTheme()
+  const { status, error, capabilities, info, probe, saved, connect } = useConnection()
 
-  const [theme, setTheme] = useState("dark")
   const [url, setUrl] = useState("http://localhost:8000")
-  const [auth, setAuth] = useState("bearer")
-  const [showToken, setShowToken] = useState(false)
+  const [authMode, setAuthMode] = useState("none")
   const [token, setToken] = useState("")
+  const [showToken, setShowToken] = useState(false)
   const [remember, setRemember] = useState(true)
   const [activeId, setActiveId] = useState("local")
+  const autoRan = useRef(false)
 
-  // dummy connection lifecycle: idle → probing → probed
-  const [phase, setPhase] = useState("idle")
-
-  function toggleTheme() {
-    const next = theme === "light" ? "dark" : "light"
-    setTheme(next)
-    document.documentElement.setAttribute("data-theme", next)
+  const runConnect = async ({ auto = false, override } = {}) => {
+    const src = override || { url, authMode, token, activeId }
+    const profile = saved.find((c) => c.id === src.activeId)
+    const conn = {
+      id: src.activeId && src.activeId !== "custom" ? src.activeId : newConnectionId(),
+      name: profile?.name || hostLabel(src.url),
+      backendUrl: src.url,
+      authMode: src.authMode,
+      authToken: src.token,
+    }
+    const res = await connect(conn, { remember })
+    if (res.ok && auto) navigate("/chat")
+    return res
   }
+
+  // Auto-connect from ?backendUrl= (+ optional ?token=) — this is exactly what
+  // `agentflow play` appends, and makes a connection shareable as a link.
+  useEffect(() => {
+    if (autoRan.current) return
+    const backendUrl = params.get("backendUrl") || params.get("base_url")
+    if (!backendUrl) return
+    autoRan.current = true
+    const urlToken = params.get("token") || ""
+    const nextAuth = urlToken ? "bearer" : "none"
+    setUrl(backendUrl)
+    setToken(urlToken)
+    setAuthMode(nextAuth)
+    setActiveId("custom")
+    // Strip params so tokens don't linger in history; then probe + auto-advance.
+    setParams({}, { replace: true })
+    runConnect({ auto: true, override: { url: backendUrl, authMode: nextAuth, token: urlToken, activeId: "custom" } })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   function pick(profile) {
     setActiveId(profile.id)
-    setUrl(profile.url)
-    setAuth(profile.auth)
-    setPhase("idle")
-  }
-
-  function connect() {
-    if (phase === "probing") return
-    setPhase("probing")
-    const t = setTimeout(() => setPhase("probed"), 1000)
-    return () => clearTimeout(t)
+    setUrl(profile.backendUrl)
+    setAuthMode(profile.authMode || "none")
+    setToken(profile.authMode === "bearer" ? profile.authToken || "" : "")
   }
 
   // Enter-to-connect, mirroring the mockup's global keydown handler.
   useEffect(() => {
     function onKey(e) {
-      if (e.key === "Enter" && e.target.tagName !== "TEXTAREA") connect()
+      if (e.key === "Enter" && e.target.tagName !== "TEXTAREA" && status !== "connecting") {
+        runConnect()
+      }
     }
     document.addEventListener("keydown", onKey)
     return () => document.removeEventListener("keydown", onKey)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase])
+  }, [url, authMode, token, activeId, remember, status])
+
+  const metaRows =
+    status === "connected"
+      ? [
+          probe && { key: "ping", value: `pong · ${probe.latencyMs}ms`, ok: true },
+          probe && { key: "graph", value: `${probe.nodes ?? "?"} nodes · ${probe.edges ?? "?"} edges` },
+          info?.state_type && { key: "state", value: info.state_type },
+        ].filter(Boolean)
+      : []
 
   return (
     <div className={styles.page}>
@@ -59,12 +109,17 @@ export default function ConnectionPage() {
           </span>
         </div>
         <div className={styles.topActions}>
-          <button className={styles.ghost} onClick={toggleTheme} type="button">
+          <button className={styles.ghost} onClick={toggle} type="button">
             {theme === "light" ? "Dark" : "Light"}
           </button>
-          <button className={styles.ghost} type="button">
+          <a
+            className={styles.ghost}
+            href="https://10xhub.github.io/Agentflow/"
+            target="_blank"
+            rel="noreferrer"
+          >
             Docs
-          </button>
+          </a>
         </div>
       </div>
 
@@ -87,9 +142,13 @@ export default function ConnectionPage() {
                 className={styles.input}
                 id="url"
                 value={url}
-                onChange={(e) => setUrl(e.target.value)}
+                onChange={(e) => {
+                  setUrl(e.target.value)
+                  setActiveId("custom")
+                }}
                 spellCheck={false}
                 autoComplete="off"
+                placeholder="http://localhost:8000"
               />
             </div>
 
@@ -98,8 +157,8 @@ export default function ConnectionPage() {
               <select
                 className={styles.select}
                 id="auth"
-                value={auth}
-                onChange={(e) => setAuth(e.target.value)}
+                value={authMode}
+                onChange={(e) => setAuthMode(e.target.value)}
               >
                 {AUTH_MODES.map((m) => (
                   <option key={m.value} value={m.value}>
@@ -109,7 +168,7 @@ export default function ConnectionPage() {
               </select>
             </div>
 
-            {auth === "bearer" && (
+            {authMode === "bearer" && (
               <div className={styles.field}>
                 <label htmlFor="token">Token</label>
                 <div className={styles.inputWrap}>
@@ -134,35 +193,10 @@ export default function ConnectionPage() {
               </div>
             )}
 
-            {auth === "basic" && (
-              <div className={styles.row2}>
-                <div className={styles.field}>
-                  <label>Username</label>
-                  <input className={styles.input} placeholder="admin" spellCheck={false} />
-                </div>
-                <div className={styles.field}>
-                  <label>Password</label>
-                  <input className={styles.input} type="password" placeholder="••••••••" />
-                </div>
-              </div>
-            )}
-
-            {auth === "header" && (
-              <div className={styles.row2}>
-                <div className={styles.field}>
-                  <label>Header name</label>
-                  <input
-                    className={styles.input}
-                    defaultValue="X-API-Key"
-                    spellCheck={false}
-                  />
-                </div>
-                <div className={styles.field}>
-                  <label>Header value</label>
-                  <input className={styles.input} type="password" placeholder="sk-..." />
-                </div>
-              </div>
-            )}
+            <p className={styles.authNote}>
+              Local dev servers run auth-disabled — leave this on “None”. Basic and custom-header
+              auth arrive with the next client SDK.
+            </p>
 
             <div className={styles.switchRow}>
               <span>Remember this connection</span>
@@ -178,11 +212,11 @@ export default function ConnectionPage() {
 
             <button
               className={styles.btnPrimary}
-              onClick={connect}
-              disabled={phase === "probing"}
+              onClick={() => runConnect()}
+              disabled={status === "connecting"}
               type="button"
             >
-              {phase === "probing" ? (
+              {status === "connecting" ? (
                 <>
                   <span className={styles.spinner} />
                   <span>Probing…</span>
@@ -195,42 +229,52 @@ export default function ConnectionPage() {
 
           {/* RIGHT — status */}
           <div className={styles.side}>
-            <div className={styles.sideH}>
-              Saved connections <button className={styles.add} type="button">+ Add</button>
-            </div>
+            <div className={styles.sideH}>Saved connections</div>
             <div className={styles.profiles}>
-              {SAVED_CONNECTIONS.map((p) => (
+              {saved.map((p) => (
                 <button
                   key={p.id}
                   type="button"
                   className={`${styles.profile} ${activeId === p.id ? styles.active : ""}`}
                   onClick={() => pick(p)}
                 >
-                  <span className={`${styles.dot} ${p.live ? styles.live : styles.idle}`} />
+                  <span
+                    className={`${styles.dot} ${
+                      status === "connected" && activeId === p.id ? styles.live : styles.idle
+                    }`}
+                  />
                   <div className={styles.pBody}>
                     <div className={styles.pName}>{p.name}</div>
-                    <div className={styles.pUrl}>{p.url}</div>
+                    <div className={styles.pUrl}>{p.backendUrl}</div>
                   </div>
-                  <span className={styles.pBadge}>{p.badge}</span>
+                  <span className={styles.pBadge}>{p.authMode || "none"}</span>
                 </button>
               ))}
             </div>
 
-            {phase === "probed" ? (
+            {status === "connecting" && (
+              <div className={styles.connecting}>
+                <span className={styles.sp} />
+                probing {hostLabel(url)} …
+              </div>
+            )}
+
+            {status === "connected" && capabilities && (
               <div className={`${styles.probe} ${styles.show}`}>
                 <div className={styles.sideH}>Detected capabilities</div>
                 <div className={styles.caps}>
-                  {CAPABILITIES.map((c) => (
+                  {capabilities.map((c) => (
                     <div
-                      key={c.label}
+                      key={c.name}
+                      title={c.detail}
                       className={`${styles.cap} ${c.on ? styles.on : styles.off}`}
                     >
-                      <span className={styles.ci}>{c.on ? "✓" : "–"}</span> {c.label}
+                      <span className={styles.ci}>{c.on ? "✓" : "–"}</span> {c.name}
                     </div>
                   ))}
                 </div>
                 <div className={styles.meta}>
-                  {PROBE_META.map((m) => (
+                  {metaRows.map((m) => (
                     <div key={m.key}>
                       <b>{m.key}</b>&nbsp;&nbsp;
                       {m.ok ? <span className={styles.ok}>{m.value}</span> : m.value}
@@ -245,12 +289,20 @@ export default function ConnectionPage() {
                   Enter playground →
                 </button>
               </div>
-            ) : (
+            )}
+
+            {status === "error" && (
+              <div className={styles.errBox}>
+                <AlertTriangle size={28} strokeWidth={1.6} />
+                <div className={styles.errTitle}>Connection failed</div>
+                <div className={styles.errMsg}>{error}</div>
+              </div>
+            )}
+
+            {status === "idle" && (
               <div className={styles.empty}>
                 <Clock size={30} strokeWidth={1.5} />
-                <p>
-                  Connect to probe the backend and detect what this deployment supports.
-                </p>
+                <p>Connect to probe the backend and detect what this deployment supports.</p>
               </div>
             )}
           </div>
@@ -258,8 +310,10 @@ export default function ConnectionPage() {
       </div>
 
       <div className={styles.footer}>
-        Press <span className={styles.kbd}>↵</span> to connect · v0.8 mockup ·{" "}
-        <a href="#">agentflow docs</a>
+        Press <span className={styles.kbd}>↵</span> to connect ·{" "}
+        <a href="https://10xhub.github.io/Agentflow/" target="_blank" rel="noreferrer">
+          agentflow docs
+        </a>
       </div>
     </div>
   )
