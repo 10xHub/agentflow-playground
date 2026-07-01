@@ -8,6 +8,7 @@ import {
   setActiveThread,
   selectThread,
 } from "@/services/store/slices/chat.slice"
+import { loadMultimodalConfig } from "@/services/store/slices/multimodal.slice"
 import {
   setSettings,
   testPingEndpoint,
@@ -91,6 +92,14 @@ const DashboardUI = () => {
       dispatch(setThreadSettingsId(activeThreadId))
     }
   }, [activeThreadId, dispatch])
+
+  // Pull the server's multimodal limits once the backend is verified so the
+  // attachment inputs reflect the real max size and accepted types.
+  useEffect(() => {
+    if (isVerified) {
+      dispatch(loadMultimodalConfig())
+    }
+  }, [isVerified, dispatch])
 
   // Find the active thread - prioritize activeThreadId, then URL threadId
   const activeThread = activeThreadId

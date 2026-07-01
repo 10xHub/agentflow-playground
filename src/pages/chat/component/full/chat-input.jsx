@@ -2,11 +2,12 @@ import PropTypes from "prop-types"
 import { useState, useCallback, useRef } from "react"
 
 import { useToast } from "@/components/ui/use-toast"
+import { useMultimodalConfig } from "@/lib/multimodal"
 
 import ChatInputForm from "./chat-input-form"
 import FileAttachmentsPreview from "./file-attachments-preview"
 
-const useChatAttachments = (toast) => {
+const useChatAttachments = (toast, maxSizeBytes, maxSizeMb) => {
   const [attachments, setAttachments] = useState([])
   const [isDragOver, setIsDragOver] = useState(false)
   const fileInputReference = useRef(null)
@@ -14,10 +15,10 @@ const useChatAttachments = (toast) => {
   const handleFileSelect = useCallback(
     (files) => {
       const validFiles = [...files].filter((file) => {
-        if (file.size > 10 * 1024 * 1024) {
+        if (file.size > maxSizeBytes) {
           toast({
             title: "File too large",
-            description: `${file.name} is larger than 10MB`,
+            description: `${file.name} is larger than ${maxSizeMb}MB`,
             variant: "destructive",
           })
           return false
@@ -26,7 +27,7 @@ const useChatAttachments = (toast) => {
       })
       setAttachments((previous) => [...previous, ...validFiles])
     },
-    [toast]
+    [toast, maxSizeBytes, maxSizeMb]
   )
 
   const handleDragOver = useCallback((event) => {
@@ -76,6 +77,7 @@ const useChatAttachments = (toast) => {
 const ChatInput = ({ onSendMessage, disabled, isLoading, onStop }) => {
   const [message, setMessage] = useState("")
   const { toast } = useToast()
+  const { maxSizeBytes, maxSizeMb, accept } = useMultimodalConfig()
   const {
     attachments,
     setAttachments,
@@ -87,7 +89,7 @@ const ChatInput = ({ onSendMessage, disabled, isLoading, onStop }) => {
     handleDrop,
     handleRemoveAttachment,
     handleFileButtonClick,
-  } = useChatAttachments(toast)
+  } = useChatAttachments(toast, maxSizeBytes, maxSizeMb)
 
   const handleSubmit = useCallback(
     (event) => {
@@ -144,7 +146,7 @@ const ChatInput = ({ onSendMessage, disabled, isLoading, onStop }) => {
         ref={fileInputReference}
         type="file"
         multiple
-        accept=".pdf,.doc,.docx,.txt,.csv,.json,.png,.jpg,.jpeg,.gif,.svg"
+        accept={accept}
         onChange={(event) =>
           event.target.files && handleFileSelect(event.target.files)
         }

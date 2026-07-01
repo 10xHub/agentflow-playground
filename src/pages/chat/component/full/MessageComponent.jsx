@@ -12,6 +12,9 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { buildMessageText, getMessageCopyText } from "@/lib/messageContent"
+import { selectRunByFinalMessageId } from "@/services/store/slices/runs.slice"
+
+import RunStatsBadge from "./RunStatsBadge"
 
 /**
  * Markdown components for syntax highlighting
@@ -202,6 +205,9 @@ const Message = ({ message, onCopy }) => {
   const showToolMessageContent = useSelector(
     (state) => state.threadSettingsStore.show_tool_message_content
   )
+  const run = useSelector((state) =>
+    selectRunByFinalMessageId(state, message.id)
+  )
 
   if (isTool && !showToolMessageContent) return null
 
@@ -215,16 +221,23 @@ const Message = ({ message, onCopy }) => {
       })
 
   return (
-    <div className={`flex gap-4 p-4 group ${isUser ? "justify-end" : ""}`}>
-      {!isUser && <MessageAvatar isUser={false} isTool={isTool} />}
-      <MessageBubble
-        message={message}
-        isUser={isUser}
-        isTool={isTool}
-        displayContent={displayContent}
-        copyCallback={onCopy}
-      />
-      {isUser && <MessageAvatar isUser isTool={false} />}
+    <div>
+      <div className={`flex gap-4 p-4 group ${isUser ? "justify-end" : ""}`}>
+        {!isUser && <MessageAvatar isUser={false} isTool={isTool} />}
+        <MessageBubble
+          message={message}
+          isUser={isUser}
+          isTool={isTool}
+          displayContent={displayContent}
+          copyCallback={onCopy}
+        />
+        {isUser && <MessageAvatar isUser isTool={false} />}
+      </div>
+      {!isUser && run && (
+        <div className="pl-16 pr-4 pb-2 -mt-1">
+          <RunStatsBadge run={run} />
+        </div>
+      )}
     </div>
   )
 }

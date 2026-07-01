@@ -12,6 +12,8 @@ import PropTypes from "prop-types"
 import { useState, useRef } from "react"
 import { useSelector } from "react-redux"
 
+import { useMultimodalConfig } from "@/lib/multimodal"
+
 import EmptyInputCard from "./empty-input-card"
 
 const SUGGESTIONS = [
@@ -97,6 +99,7 @@ const EmptyChatUI = ({ onSendMessage, disabled = false }) => {
   const [attachedFiles, setAttachedFiles] = useState([])
   const fileInputReference = useRef(null)
   const store = useSelector((state) => state?.settingsStore)
+  const { maxSizeBytes, accept } = useMultimodalConfig()
 
   const handleSubmit = (event) => {
     event.preventDefault()
@@ -110,9 +113,7 @@ const EmptyChatUI = ({ onSendMessage, disabled = false }) => {
   const handleFileChange = (event) => {
     const { files } = event.target
     if (files && files.length > 0) {
-      const newFiles = [...files].filter(
-        (file) => file.size <= 10 * 1024 * 1024
-      )
+      const newFiles = [...files].filter((file) => file.size <= maxSizeBytes)
       setAttachedFiles((previous) => [...previous, ...newFiles])
     }
   }
@@ -150,6 +151,7 @@ const EmptyChatUI = ({ onSendMessage, disabled = false }) => {
           fileInputReference={fileInputReference}
           attachedFiles={attachedFiles}
           onRemoveFile={handleRemoveFile}
+          accept={accept}
           disabled={disabled}
         />
         {!disabled && <SuggestionGrid onSuggestion={handleSuggestion} />}

@@ -51,6 +51,7 @@ import {
 import { useToast } from "@/components/ui/use-toast"
 import { buildMessageText, getMessageCopyText } from "@/lib/messageContent"
 import { resolveFileUrl } from "@/lib/media-resolver"
+import { useMultimodalConfig } from "@/lib/multimodal"
 
 /**
  * Renders multimodal content blocks for assistant messages.
@@ -736,6 +737,7 @@ const MessageInput = ({
   const [isDragOver, setIsDragOver] = useState(false)
   const textareaRef = useRef(null)
   const fileInputRef = useRef(null)
+  const { maxSizeBytes, accept } = useMultimodalConfig()
 
   const handleSubmit = useCallback(
     (event) => {
@@ -773,7 +775,7 @@ const MessageInput = ({
 
   const handleFileSelect = (files) => {
     const newFiles = Array.from(files).filter(
-      (file) => file.size <= 10 * 1024 * 1024 // 10MB limit
+      (file) => file.size <= maxSizeBytes
     )
     setAttachedFiles((previous) => [...previous, ...newFiles])
   }
@@ -955,7 +957,7 @@ const MessageInput = ({
         ref={fileInputRef}
         type="file"
         multiple
-        accept=".pdf,.doc,.docx,.txt,.csv,.json,.png,.jpg,.jpeg,.gif,.svg"
+        accept={accept}
         onChange={handleFileInputChange}
         className="hidden"
       />

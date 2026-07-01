@@ -1,6 +1,7 @@
 import {
   Eye,
   Database,
+  Gauge,
   GitGraph,
   History,
   Settings,
@@ -26,6 +27,7 @@ import { Button } from "../ui/button"
 import AppSidebar from "./app-sidebar"
 import DevelopmentToolButton from "./development-tool-button"
 import EventsHistorySheet from "./sheets/events-history-sheet"
+import RunStatsSheet from "./sheets/run-stats-sheet"
 import SettingsSheet from "./sheets/settings-sheet"
 import ViewStateSheet from "./sheets/state"
 import ThreadSettingsSheet from "./sheets/thread-settings-sheet"
@@ -74,6 +76,15 @@ const MainHeaderTools = ({
         tooltip="View State"
         handleActivate={() => onSheetOpen("state")}
         isActive={activeSheet === "state"}
+        disabled={!isVerified}
+      />
+    )}
+    {isChatPage && (
+      <DevelopmentToolButton
+        icon={Gauge}
+        tooltip="Run Stats"
+        handleActivate={() => onSheetOpen("runs")}
+        isActive={activeSheet === "runs"}
         disabled={!isVerified}
       />
     )}
@@ -151,6 +162,10 @@ const AllSheets = ({ activeSheet, onSheetClose, threadId, threadData }) => {
       />
       <EventsHistorySheet
         isOpen={activeSheet === "history"}
+        onClose={handleSheetClose}
+      />
+      <RunStatsSheet
+        isOpen={activeSheet === "runs"}
         onClose={handleSheetClose}
       />
       <SettingsSheet

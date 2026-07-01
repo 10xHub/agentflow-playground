@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Agentflow Playground — Thread Inspector</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Fira+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg:#0B0C0E; --surface:#131417; --surface-2:#17181C; --elevated:#1C1D22;
+    --border:#26272D; --border-strong:#33353D; --text:#ECEDEF; --text-secondary:#9A9EA7;
+    --text-muted:#63676F; --accent:#3ECF8E; --accent-weak:rgba(62,207,142,0.12);
+    --danger:#F26D6D; --danger-weak:rgba(242,109,109,0.1); --warn:#E5B567; --warn-weak:rgba(229,181,103,0.1);
+    --blue:#8FB8FF; --btn-bg:#F2F3F5; --btn-text:#0B0C0E; --focus-ring:rgba(236,237,239,0.10);
+    --sans:"Fira Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    --mono:"Fira Code",ui-monospace,"SF Mono",Menlo,monospace;
+  }
+  html[data-theme="light"] {
+    --bg:#FBFBFC; --surface:#FFFFFF; --surface-2:#F7F8F9; --elevated:#F1F2F4;
+    --border:#E6E7EA; --border-strong:#D6D8DD; --text:#16181D; --text-secondary:#5C616B;
+    --text-muted:#9297A1; --accent:#1BA674; --accent-weak:rgba(27,166,116,0.10);
+    --danger:#D64545; --danger-weak:rgba(214,69,69,0.08); --warn:#B4801E; --warn-weak:rgba(180,128,30,0.09);
+    --blue:#3F6FD1; --btn-bg:#16181D; --btn-text:#FFFFFF; --focus-ring:rgba(22,24,29,0.08);
+  }
+  * { box-sizing:border-box; }
+  html,body { height:100%; }
+  body {
+    margin:0; height:100vh; display:flex; flex-direction:column; overflow:hidden;
+    background:var(--bg); color:var(--text); font-family:var(--sans); font-size:13px;
+    line-height:1.5; -webkit-font-smoothing:antialiased;
+  }
+  @media (prefers-reduced-motion:reduce){ *{animation:none!important;transition:none!important;} }
+  .mono { font-family:var(--mono); }
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:.4;} }
+  ::-webkit-scrollbar { width:10px; height:10px; }
+  ::-webkit-scrollbar-thumb { background:var(--elevated); border:3px solid transparent; background-clip:padding-box; border-radius:8px; }
+  ::-webkit-scrollbar-thumb:hover { background:var(--border-strong); background-clip:padding-box; }
+
+  /* ---- connection bar ---- */
+  .connbar { display:flex; align-items:center; gap:14px; height:48px; padding:0 14px 0 16px; border-bottom:1px solid var(--border); flex:none; background:var(--surface); }
+  .brand { display:flex; align-items:center; gap:9px; }
+  .mark { width:20px; height:20px; border:1.5px solid var(--text); border-radius:6px; position:relative; flex:none; }
+  .mark::after { content:""; position:absolute; inset:4px; border-radius:2px; border:1.5px solid var(--text-secondary); }
+  .wordmark { font-family:var(--mono); font-size:12.5px; font-weight:500; letter-spacing:-0.01em; }
+  .wordmark .dim { color:var(--text-muted); }
+  .sep { width:1px; height:22px; background:var(--border); }
+  .conn-pill { display:flex; align-items:center; gap:9px; height:30px; padding:0 10px; background:var(--elevated); border:1px solid var(--border); border-radius:8px; cursor:pointer; transition:border-color .15s; }
+  .conn-pill:hover { border-color:var(--border-strong); }
+  .dot { width:7px; height:7px; border-radius:50%; flex:none; }
+  .dot.live { background:var(--accent); box-shadow:0 0 0 3px var(--accent-weak); }
+  .conn-name { font-size:12.5px; font-weight:500; }
+  .conn-url { font-family:var(--mono); font-size:11px; color:var(--text-muted); }
+  .chev { color:var(--text-muted); }
+  .role-badge { display:flex; align-items:center; gap:7px; height:30px; padding:0 11px; border:1px solid rgba(229,181,103,0.3); background:var(--warn-weak); border-radius:8px; font-family:var(--mono); font-size:11px; color:var(--warn); }
+  .grow { flex:1; }
+  .cb-actions { display:flex; align-items:center; gap:4px; }
+  .iconbtn { height:30px; min-width:30px; padding:0 9px; display:flex; align-items:center; gap:7px; justify-content:center; background:transparent; border:1px solid transparent; border-radius:8px; color:var(--text-secondary); font-family:var(--sans); font-size:12px; cursor:pointer; transition:color .15s,border-color .15s,background .15s; }
+  .iconbtn:hover { color:var(--text); border-color:var(--border-strong); }
+  .iconbtn svg { stroke:currentColor; }
+
+  /* ---- shell ---- */
+  .shell { flex:1; display:grid; grid-template-columns:230px 340px 1fr; min-height:0; }
+
+  /* ---- sidebar ---- */
+  .side { border-right:1px solid var(--border); background:var(--surface); display:flex; flex-direction:column; min-height:0; }
+  .side-scroll { flex:1; overflow-y:auto; padding:14px 10px 8px; }
+  .navgroup { margin-bottom:16px; }
+  .navgroup-h { font-size:10.5px; letter-spacing:0.11em; text-transform:uppercase; color:var(--text-muted); font-weight:500; padding:0 8px; margin-bottom:6px; }
+  .navitem { display:flex; align-items:center; gap:10px; padding:7px 8px; border-radius:8px; color:var(--text-secondary); cursor:pointer; font-size:13px; font-weight:500; position:relative; transition:color .15s,background .15s; margin-bottom:1px; }
+  .navitem:hover { color:var(--text); background:var(--elevated); }
+  .navitem.active { color:var(--text); background:var(--elevated); }
+  .navitem.active::before { content:""; position:absolute; left:-10px; top:7px; bottom:7px; width:2px; border-radius:2px; background:var(--accent); }
+  .navitem svg { flex:none; stroke:currentColor; opacity:.85; }
+  .navitem .badge { margin-left:auto; font-family:var(--mono); font-size:10px; color:var(--text-muted); background:var(--surface-2); border:1px solid var(--border); padding:0 6px; border-radius:5px; }
+  .navitem.active .badge { color:var(--text-secondary); }
+  .side-foot { border-top:1px solid var(--border); padding:8px 10px; }
+
+  /* ---- thread list column ---- */
+  .list { border-right:1px solid var(--border); background:var(--surface); display:flex; flex-direction:column; min-height:0; }
+  .list-head { padding:13px 14px 10px; border-bottom:1px solid var(--border); flex:none; }
+  .list-title { display:flex; align-items:center; justify-content:space-between; margin-bottom:11px; }
+  .list-title h2 { font-size:14px; font-weight:600; margin:0; }
+  .list-title .cnt { font-family:var(--mono); font-size:11px; color:var(--text-muted); }
+  .search { display:flex; align-items:center; gap:8px; height:34px; padding:0 10px; background:var(--elevated); border:1px solid var(--border); border-radius:8px; transition:border-color .15s; }
+  .search:focus-within { border-color:var(--text-secondary); }
+  .search svg { stroke:var(--text-muted); flex:none; }
+  .search input { border:none; background:transparent; outline:none; color:var(--text); font-family:var(--mono); font-size:12px; width:100%; }
+  .search input::placeholder { color:var(--text-muted); }
+  .filters { display:flex; gap:5px; margin-top:10px; }
+  .fchip { font-family:var(--mono); font-size:10.5px; padding:4px 9px; border-radius:6px; border:1px solid var(--border); background:transparent; color:var(--text-secondary); cursor:pointer; transition:color .15s,border-color .15s; }
+  .fchip:hover { color:var(--text); }
+  .fchip.on { color:var(--text); border-color:var(--border-strong); background:var(--elevated); }
+  .fchip .n { color:var(--text-muted); }
+
+  .rows { flex:1; overflow-y:auto; }
+  .row { padding:11px 14px; border-bottom:1px solid var(--border); cursor:pointer; position:relative; transition:background .12s; }
+  .row:hover { background:var(--surface-2); }
+  .row.active { background:var(--elevated); }
+  .row.active::before { content:""; position:absolute; left:0; top:0; bottom:0; width:2px; background:var(--accent); }
+  .row-top { display:flex; align-items:center; gap:8px; margin-bottom:5px; }
+  .row-id { font-family:var(--mono); font-size:12px; color:var(--text); font-weight:500; }
+  .st { display:flex; align-items:center; gap:5px; margin-left:auto; font-family:var(--mono); font-size:10px; padding:1px 7px; border-radius:5px; border:1px solid var(--border); color:var(--text-secondary); }
+  .st .sd { width:5px; height:5px; border-radius:50%; }
+  .st.healthy { color:var(--accent); border-color:rgba(62,207,142,0.28); } .st.healthy .sd{ background:var(--accent); }
+  .st.running { color:var(--accent); border-color:rgba(62,207,142,0.28); } .st.running .sd{ background:var(--accent); animation:pulse 1.2s infinite; }
+  .st.interrupted { color:var(--warn); border-color:rgba(229,181,103,0.3); } .st.interrupted .sd{ background:var(--warn); }
+  .st.error { color:var(--danger); border-color:rgba(242,109,109,0.3); background:var(--danger-weak); } .st.error .sd{ background:var(--danger); }
+  .st.idle { color:var(--text-muted); } .st.idle .sd{ background:var(--text-muted); }
+  .row-meta { display:flex; align-items:center; gap:10px; font-family:var(--mono); font-size:10.5px; color:var(--text-muted); }
+  .row-meta .u { color:var(--text-secondary); }
+
+  .pager { flex:none; display:flex; align-items:center; justify-content:space-between; padding:9px 14px; border-top:1px solid var(--border); font-family:var(--mono); font-size:11px; color:var(--text-muted); }
+  .pager .pg { display:flex; gap:4px; }
+  .pgbtn { width:26px; height:26px; display:grid; place-items:center; border:1px solid var(--border); border-radius:6px; background:transparent; color:var(--text-secondary); cursor:pointer; transition:color .15s,border-color .15s; }
+  .pgbtn:hover { color:var(--text); border-color:var(--border-strong); }
+  .pgbtn svg { stroke:currentColor; }
+
+  /* ---- detail ---- */
+  .detail { display:flex; flex-direction:column; min-width:0; min-height:0; background:var(--bg); }
+  .d-head { padding:14px 20px 0; border-bottom:1px solid var(--border); flex:none; }
+  .d-top { display:flex; align-items:center; gap:12px; margin-bottom:12px; }
+  .d-id { font-family:var(--mono); font-size:15px; font-weight:600; letter-spacing:-0.01em; }
+  .d-meta { display:flex; flex-wrap:wrap; gap:14px; font-family:var(--mono); font-size:11px; color:var(--text-muted); margin-bottom:14px; }
+  .d-meta b { color:var(--text-secondary); font-weight:500; }
+
+  /* repair toolbar */
+  .toolbar { display:flex; align-items:center; gap:7px; margin-bottom:14px; flex-wrap:wrap; }
+  .tbtn { display:flex; align-items:center; gap:7px; height:32px; padding:0 12px; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--text-secondary); font-family:var(--sans); font-size:12px; font-weight:500; cursor:pointer; transition:color .15s,border-color .15s,background .15s; }
+  .tbtn:hover { color:var(--text); border-color:var(--border-strong); }
+  .tbtn svg { stroke:currentColor; }
+  .tbtn.primary { color:var(--accent); border-color:rgba(62,207,142,0.3); background:var(--accent-weak); }
+  .tbtn.primary:hover { border-color:var(--accent); }
+  .tbtn.danger:hover { color:var(--danger); border-color:var(--danger); background:var(--danger-weak); }
+  .tb-sep { width:1px; height:20px; background:var(--border); margin:0 3px; }
+
+  .tabs { display:flex; gap:2px; }
+  .tab { border:none; background:transparent; color:var(--text-muted); font-family:var(--sans); font-size:12.5px; font-weight:500; padding:9px 12px; border-bottom:2px solid transparent; cursor:pointer; margin-bottom:-1px; transition:color .15s; }
+  .tab:hover { color:var(--text-secondary); }
+  .tab.on { color:var(--text); border-bottom-color:var(--accent); }
+
+  .d-body { flex:1; overflow-y:auto; padding:18px 20px 24px; }
+  .pane { display:none; } .pane.on { display:block; }
+
+  /* diagnosis banner */
+  .diag { display:flex; align-items:flex-start; gap:11px; padding:12px 14px; border:1px solid rgba(229,181,103,0.3); background:var(--warn-weak); border-radius:10px; margin-bottom:18px; }
+  .diag svg { stroke:var(--warn); flex:none; margin-top:1px; }
+  .diag-b { flex:1; }
+  .diag-b .dt { font-size:12.5px; font-weight:600; color:var(--warn); margin-bottom:3px; }
+  .diag-b .dd { font-size:12px; color:var(--text-secondary); line-height:1.5; }
+  .diag-b .dd code { font-family:var(--mono); font-size:11px; background:var(--elevated); border:1px solid var(--border); border-radius:4px; padding:1px 5px; color:var(--text); }
+
+  /* message rows */
+  .mline { display:flex; align-items:center; gap:9px; margin:16px 0 10px; }
+  .mline .l { flex:1; height:1px; background:var(--border); }
+  .mline .lbl { font-family:var(--mono); font-size:10.5px; color:var(--text-muted); }
+  .mrow { border:1px solid var(--border); border-radius:10px; margin-bottom:9px; background:var(--surface); overflow:hidden; }
+  .mrow-h { display:flex; align-items:center; gap:9px; padding:10px 12px; }
+  .rb { font-family:var(--mono); font-size:10px; font-weight:600; padding:2px 8px; border-radius:5px; text-transform:uppercase; letter-spacing:0.03em; }
+  .rb.user { color:var(--text-secondary); background:var(--elevated); border:1px solid var(--border); }
+  .rb.assistant { color:var(--accent); background:var(--accent-weak); border:1px solid rgba(62,207,142,0.25); }
+  .rb.tool { color:var(--blue); background:rgba(143,184,255,0.1); border:1px solid rgba(143,184,255,0.28); }
+  .m-node { font-family:var(--mono); font-size:10.5px; color:var(--text-muted); }
+  .m-node b { color:var(--text-secondary); font-weight:500; }
+  .m-time { margin-left:auto; font-family:var(--mono); font-size:10.5px; color:var(--text-muted); }
+  .m-del { width:26px; height:26px; display:grid; place-items:center; border-radius:6px; border:1px solid transparent; background:transparent; color:var(--text-muted); cursor:pointer; opacity:0; transition:opacity .12s,color .15s,border-color .15s; }
+  .mrow:hover .m-del { opacity:1; }
+  .m-del:hover { color:var(--danger); border-color:var(--danger); }
+  .m-del svg { stroke:currentColor; }
+  .mrow-body { padding:0 12px 12px; font-size:13px; line-height:1.6; color:var(--text); }
+  .mrow-body .mono { font-size:11.5px; color:var(--text-secondary); }
+  .mrow-body pre { font-family:var(--mono); font-size:11.5px; color:var(--text-secondary); margin:0; white-space:pre-wrap; line-height:1.55; }
+  .mrow.broken { border-color:rgba(242,109,109,0.4); background:var(--danger-weak); }
+  .mrow.broken .rb.tool { color:var(--danger); background:var(--danger-weak); border-color:rgba(242,109,109,0.35); }
+  .broken-tag { font-family:var(--mono); font-size:10px; color:var(--danger); border:1px solid rgba(242,109,109,0.35); background:var(--danger-weak); padding:1px 7px; border-radius:5px; }
+
+  /* state pane */
+  .state-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:18px; }
+  .scard { border:1px solid var(--border); border-radius:10px; background:var(--surface); padding:14px; }
+  .scard h3 { font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-muted); font-weight:500; margin:0 0 12px; }
+  .kv { display:flex; align-items:center; justify-content:space-between; padding:7px 0; border-bottom:1px dashed var(--border); font-family:var(--mono); font-size:11.5px; }
+  .kv:last-child { border-bottom:none; }
+  .kv .k { color:var(--text-secondary); } .kv .v { color:var(--text); }
+  .kv .v.warn { color:var(--warn); } .kv .v.ok { color:var(--accent); } .kv .v.bad { color:var(--danger); } .kv .v.muted { color:var(--text-muted); }
+  .json { border:1px solid var(--border); border-radius:10px; background:var(--surface); padding:14px; font-family:var(--mono); font-size:11.5px; line-height:1.7; color:var(--text-secondary); white-space:pre; overflow-x:auto; }
+  .json .key { color:var(--blue); } .json .str { color:var(--accent); } .json .num { color:var(--warn); } .json .bool { color:var(--text); }
+  .state-actions { display:flex; gap:7px; margin-top:14px; }
+
+  /* verify toast */
+  .verify { display:none; align-items:center; gap:9px; margin-top:16px; padding:11px 14px; border:1px solid rgba(62,207,142,0.3); background:var(--accent-weak); border-radius:10px; color:var(--accent); font-size:12.5px; }
+  .verify.show { display:flex; }
+  .verify svg { stroke:var(--accent); }
+</style>
+</head>
+<body>
+  <!-- CONNECTION BAR -->
+  <div class="connbar">
+    <div class="brand"><span class="mark"></span><span class="wordmark">agentflow<span class="dim">/playground</span></span></div>
+    <div class="sep"></div>
+    <div class="conn-pill">
+      <span class="dot live"></span><span class="conn-name">Production</span><span class="conn-url">api.acme.com</span>
+      <svg class="chev" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="role-badge">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6z"/></svg>
+      role=admin · reads all threads
+    </div>
+    <div class="grow"></div>
+    <div class="cb-actions">
+      <button class="iconbtn" onclick="toggleTheme()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><path d="M21 12.8A9 9 0 1111.2 3 7 7 0 0021 12.8z"/></svg>
+      </button>
+      <button class="iconbtn">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.6 1.6 0 00-2.7.7 1.6 1.6 0 01-3.2 0 1.6 1.6 0 00-2.7-.7l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.6 1.6 0 00-.7-2.7 1.6 1.6 0 010-3.2 1.6 1.6 0 00.7-2.7l-.1-.1a2 2 0 112.8-2.8l.1.1a1.6 1.6 0 001.8.3H9a1.6 1.6 0 001-1.5 1.6 1.6 0 013.2 0 1.6 1.6 0 001 1.5 1.6 1.6 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.6 1.6 0 00-.3 1.8V9a1.6 1.6 0 001.5 1 1.6 1.6 0 010 3.2 1.6 1.6 0 00-1.5 1z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- SHELL -->
+  <div class="shell">
+    <!-- SIDEBAR -->
+    <aside class="side">
+      <div class="side-scroll">
+        <div class="navgroup">
+          <div class="navgroup-h">Interact</div>
+          <div class="navitem"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>Chat</div>
+          <div class="navitem"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><path d="M12 2a3 3 0 00-3 3v6a3 3 0 006 0V5a3 3 0 00-3-3z"/><path d="M19 10v1a7 7 0 01-14 0v-1M12 18v4"/></svg>Live</div>
+        </div>
+        <div class="navgroup">
+          <div class="navgroup-h">Inspect</div>
+          <div class="navitem active"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><path d="M3 5h18M3 12h18M3 19h18"/></svg>Thread Inspector <span class="badge">142</span></div>
+          <div class="navitem"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><path d="M3 3v18h18"/><path d="M7 14l3-4 3 3 4-6"/></svg>Observability</div>
+          <div class="navitem"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><path d="M9 11l3 3 8-8"/><path d="M20 12v6a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h9"/></svg>Evals</div>
+          <div class="navitem"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg>Memory Inspector</div>
+        </div>
+        <div class="navgroup">
+          <div class="navgroup-h">Build</div>
+          <div class="navitem"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><circle cx="6" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><circle cx="18" cy="6" r="3"/><path d="M9 6h6M18 9v6"/></svg>Graph</div>
+          <div class="navitem"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><path d="M14.7 6.3a4 4 0 00-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 005.4-5.4l-2.6 2.6-2.4-2.4z"/></svg>Tools &amp; MCP</div>
+          <div class="navitem"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/><path d="M13 2v7h7"/></svg>Files</div>
+        </div>
+      </div>
+      <div class="side-foot">
+        <div class="navitem"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 00.3 1.8M4.6 9a1.6 1.6 0 00-.3-1.8"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>Settings</div>
+      </div>
+    </aside>
+
+    <!-- THREAD LIST -->
+    <section class="list">
+      <div class="list-head">
+        <div class="list-title"><h2>Threads</h2><span class="cnt">142 readable</span></div>
+        <div class="search">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          <input placeholder="Search id, user, content…" spellcheck="false" />
+        </div>
+        <div class="filters">
+          <button class="fchip on">all <span class="n">142</span></button>
+          <button class="fchip">running <span class="n">3</span></button>
+          <button class="fchip">interrupted <span class="n">6</span></button>
+          <button class="fchip">error <span class="n">2</span></button>
+        </div>
+      </div>
+
+      <div class="rows">
+        <div class="row active" onclick="pickRow(this)">
+          <div class="row-top"><span class="row-id">th_9f2a…c17</span><span class="st error"><span class="sd"></span>error</span></div>
+          <div class="row-meta"><span class="u">u_8842</span><span>· 14 msgs</span><span>· 3m ago</span></div>
+        </div>
+        <div class="row" onclick="pickRow(this)">
+          <div class="row-top"><span class="row-id">th_71bd…9a2</span><span class="st interrupted"><span class="sd"></span>interrupted</span></div>
+          <div class="row-meta"><span class="u">u_1290</span><span>· 8 msgs</span><span>· 12m ago</span></div>
+        </div>
+        <div class="row" onclick="pickRow(this)">
+          <div class="row-top"><span class="row-id">th_5c03…4e1</span><span class="st running"><span class="sd"></span>running</span></div>
+          <div class="row-meta"><span class="u">u_4471</span><span>· 22 msgs</span><span>· now</span></div>
+        </div>
+        <div class="row" onclick="pickRow(this)">
+          <div class="row-top"><span class="row-id">th_2a8f…b60</span><span class="st healthy"><span class="sd"></span>healthy</span></div>
+          <div class="row-meta"><span class="u">u_8842</span><span>· 31 msgs</span><span>· 1h ago</span></div>
+        </div>
+        <div class="row" onclick="pickRow(this)">
+          <div class="row-top"><span class="row-id">th_d417…7cc</span><span class="st healthy"><span class="sd"></span>healthy</span></div>
+          <div class="row-meta"><span class="u">u_0031</span><span>· 6 msgs</span><span>· 2h ago</span></div>
+        </div>
+        <div class="row" onclick="pickRow(this)">
+          <div class="row-top"><span class="row-id">th_e920…13a</span><span class="st idle"><span class="sd"></span>idle</span></div>
+          <div class="row-meta"><span class="u">u_5560</span><span>· 3 msgs</span><span>· 5h ago</span></div>
+        </div>
+        <div class="row" onclick="pickRow(this)">
+          <div class="row-top"><span class="row-id">th_bb14…802</span><span class="st healthy"><span class="sd"></span>healthy</span></div>
+          <div class="row-meta"><span class="u">u_4471</span><span>· 12 msgs</span><span>· 6h ago</span></div>
+        </div>
+        <div class="row" onclick="pickRow(this)">
+          <div class="row-top"><span class="row-id">th_47af…9f0</span><span class="st idle"><span class="sd"></span>idle</span></div>
+          <div class="row-meta"><span class="u">u_1290</span><span>· 19 msgs</span><span>· 1d ago</span></div>
+        </div>
+      </div>
+
+      <div class="pager">
+        <span>1–20 of 142</span>
+        <div class="pg">
+          <button class="pgbtn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
+          <button class="pgbtn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- DETAIL -->
+    <section class="detail">
+      <div class="d-head">
+        <div class="d-top">
+          <span class="d-id">th_9f2a3b8e1d40c17</span>
+          <span class="st error"><span class="sd"></span>error</span>
+        </div>
+        <div class="d-meta">
+          <span><b>user</b> u_8842</span>
+          <span><b>messages</b> 14</span>
+          <span><b>created</b> 2026-07-01 14:02</span>
+          <span><b>last active</b> 3m ago</span>
+          <span><b>agent</b> graph.react:app</span>
+        </div>
+
+        <!-- REPAIR TOOLBAR -->
+        <div class="toolbar">
+          <button class="tbtn primary" onclick="showVerify()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M20 11a8 8 0 10-2.3 5.7M20 4v7h-7"/></svg>
+            Fix thread
+          </button>
+          <button class="tbtn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="1.8"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+            Stop
+          </button>
+          <div class="tb-sep"></div>
+          <button class="tbtn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>
+            Edit state
+          </button>
+          <button class="tbtn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+            Clear state
+          </button>
+          <div class="tb-sep"></div>
+          <button class="tbtn danger" id="delBtn" onclick="confirmDelete(this)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6M10 11v6M14 11v6"/></svg>
+            Delete thread
+          </button>
+        </div>
+
+        <div class="tabs">
+          <button class="tab on" onclick="dTab('messages',this)">Messages</button>
+          <button class="tab" onclick="dTab('state',this)">State &amp; checkpoint</button>
+          <button class="tab" onclick="dTab('raw',this)">Raw JSON</button>
+        </div>
+      </div>
+
+      <div class="d-body">
+        <!-- MESSAGES -->
+        <div class="pane on" id="pane-messages">
+          <div class="diag">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M12 9v4M12 17h.01M10.3 3.9l-8 13.9A2 2 0 004 21h16a2 2 0 001.7-3.2l-8-13.9a2 2 0 00-3.4 0z"/></svg>
+            <div class="diag-b">
+              <div class="dt">Dangling tool call detected</div>
+              <div class="dd">Message <code>msg_4f…</code> issues a <code>tool_call</code> with no matching <code>tool_result</code>, wedging the thread at node <code>tools</code>. Run <b>Fix thread</b> to clear it, or delete the offending message below, then re-check.</div>
+            </div>
+          </div>
+
+          <div class="mline"><span class="lbl">turn 1</span><span class="l"></span></div>
+          <div class="mrow">
+            <div class="mrow-h">
+              <span class="rb user">user</span>
+              <span class="m-node"><b>msg_1a</b></span>
+              <span class="m-time">14:02:11</span>
+              <button class="m-del" title="Delete message"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg></button>
+            </div>
+            <div class="mrow-body">Summarize the Q2 report and email the summary to the growth team.</div>
+          </div>
+
+          <div class="mrow">
+            <div class="mrow-h">
+              <span class="rb assistant">assistant</span>
+              <span class="m-node">node <b>agent</b></span>
+              <span class="m-time">14:02:13</span>
+              <button class="m-del" title="Delete message"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg></button>
+            </div>
+            <div class="mrow-body">Fetching the report, then I'll summarize and send it.<br><span class="mono">tool_call · get_report(quarter="Q2")</span></div>
+          </div>
+
+          <div class="mrow">
+            <div class="mrow-h">
+              <span class="rb tool">tool</span>
+              <span class="m-node"><b>get_report</b> · 180ms</span>
+              <span class="m-time">14:02:14</span>
+              <button class="m-del" title="Delete message"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg></button>
+            </div>
+            <div class="mrow-body"><pre>{ "title": "Q2 Growth", "pages": 12, "revenue_delta_pct": 18.4 }</pre></div>
+          </div>
+
+          <div class="mline"><span class="lbl">turn 2 · wedged</span><span class="l"></span></div>
+          <div class="mrow broken">
+            <div class="mrow-h">
+              <span class="rb tool">assistant → tool</span>
+              <span class="m-node"><b>send_email</b></span>
+              <span class="broken-tag">dangling · no result</span>
+              <span class="m-time">14:02:16</span>
+              <button class="m-del" title="Delete message"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg></button>
+            </div>
+            <div class="mrow-body"><pre>{ "tool_call_id": "call_4f8a", "name": "send_email", "arguments": {} }
+// awaiting tool_result … never arrived · run stalled</pre></div>
+          </div>
+        </div>
+
+        <!-- STATE -->
+        <div class="pane" id="pane-state">
+          <div class="state-grid">
+            <div class="scard">
+              <h3>execution_meta</h3>
+              <div class="kv"><span class="k">current_node</span><span class="v warn">tools</span></div>
+              <div class="kv"><span class="k">step</span><span class="v">6</span></div>
+              <div class="kv"><span class="k">is_running</span><span class="v bad">false</span></div>
+              <div class="kv"><span class="k">interrupted</span><span class="v warn">true</span></div>
+              <div class="kv"><span class="k">stopped</span><span class="v muted">false</span></div>
+              <div class="kv"><span class="k">interrupt</span><span class="v">tool_call · send_email</span></div>
+            </div>
+            <div class="scard">
+              <h3>context</h3>
+              <div class="kv"><span class="k">messages</span><span class="v">14</span></div>
+              <div class="kv"><span class="k">context_summary</span><span class="v muted">none</span></div>
+              <div class="kv"><span class="k">thread_id</span><span class="v">th_9f2a…c17</span></div>
+              <div class="kv"><span class="k">checkpoint_id</span><span class="v">ckpt_71a3</span></div>
+              <div class="kv"><span class="k">recursion_limit</span><span class="v">25</span></div>
+              <div class="kv"><span class="k">updated</span><span class="v">3m ago</span></div>
+            </div>
+          </div>
+
+          <h3 style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted);font-weight:500;margin:0 0 10px;">config</h3>
+          <div class="json">{
+  <span class="key">"configurable"</span>: {
+    <span class="key">"thread_id"</span>: <span class="str">"th_9f2a3b8e1d40c17"</span>,
+    <span class="key">"user_id"</span>: <span class="str">"u_8842"</span>,
+    <span class="key">"recursion_limit"</span>: <span class="num">25</span>,
+    <span class="key">"response_granularity"</span>: <span class="str">"partial"</span>
+  }
+}</div>
+
+          <div class="state-actions">
+            <button class="tbtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>Edit state</button>
+            <button class="tbtn danger"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>Clear state</button>
+            <button class="tbtn" onclick="dTab('messages', document.querySelector('.tab'))"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M20 6L9 17l-5-5"/></svg>Re-check thread</button>
+          </div>
+
+          <div class="verify" id="verify">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="1.9"><path d="M20 6L9 17l-5-5"/></svg>
+            Thread repaired — dangling call cleared, <span class="mono">interrupted</span> reset to false. Status is now healthy.
+          </div>
+        </div>
+
+        <!-- RAW -->
+        <div class="pane" id="pane-raw">
+          <div class="json">{
+  <span class="key">"thread_id"</span>: <span class="str">"th_9f2a3b8e1d40c17"</span>,
+  <span class="key">"status"</span>: <span class="str">"error"</span>,
+  <span class="key">"message_count"</span>: <span class="num">14</span>,
+  <span class="key">"execution_meta"</span>: {
+    <span class="key">"current_node"</span>: <span class="str">"tools"</span>,
+    <span class="key">"step"</span>: <span class="num">6</span>,
+    <span class="key">"is_running"</span>: <span class="bool">false</span>,
+    <span class="key">"interrupted"</span>: <span class="bool">true</span>,
+    <span class="key">"interrupt"</span>: { <span class="key">"type"</span>: <span class="str">"tool_call"</span>, <span class="key">"tool"</span>: <span class="str">"send_email"</span> }
+  },
+  <span class="key">"last_error"</span>: <span class="str">"dangling tool_call: no tool_result for call_4f8a"</span>
+}</div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+<script>
+  function toggleTheme(){ const h=document.documentElement,l=h.getAttribute('data-theme')==='light'; h.setAttribute('data-theme',l?'dark':'light'); }
+  function pickRow(el){ document.querySelectorAll('.row').forEach(r=>r.classList.remove('active')); el.classList.add('active'); }
+  function dTab(name,btn){
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+    (btn||document.querySelector('.tab')).classList.add('on');
+    document.querySelectorAll('.pane').forEach(p=>p.classList.remove('on'));
+    document.getElementById('pane-'+name).classList.add('on');
+  }
+  function confirmDelete(btn){
+    if(btn.dataset.armed){ btn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M20 6L9 17l-5-5"/></svg>Deleted'; return; }
+    btn.dataset.armed='1'; btn.style.borderColor='var(--danger)'; btn.style.color='var(--danger)'; btn.style.background='var(--danger-weak)';
+    btn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M12 9v4M12 17h.01M10.3 3.9l-8 13.9A2 2 0 004 21h16a2 2 0 001.7-3.2l-8-13.9a2 2 0 00-3.4 0z"/></svg>Confirm delete?';
+  }
+  function showVerify(){
+    dTab('state', document.querySelectorAll('.tab')[1]);
+    document.getElementById('verify').classList.add('show');
+  }
+</script>
+</body>
+</html>

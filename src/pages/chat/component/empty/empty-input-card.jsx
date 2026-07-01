@@ -51,6 +51,7 @@ const EmptyInputCard = ({
   fileInputReference,
   attachedFiles = [],
   onRemoveFile,
+  accept,
   disabled = false,
 }) => {
   const handleSubmit = onHandleSubmit
@@ -107,7 +108,7 @@ const EmptyInputCard = ({
                   ref={fileInputReference}
                   type="file"
                   multiple
-                  accept=".pdf,.doc,.docx,.txt,.csv,.json,.png,.jpg,.jpeg,.gif,.svg"
+                  accept={accept}
                   onChange={handleFileChange}
                   disabled={disabled}
                   className="hidden"
@@ -143,6 +144,7 @@ EmptyInputCard.propTypes = {
   onRemoveFile: PropTypes.func,
   // ref can be a callback or an object created by useRef
   fileInputReference: PropTypes.oneOfType([PropTypes.func, PropTypes.object]),
+  accept: PropTypes.string,
   disabled: PropTypes.bool,
 }
 
@@ -152,6 +154,7 @@ EmptyInputCard.defaultProps = {
   attachedFiles: [],
   onRemoveFile: () => {},
   fileInputReference: null,
+  accept: undefined,
   disabled: false,
 }
 

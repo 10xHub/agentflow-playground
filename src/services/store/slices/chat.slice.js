@@ -24,6 +24,13 @@ import {
   finishStreamEvents,
   recordStreamEvent,
 } from "./events.slice"
+import {
+  startRun,
+  accumulateRunUsage,
+  bumpRunToolCount,
+  setRunFinalMessage,
+  finishRun,
+} from "./runs.slice"
 import { updateFullState, fetchThreadState } from "./state.slice"
 import {
   setConfig,
@@ -231,12 +238,12 @@ const syncThreadMetadata = (dispatch, threadId, metadata = {}) => {
 
 const normalizeThreadDetails = (response) => {
   if (response?.data?.thread_data) {
-    const thread = response.data.thread_data.thread
+    const { thread } = response.data.thread_data
     return thread && typeof thread === "object" ? thread : null
   }
 
   if (response?.data?.thread) {
-    const thread = response.data.thread
+    const { thread } = response.data
     return thread && typeof thread === "object" ? thread : null
   }
 
@@ -579,12 +586,43 @@ const dispatchMessageEntries = (dispatch, threadId, entries) => {
   })
 }
 
-const createStreamState = (threadId) => ({
-  prefix: `${threadId}:${Date.now()}`,
-  textContent: "",
-  toolCallIds: new Map(),
-  toolResultIds: new Map(),
-})
+const createRunId = (threadId) =>
+  `${threadId}:run:${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+
+const createStreamState = (threadId) => {
+  const prefix = `${threadId}:${Date.now()}`
+  return {
+    prefix,
+    runId: prefix,
+    textContent: "",
+    toolCallIds: new Map(),
+    toolResultIds: new Map(),
+  }
+}
+
+// Count tool_call blocks across a list of API messages (for the run readout).
+const countToolCalls = (messages = []) =>
+  messages.reduce((total, message) => {
+    const blocks = Array.isArray(message?.content) ? message.content : []
+    const blockCalls = blocks.filter(
+      (block) => block?.type === "tool_call"
+    ).length
+    const arrayCalls = Array.isArray(message?.tools_calls)
+      ? message.tools_calls.length
+      : 0
+    return total + Math.max(blockCalls, arrayCalls)
+  }, 0)
+
+// Id of the assistant text entry the inline run readout attaches to.
+const finalAssistantEntryId = (messages = []) => {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index]
+    if (message?.role && message.role !== "user" && message.role !== "tool") {
+      return `${getMessageId(message)}:text`
+    }
+  }
+  return null
+}
 
 const getStreamEntryId = (map, key, fallbackId) => {
   if (!map.has(key)) {
@@ -1082,11 +1120,30 @@ export const stopStreaming = (threadId) => (dispatch, getState) => {
 export const invokeAssistantAnswer = (threadId, body) => async (dispatch) => {
   dispatch(setGenerating({ threadId, value: true }))
   let activeThreadId = threadId
+  const runId = createRunId(threadId)
+  dispatch(startRun({ runId, threadId, mode: "invoke", startedAt: Date.now() }))
 
   try {
     const response = await invokeGraph(body)
-    activeThreadId = handleInvokeResponse(dispatch, threadId, response)
+    activeThreadId = handleInvokeResponse(dispatch, threadId, response, runId)
+    dispatch(
+      finishRun({
+        runId,
+        threadId: activeThreadId,
+        status: "done",
+        finishedAt: Date.now(),
+        iterations: response?.iterations || 1,
+        toolCallCount: countToolCalls(
+          response?.all_messages?.length
+            ? response.all_messages
+            : response?.messages
+        ),
+      })
+    )
   } catch (error) {
+    dispatch(
+      finishRun({ runId, threadId, status: "error", finishedAt: Date.now() })
+    )
     dispatch(setError(error?.message || "Invoke failed"))
     dispatch(
       addMessage({
@@ -1109,7 +1166,7 @@ export const invokeAssistantAnswer = (threadId, body) => async (dispatch) => {
   }
 }
 
-const handleInvokeResponse = (dispatch, threadId, response) => {
+const handleInvokeResponse = (dispatch, threadId, response, runId) => {
   const messages = response?.messages || []
   const meta = response?.meta || {}
   const context = response?.context || []
@@ -1124,6 +1181,29 @@ const handleInvokeResponse = (dispatch, threadId, response) => {
         total_tokens: estimateContextTokens(context),
       })
     )
+  }
+
+  // Aggregate per-message token usage across every step of the run.
+  if (runId) {
+    const usageMessages = response?.all_messages?.length
+      ? response.all_messages
+      : messages
+    usageMessages.forEach((message) => {
+      if (message?.usages) {
+        dispatch(
+          accumulateRunUsage({
+            runId,
+            messageId: message.message_id || message.id,
+            usages: message.usages,
+          })
+        )
+      }
+    })
+
+    const finalId = finalAssistantEntryId(messages)
+    if (finalId) {
+      dispatch(setRunFinalMessage({ runId, finalMessageId: finalId }))
+    }
   }
 
   messages.forEach((message) => {
@@ -1150,6 +1230,9 @@ export const streamAssistantAnswer = (threadId, body) => async (dispatch) => {
 
   let activeThreadId = threadId
   const streamState = createStreamState(threadId)
+  const { runId } = streamState
+  let runStatus = "done"
+  dispatch(startRun({ runId, threadId, mode: "stream", startedAt: Date.now() }))
 
   try {
     activeThreadId = await processStream(
@@ -1160,7 +1243,10 @@ export const streamAssistantAnswer = (threadId, body) => async (dispatch) => {
       streamState
     )
   } catch (error) {
-    if (error?.name !== "AbortError") {
+    if (error?.name === "AbortError") {
+      runStatus = "stopped"
+    } else {
+      runStatus = "error"
       dispatch(setError(error?.message || "Stream failed"))
       dispatch(
         addMessage({
@@ -1176,6 +1262,20 @@ export const streamAssistantAnswer = (threadId, body) => async (dispatch) => {
       )
     }
   } finally {
+    dispatch(
+      setRunFinalMessage({
+        runId,
+        finalMessageId: `${streamState.prefix}:assistant`,
+      })
+    )
+    dispatch(
+      finishRun({
+        runId,
+        threadId: activeThreadId,
+        status: runStatus,
+        finishedAt: Date.now(),
+      })
+    )
     dispatch(setGenerating({ threadId: activeThreadId, value: false }))
     dispatch(clearAbortController(activeThreadId))
     dispatch(finishStreamEvents(activeThreadId))
@@ -1240,8 +1340,19 @@ const handleStreamChunk = (dispatch, threadId, data, streamState) => {
   }
 
   if (data.message.role === "tool") {
+    dispatch(bumpRunToolCount({ runId: streamState.runId, count: 1 }))
     handleToolStreamMessage(dispatch, threadId, data, streamState)
     return threadId
+  }
+
+  if (data.message.usages) {
+    dispatch(
+      accumulateRunUsage({
+        runId: streamState.runId,
+        messageId: data.message.message_id || data.message.id,
+        usages: data.message.usages,
+      })
+    )
   }
 
   handleAssistantStreamMessage(dispatch, threadId, data, streamState)

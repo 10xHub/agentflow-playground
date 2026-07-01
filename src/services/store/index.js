@@ -39,11 +39,34 @@ const dropMemoryStore = createTransform(
   { whitelist: [ct.store.MEMORY_STORE] }
 )
 
+// Per-run token readouts are session-only: run records reference live message
+// ids that don't survive a reload, so never persist them.
+const dropRunsStore = createTransform(
+  (inboundState, key) =>
+    key === ct.store.RUNS_STORE ? undefined : inboundState,
+  (outboundState) => outboundState,
+  { whitelist: [ct.store.RUNS_STORE] }
+)
+
+// Multimodal limits are live server config tied to the active backend; never
+// persist them so a backend switch or reload always re-fetches fresh values.
+const dropMultimodalStore = createTransform(
+  (inboundState, key) =>
+    key === ct.store.MULTIMODAL_STORE ? undefined : inboundState,
+  (outboundState) => outboundState,
+  { whitelist: [ct.store.MULTIMODAL_STORE] }
+)
+
 export const config = {
   key: "root",
   storage,
   debug: import.meta.env.DEV,
-  transforms: [stripNonSerializableFromChat, dropMemoryStore],
+  transforms: [
+    stripNonSerializableFromChat,
+    dropMemoryStore,
+    dropRunsStore,
+    dropMultimodalStore,
+  ],
 }
 
 const resetEnhancer = (root) => (state, action) => {

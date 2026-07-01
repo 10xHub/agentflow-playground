@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Agentflow Playground — Memory Inspector</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Fira+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg:#0B0C0E; --surface:#131417; --surface-2:#17181C; --elevated:#1C1D22;
+    --border:#26272D; --border-strong:#33353D; --text:#ECEDEF; --text-secondary:#9A9EA7;
+    --text-muted:#63676F; --accent:#3ECF8E; --accent-weak:rgba(62,207,142,0.12);
+    --danger:#F26D6D; --danger-weak:rgba(242,109,109,0.1); --warn:#E5B567; --warn-weak:rgba(229,181,103,0.1);
+    --btn-bg:#F2F3F5; --btn-text:#0B0C0E; --focus-ring:rgba(236,237,239,0.10);
+    /* memory_type categorical colors (7 real enum values) */
+    --t-episodic:#8B87F5; --t-semantic:#8FB8FF; --t-procedural:#E5B567; --t-entity:#6FB6C9;
+    --t-relationship:#D98FA8; --t-declarative:#C3A6E6; --t-custom:#9A9EA7;
+    --sans:"Fira Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    --mono:"Fira Code",ui-monospace,"SF Mono",Menlo,monospace;
+  }
+  html[data-theme="light"] {
+    --bg:#FBFBFC; --surface:#FFFFFF; --surface-2:#F7F8F9; --elevated:#F1F2F4;
+    --border:#E6E7EA; --border-strong:#D6D8DD; --text:#16181D; --text-secondary:#5C616B;
+    --text-muted:#9297A1; --accent:#1BA674; --accent-weak:rgba(27,166,116,0.10);
+    --danger:#D64545; --danger-weak:rgba(214,69,69,0.08); --warn:#B4801E; --warn-weak:rgba(180,128,30,0.09);
+    --t-episodic:#6257D6; --t-semantic:#3F6FD1; --t-procedural:#B4801E; --t-entity:#2E8DA6;
+    --t-relationship:#C25E86; --t-declarative:#8A5FC7; --t-custom:#5C616B;
+    --btn-bg:#16181D; --btn-text:#FFFFFF; --focus-ring:rgba(22,24,29,0.08);
+  }
+  * { box-sizing:border-box; }
+  html,body { height:100%; }
+  body { margin:0; height:100vh; display:flex; flex-direction:column; overflow:hidden; background:var(--bg); color:var(--text); font-family:var(--sans); font-size:13px; line-height:1.5; -webkit-font-smoothing:antialiased; }
+  @media (prefers-reduced-motion:reduce){ *{animation:none!important;transition:none!important;} }
+  .mono { font-family:var(--mono); }
+  ::-webkit-scrollbar { width:10px; height:10px; }
+  ::-webkit-scrollbar-thumb { background:var(--elevated); border:3px solid transparent; background-clip:padding-box; border-radius:8px; }
+  ::-webkit-scrollbar-thumb:hover { background:var(--border-strong); background-clip:padding-box; }
+
+  /* ---- connection bar ---- */
+  .connbar { display:flex; align-items:center; gap:14px; height:48px; padding:0 14px 0 16px; border-bottom:1px solid var(--border); flex:none; background:var(--surface); }
+  .brand { display:flex; align-items:center; gap:9px; }
+  .mark { width:20px; height:20px; border:1.5px solid var(--text); border-radius:6px; position:relative; flex:none; }
+  .mark::after { content:""; position:absolute; inset:4px; border-radius:2px; border:1.5px solid var(--text-secondary); }
+  .wordmark { font-family:var(--mono); font-size:12.5px; font-weight:500; letter-spacing:-0.01em; }
+  .wordmark .dim { color:var(--text-muted); }
+  .sep { width:1px; height:22px; background:var(--border); }
+  .conn-pill { display:flex; align-items:center; gap:9px; height:30px; padding:0 10px; background:var(--elevated); border:1px solid var(--border); border-radius:8px; cursor:pointer; transition:border-color .15s; }
+  .conn-pill:hover { border-color:var(--border-strong); }
+  .dot { width:7px; height:7px; border-radius:50%; flex:none; }
+  .dot.live { background:var(--accent); box-shadow:0 0 0 3px var(--accent-weak); }
+  .conn-name { font-size:12.5px; font-weight:500; }
+  .conn-url { font-family:var(--mono); font-size:11px; color:var(--text-muted); }
+  .chev { color:var(--text-muted); }
+  .cap-pill { display:flex; align-items:center; gap:7px; height:30px; padding:0 11px; border:1px solid rgba(62,207,142,0.28); background:var(--accent-weak); border-radius:8px; font-family:var(--mono); font-size:11px; color:var(--accent); }
+  .cap-pill .cd { width:6px; height:6px; border-radius:50%; background:var(--accent); }
+  .grow { flex:1; }
+  .cb-actions { display:flex; align-items:center; gap:4px; }
+  .iconbtn { height:30px; min-width:30px; padding:0 9px; display:flex; align-items:center; gap:7px; justify-content:center; background:transparent; border:1px solid transparent; border-radius:8px; color:var(--text-secondary); font-family:var(--sans); font-size:12px; cursor:pointer; transition:color .15s,border-color .15s,background .15s; }
+  .iconbtn:hover { color:var(--text); border-color:var(--border-strong); }
+  .iconbtn svg { stroke:currentColor; }
+
+  /* ---- shell ---- */
+  .shell { flex:1; display:grid; grid-template-columns:230px 232px 372px 1fr; min-height:0; }
+
+  /* ---- sidebar ---- */
+  .side { border-right:1px solid var(--border); background:var(--surface); display:flex; flex-direction:column; min-height:0; }
+  .side-scroll { flex:1; overflow-y:auto; padding:14px 10px 8px; }
+  .navgroup { margin-bottom:16px; }
+  .navgroup-h { font-size:10.5px; letter-spacing:0.11em; text-transform:uppercase; color:var(--text-muted); font-weight:500; padding:0 8px; margin-bottom:6px; }
+  .navitem { display:flex; align-items:center; gap:10px; padding:7px 8px; border-radius:8px; color:var(--text-secondary); cursor:pointer; font-size:13px; font-weight:500; position:relative; transition:color .15s,background .15s; margin-bottom:1px; }
+  .navitem:hover { color:var(--text); background:var(--elevated); }
+  .navitem.active { color:var(--text); background:var(--elevated); }
+  .navitem.active::before { content:""; position:absolute; left:-10px; top:7px; bottom:7px; width:2px; border-radius:2px; background:var(--accent); }
+  .navitem svg { flex:none; stroke:currentColor; opacity:.85; }
+  .navitem .badge { margin-left:auto; font-family:var(--mono); font-size:10px; color:var(--text-muted); background:var(--surface-2); border:1px solid var(--border); padding:0 6px; border-radius:5px; }
+  .side-foot { border-top:1px solid var(--border); padding:8px 10px; }
+
+  /* ---- facets column ---- */
+  .facets { border-right:1px solid var(--border); background:var(--surface); display:flex; flex-direction:column; min-height:0; }
+  .facets-scroll { flex:1; overflow-y:auto; padding:14px 12px; }
+  .scope-card { border:1px solid var(--border); border-radius:10px; background:var(--surface-2); padding:12px; margin-bottom:16px; }
+  .scope-h { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+  .scope-h .t { font-size:12px; font-weight:600; }
+  .reload { display:flex; align-items:center; gap:6px; height:24px; padding:0 8px; border:1px solid var(--border); border-radius:6px; background:transparent; color:var(--text-secondary); font-family:var(--sans); font-size:10.5px; cursor:pointer; transition:color .15s,border-color .15s; }
+  .reload:hover { color:var(--text); border-color:var(--border-strong); }
+  .reload svg { stroke:currentColor; }
+  .skv { display:flex; align-items:center; justify-content:space-between; padding:5px 0; font-family:var(--mono); font-size:11px; }
+  .skv .k { color:var(--text-muted); } .skv .v { color:var(--text-secondary); }
+  .col-input { width:150px; text-align:right; background:transparent; border:1px solid transparent; border-radius:6px; color:var(--text-secondary); font-family:var(--mono); font-size:11px; padding:2px 6px; outline:none; transition:border-color .15s,color .15s,background .15s; cursor:text; }
+  .col-input:hover { border-color:var(--border); color:var(--text); }
+  .col-input:focus { border-color:var(--text-secondary); background:var(--elevated); color:var(--text); box-shadow:0 0 0 3px var(--focus-ring); }
+  .col-edit-hint { display:flex; align-items:center; gap:4px; color:var(--text-muted); }
+  .col-edit-hint svg { stroke:var(--text-muted); }
+  .scope-note { margin-top:9px; padding-top:9px; border-top:1px dashed var(--border); font-size:10.5px; color:var(--text-muted); line-height:1.5; }
+  .scope-note b { color:var(--text-secondary); font-weight:500; }
+
+  .fg { margin-bottom:18px; }
+  .fg-h { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; padding:0 2px; }
+  .fg-h .lbl { font-size:10.5px; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-muted); font-weight:500; }
+  .fg-h .all { font-family:var(--mono); font-size:10px; color:var(--text-muted); cursor:pointer; }
+  .fg-h .all:hover { color:var(--text-secondary); }
+  .frow { display:flex; align-items:center; gap:9px; padding:6px 8px; border-radius:7px; cursor:pointer; transition:background .12s; }
+  .frow:hover { background:var(--elevated); }
+  .frow .ck { width:14px; height:14px; border-radius:4px; border:1.5px solid var(--border-strong); flex:none; display:grid; place-items:center; }
+  .frow.on .ck { background:var(--accent); border-color:var(--accent); }
+  .frow .ck svg { stroke:var(--btn-text); opacity:0; } .frow.on .ck svg { opacity:1; }
+  .frow .fd { width:7px; height:7px; border-radius:2px; flex:none; }
+  .frow .fname { font-family:var(--mono); font-size:11.5px; color:var(--text-secondary); flex:1; }
+  .frow.on .fname { color:var(--text); }
+  .frow .fn { font-family:var(--mono); font-size:10.5px; color:var(--text-muted); }
+  /* category chips */
+  .cat-list { display:flex; flex-direction:column; gap:2px; }
+  .catrow { display:flex; align-items:center; gap:8px; padding:6px 8px; border-radius:7px; cursor:pointer; font-family:var(--mono); font-size:11.5px; color:var(--text-secondary); transition:background .12s,color .12s; }
+  .catrow:hover { background:var(--elevated); color:var(--text); }
+  .catrow.on { background:var(--elevated); color:var(--text); }
+  .catrow .fn { margin-left:auto; font-size:10.5px; color:var(--text-muted); }
+
+  .fd.episodic{background:var(--t-episodic);} .fd.semantic{background:var(--t-semantic);} .fd.procedural{background:var(--t-procedural);}
+  .fd.entity{background:var(--t-entity);} .fd.relationship{background:var(--t-relationship);} .fd.declarative{background:var(--t-declarative);} .fd.custom{background:var(--t-custom);}
+
+  /* ---- memory list column ---- */
+  .list { border-right:1px solid var(--border); background:var(--surface); display:flex; flex-direction:column; min-height:0; }
+  .list-head { padding:12px 14px 11px; border-bottom:1px solid var(--border); flex:none; }
+  .modeseg { display:flex; background:var(--elevated); border:1px solid var(--border); border-radius:8px; padding:2px; margin-bottom:11px; }
+  .modeseg button { flex:1; border:none; background:transparent; color:var(--text-secondary); font-family:var(--sans); font-size:12px; font-weight:500; padding:6px 0; border-radius:6px; cursor:pointer; transition:color .15s,background .15s; }
+  .modeseg button.on { background:var(--surface); color:var(--text); }
+  .search { display:flex; align-items:center; gap:8px; height:34px; padding:0 10px; background:var(--elevated); border:1px solid var(--border); border-radius:8px; transition:border-color .15s; }
+  .search:focus-within { border-color:var(--text-secondary); }
+  .search svg { stroke:var(--text-muted); flex:none; }
+  .search input { border:none; background:transparent; outline:none; color:var(--text); font-family:var(--mono); font-size:12px; width:100%; }
+  .search input::placeholder { color:var(--text-muted); }
+  .row-2 { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:9px; }
+  .sel { height:32px; padding:0 26px 0 10px; background:var(--elevated); border:1px solid var(--border); border-radius:8px; color:var(--text-secondary); font-family:var(--mono); font-size:11px; cursor:pointer; appearance:none; width:100%;
+    background-image:url("data:image/svg+xml,%3Csvg width='10' height='6' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2363676F' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 9px center; }
+  .sel:focus { border-color:var(--text-secondary); outline:none; }
+
+  .list-sub { display:flex; align-items:center; justify-content:space-between; padding:8px 14px; border-bottom:1px solid var(--border); flex:none; font-family:var(--mono); font-size:10.5px; color:var(--text-muted); }
+  .forget { display:flex; align-items:center; gap:6px; height:26px; padding:0 9px; border:1px solid var(--border); border-radius:7px; background:transparent; color:var(--text-secondary); font-family:var(--sans); font-size:11px; font-weight:500; cursor:pointer; transition:color .15s,border-color .15s,background .15s; }
+  .forget:hover { color:var(--danger); border-color:var(--danger); background:var(--danger-weak); }
+  .forget svg { stroke:currentColor; }
+
+  .rows { flex:1; overflow-y:auto; }
+  .mrow { padding:11px 14px; border-bottom:1px solid var(--border); cursor:pointer; position:relative; transition:background .12s; }
+  .mrow:hover { background:var(--surface-2); }
+  .mrow.active { background:var(--elevated); }
+  .mrow.active::before { content:""; position:absolute; left:0; top:0; bottom:0; width:2px; background:var(--accent); }
+  .mrow-top { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+  .tbadge { display:flex; align-items:center; gap:6px; font-family:var(--mono); font-size:9.5px; padding:2px 7px; border-radius:5px; border:1px solid var(--border); color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.03em; }
+  .tbadge .fd { width:5px; height:5px; border-radius:2px; }
+  .mrow-score { margin-left:auto; display:flex; align-items:center; gap:7px; }
+  .mrow-score .n { font-family:var(--mono); font-size:11px; color:var(--accent); }
+  .mrow-score .bar { width:38px; height:4px; border-radius:3px; background:var(--elevated); overflow:hidden; }
+  .mrow-score .bar i { display:block; height:100%; background:var(--accent); }
+  .mrow-text { font-size:12.5px; line-height:1.45; color:var(--text); margin-bottom:6px; }
+  .mrow-meta { display:flex; align-items:center; gap:9px; font-family:var(--mono); font-size:10px; color:var(--text-muted); }
+  .mrow-meta .mk { color:var(--text-secondary); }
+
+  .pager { flex:none; display:flex; align-items:center; justify-content:space-between; padding:9px 14px; border-top:1px solid var(--border); font-family:var(--mono); font-size:11px; color:var(--text-muted); }
+  .loadmore { display:flex; align-items:center; gap:6px; height:26px; padding:0 10px; border:1px solid var(--border); border-radius:7px; background:transparent; color:var(--text-secondary); font-family:var(--sans); font-size:11px; font-weight:500; cursor:pointer; transition:color .15s,border-color .15s; }
+  .loadmore:hover { color:var(--text); border-color:var(--border-strong); } .loadmore svg { stroke:currentColor; }
+
+  /* ---- detail ---- */
+  .detail { display:flex; flex-direction:column; min-width:0; min-height:0; background:var(--bg); }
+  .d-head { padding:15px 22px; border-bottom:1px solid var(--border); flex:none; display:flex; align-items:flex-start; gap:14px; }
+  .d-id { font-family:var(--mono); font-size:13px; color:var(--text-muted); margin-bottom:8px; }
+  .d-badges { display:flex; align-items:center; gap:8px; }
+  .d-actions { margin-left:auto; display:flex; gap:7px; }
+  .tbtn { display:flex; align-items:center; gap:7px; height:32px; padding:0 12px; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--text-secondary); font-family:var(--sans); font-size:12px; font-weight:500; cursor:pointer; transition:color .15s,border-color .15s,background .15s; }
+  .tbtn:hover { color:var(--text); border-color:var(--border-strong); }
+  .tbtn.danger:hover { color:var(--danger); border-color:var(--danger); background:var(--danger-weak); }
+  .tbtn svg { stroke:currentColor; }
+
+  .d-body { flex:1; overflow-y:auto; padding:20px 22px 28px; }
+  .sec-h { font-size:10.5px; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-muted); font-weight:500; margin:0 0 10px; }
+  .content-box { border:1px solid var(--border); border-radius:10px; background:var(--surface); padding:16px 18px; font-size:14px; line-height:1.6; color:var(--text); margin-bottom:22px; }
+
+  .match { border:1px solid rgba(62,207,142,0.25); border-radius:10px; background:var(--accent-weak); padding:15px 16px; margin-bottom:22px; }
+  .match-h { display:flex; align-items:center; gap:8px; font-size:12px; font-weight:600; color:var(--accent); margin-bottom:12px; }
+  .match-h svg { stroke:var(--accent); }
+  .match .kv { border-bottom-color:rgba(62,207,142,0.18); }
+
+  .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:22px; }
+  .card { border:1px solid var(--border); border-radius:10px; background:var(--surface); padding:15px 16px; }
+  .kv { display:flex; align-items:center; justify-content:space-between; padding:7px 0; border-bottom:1px dashed var(--border); font-family:var(--mono); font-size:11.5px; gap:12px; }
+  .kv:last-child { border-bottom:none; }
+  .kv .k { color:var(--text-secondary); flex:none; } .kv .v { color:var(--text); text-align:right; word-break:break-all; }
+  .kv .v.ok { color:var(--accent); } .kv .v.muted { color:var(--text-muted); }
+
+  .meta-json { border:1px solid var(--border); border-radius:10px; background:var(--surface); padding:14px 16px; font-family:var(--mono); font-size:11.5px; line-height:1.75; color:var(--text-secondary); white-space:pre; overflow-x:auto; margin-bottom:22px; }
+  .meta-json .key { color:var(--t-semantic); } .meta-json .str { color:var(--accent); }
+
+  .emb { display:flex; align-items:flex-end; gap:2px; height:34px; margin-top:4px; }
+  .emb i { flex:1; border-radius:2px; opacity:.55; }
+  .emb-meta { font-family:var(--mono); font-size:10.5px; color:var(--text-muted); margin-top:8px; }
+</style>
+</head>
+<body>
+  <!-- CONNECTION BAR -->
+  <div class="connbar">
+    <div class="brand"><span class="mark"></span><span class="wordmark">agentflow<span class="dim">/playground</span></span></div>
+    <div class="sep"></div>
+    <div class="conn-pill">
+      <span class="dot live"></span><span class="conn-name">Production</span><span class="conn-url">api.acme.com</span>
+      <svg class="chev" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="cap-pill"><span class="cd"></span>store · qdrant</div>
+    <div class="grow"></div>
+    <div class="cb-actions">
+      <button class="iconbtn" onclick="toggleTheme()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><path d="M21 12.8A9 9 0 1111.2 3 7 7 0 0021 12.8z"/></svg></button>
+      <button class="iconbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.6 1.6 0 00-2.7.7 1.6 1.6 0 01-3.2 0 1.6 1.6 0 00-2.7-.7l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.6 1.6 0 00-.7-2.7 1.6 1.6 0 010-3.2 1.6 1.6 0 00.7-2.7l-.1-.1a2 2 0 112.8-2.8l.1.1a1.6 1.6 0 001.8.3H9a1.6 1.6 0 001-1.5 1.6 1.6 0 013.2 0 1.6 1.6 0 001 1.5 1.6 1.6 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.6 1.6 0 00-.3 1.8V9a1.6 1.6 0 001.5 1 1.6 1.6 0 010 3.2 1.6 1.6 0 00-1.5 1z"/></svg></button>
+    </div>
+  </div>
+
+  <!-- SHELL -->
+  <div class="shell">
+    <!-- SIDEBAR -->
+    <aside class="side">
+      <div class="side-scroll">
+        <div class="navgroup">
+          <div class="navgroup-h">Interact</div>
+          <div class="navitem"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>Chat</div>
+          <div class="navitem"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><path d="M12 2a3 3 0 00-3 3v6a3 3 0 006 0V5a3 3 0 00-3-3z"/><path d="M19 10v1a7 7 0 01-14 0v-1M12 18v4"/></svg>Live</div>
+        </div>
+        <div class="navgroup">
+          <div class="navgroup-h">Inspect</div>
+          <div class="navitem"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><path d="M3 5h18M3 12h18M3 19h18"/></svg>Thread Inspector <span class="badge">142</span></div>
+          <div class="navitem"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><path d="M3 3v18h18"/><path d="M7 14l3-4 3 3 4-6"/></svg>Observability</div>
+          <div class="navitem"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><path d="M9 11l3 3 8-8"/><path d="M20 12v6a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h9"/></svg>Evals</div>
+          <div class="navitem active"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg>Memory Inspector</div>
+        </div>
+        <div class="navgroup">
+          <div class="navgroup-h">Build</div>
+          <div class="navitem"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><circle cx="6" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><circle cx="18" cy="6" r="3"/><path d="M9 6h6M18 9v6"/></svg>Graph</div>
+          <div class="navitem"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><path d="M14.7 6.3a4 4 0 00-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 005.4-5.4l-2.6 2.6-2.4-2.4z"/></svg>Tools &amp; MCP</div>
+          <div class="navitem"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/><path d="M13 2v7h7"/></svg>Files</div>
+        </div>
+      </div>
+      <div class="side-foot">
+        <div class="navitem"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 00.3 1.8M4.6 9a1.6 1.6 0 00-.3-1.8"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>Settings</div>
+      </div>
+    </aside>
+
+    <!-- FACETS -->
+    <aside class="facets">
+      <div class="facets-scroll">
+        <div class="scope-card">
+          <div class="scope-h"><span class="t">Store scope</span>
+            <button class="reload"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M20 11a8 8 0 10-2.3 5.7M20 4v7h-7"/></svg>Reload</button>
+          </div>
+          <div class="skv"><span class="k col-edit-hint"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>collection</span>
+            <input class="col-input" id="colInput" list="colList" value="agentflow_memories" spellcheck="false" onchange="changeCollection()" title="Passed as config.collection — type any collection name" />
+            <datalist id="colList"><option value="agentflow_memories"></option><option value="acme_memories"></option><option value="support_kb"></option></datalist>
+          </div>
+          <div class="skv"><span class="k">user_id</span><span class="v">u_8842</span></div>
+          <div class="skv"><span class="k">loaded</span><span class="v" id="loadedN">128 / 128</span></div>
+          <div class="scope-note"><b>Token-scoped.</b> The store API pins <span class="mono">user_id</span> to the connected token server-side; there is no cross-user list. Set <span class="mono">collection</span> to inspect a non-default one — it's sent as <span class="mono">config.collection</span> (no list-collections endpoint exists, so type the name).</div>
+        </div>
+
+        <div class="fg">
+          <div class="fg-h"><span class="lbl">Memory type</span><span class="all" onclick="allTypes()">all</span></div>
+          <div id="typeFacets"></div>
+        </div>
+
+        <div class="fg">
+          <div class="fg-h"><span class="lbl">Category</span><span class="all" onclick="setCat(null,event)">all</span></div>
+          <div class="cat-list" id="catFacets"></div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MEMORY LIST -->
+    <section class="list">
+      <div class="list-head">
+        <div class="modeseg">
+          <button class="on" onclick="setMode('browse',this)">Browse loaded</button>
+          <button onclick="setMode('search',this)">Search</button>
+        </div>
+
+        <div id="mode-browse">
+          <div class="search">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+            <input placeholder="Filter loaded memories by content…" spellcheck="false" />
+          </div>
+        </div>
+
+        <div id="mode-search" style="display:none">
+          <div class="search">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+            <input value="what does the user like to drink" spellcheck="false" />
+          </div>
+          <div class="row-2">
+            <select class="sel" title="retrieval_strategy"><option>SIMILARITY</option><option>TEMPORAL</option><option>RELEVANCE</option><option>HYBRID</option><option>GRAPH_TRAVERSAL</option></select>
+            <select class="sel" title="distance_metric"><option>cosine</option><option>dot_product</option><option>euclidean</option><option>manhattan</option></select>
+          </div>
+        </div>
+      </div>
+
+      <div class="list-sub">
+        <span id="listCount"></span>
+        <button class="forget" id="forgetBtn" onclick="confirmForget(this)">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+          Forget filtered
+        </button>
+      </div>
+
+      <div class="rows" id="rows"></div>
+
+      <div class="pager">
+        <span id="pagerText">128 of 128 loaded</span>
+        <button class="loadmore"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M12 5v14M5 12l7 7 7-7"/></svg>Load 100 more</button>
+      </div>
+    </section>
+
+    <!-- DETAIL -->
+    <section class="detail">
+      <div class="d-head">
+        <div>
+          <div class="d-id" id="dId">mem_a71f3c2d…c04</div>
+          <div class="d-badges">
+            <span class="tbadge" id="dType"><span class="fd semantic"></span>semantic</span>
+            <span class="tbadge" id="dCat" style="text-transform:none;letter-spacing:0">preferences</span>
+          </div>
+        </div>
+        <div class="d-actions">
+          <button class="tbtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>Edit</button>
+          <button class="tbtn danger" id="delBtn" onclick="confirmDelete(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6M10 11v6M14 11v6"/></svg>Delete</button>
+        </div>
+      </div>
+
+      <div class="d-body">
+        <div class="sec-h">Content</div>
+        <div class="content-box" id="dContent">User prefers oat-milk lattes with no added sugar.</div>
+
+        <div class="match" id="matchCard" style="display:none">
+          <div class="match-h">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+            Why this matched
+          </div>
+          <div class="kv"><span class="k">query</span><span class="v">"what does the user like to drink"</span></div>
+          <div class="kv"><span class="k">retrieval_strategy</span><span class="v">SIMILARITY</span></div>
+          <div class="kv"><span class="k">distance_metric</span><span class="v">cosine</span></div>
+          <div class="kv"><span class="k">score</span><span class="v ok" id="dScore">0.91</span></div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="sec-h">Record</div>
+            <div class="kv"><span class="k">memory_type</span><span class="v" id="dTypeV">semantic</span></div>
+            <div class="kv"><span class="k">category</span><span class="v" id="dCatV">preferences</span></div>
+            <div class="kv"><span class="k">user_id</span><span class="v" id="dUser">u_8842</span></div>
+            <div class="kv"><span class="k">thread_id</span><span class="v" id="dThread">th_2a8f…b60</span></div>
+            <div class="kv"><span class="k">timestamp</span><span class="v" id="dTs">2026-06-18 09:41</span></div>
+          </div>
+          <div class="card">
+            <div class="sec-h">Vector</div>
+            <div class="emb" id="emb"></div>
+            <div class="emb-meta">1536 dims · cosine</div>
+            <div class="kv" style="margin-top:12px"><span class="k">collection</span><span class="v" id="dColV">agentflow_memories</span></div>
+            <div class="kv"><span class="k">id</span><span class="v" id="dIdV">mem_a71f…c04</span></div>
+          </div>
+        </div>
+
+        <div class="sec-h">metadata</div>
+        <div class="meta-json" id="dMeta">{
+  <span class="key">"memory_key"</span>: <span class="str">"drink_preference"</span>,
+  <span class="key">"source"</span>: <span class="str">"long_term_memory"</span>,
+  <span class="key">"confidence"</span>: <span class="str">0.86</span>
+}</div>
+      </div>
+    </section>
+  </div>
+
+<script>
+  function toggleTheme(){ const h=document.documentElement,l=h.getAttribute('data-theme')==='light'; h.setAttribute('data-theme',l?'dark':'light'); }
+
+  // ---- data (fields match MemoryRecord / MemorySearchResult) ----
+  const TYPES=[
+    {k:'episodic',n:41},{k:'semantic',n:54},{k:'procedural',n:12},{k:'entity',n:9},
+    {k:'relationship',n:6},{k:'declarative',n:4},{k:'custom',n:2}
+  ];
+  const CATS=[
+    {k:'general',n:60},{k:'preferences',n:22},{k:'orders',n:18},{k:'health',n:9},
+    {k:'places',n:8},{k:'support',n:6},{k:'profile',n:5}
+  ];
+  const MEM=[
+    {id:'mem_a71f3c2d…c04',type:'semantic',cat:'preferences',thread:'th_2a8f…b60',ts:'2026-06-18 09:41',score:0.91,
+     content:'User prefers oat-milk lattes with no added sugar.',
+     meta:{memory_key:'drink_preference',source:'long_term_memory',confidence:0.86}},
+    {id:'mem_38dd91a0…9b1',type:'episodic',cat:'orders',thread:'th_71bd…9a2',ts:'2026-06-12 14:03',score:0.78,
+     content:'Ordered a flat white at Blue Bottle on 2026-06-12.',
+     meta:{source:'conversation'}},
+    {id:'mem_5c9a04f2…2ff',type:'semantic',cat:'health',thread:'—',ts:'2026-04-20 11:20',score:0.74,
+     content:'User is lactose intolerant.',
+     meta:{memory_key:'dietary_restriction',confidence:0.94}},
+    {id:'mem_e402ab7c…7ac',type:'entity',cat:'places',thread:'—',ts:'2026-05-30 18:02',score:0.55,
+     content:'Favorite coffee shop: Blue Bottle, Ferry Building, SF.',
+     meta:{memory_key:'favorite_cafe',entity:'Blue Bottle'}},
+    {id:'mem_11c8de40…0aa',type:'procedural',cat:'support',thread:'—',ts:'2026-05-14 08:11',score:0.31,
+     content:'To reset the user password: send a reset link to the email on file, then confirm receipt.',
+     meta:{memory_key:'password_reset_flow'}},
+    {id:'mem_7fa2b190…3e1',type:'relationship',cat:'general',thread:'—',ts:'2026-06-01 16:44',score:0.22,
+     content:'User works with Marco (u_1290) on the growth team.',
+     meta:{entity_a:'u_8842',entity_b:'u_1290',relation:'colleague'}},
+    {id:'mem_9d31c7e8…5bd',type:'declarative',cat:'profile',thread:'—',ts:'2026-04-02 10:00',score:0.18,
+     content:"User's timezone is America/Los_Angeles.",
+     meta:{memory_key:'timezone'}}
+  ];
+
+  const state={ mode:'browse', types:new Set(TYPES.map(t=>t.k)), cat:null };
+
+  function renderFacets(){
+    document.getElementById('typeFacets').innerHTML=TYPES.map(t=>{
+      const on=state.types.has(t.k);
+      return `<div class="frow ${on?'on':''}" onclick="toggleType('${t.k}')">
+        <span class="ck"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke-width="3.5"><path d="M20 6L9 17l-5-5"/></svg></span>
+        <span class="fd ${t.k}"></span><span class="fname">${t.k}</span><span class="fn">${t.n}</span></div>`;
+    }).join('');
+    document.getElementById('catFacets').innerHTML=CATS.map(c=>
+      `<div class="catrow ${state.cat===c.k?'on':''}" onclick="setCat('${c.k}',event)">${c.k}<span class="fn">${c.n}</span></div>`
+    ).join('');
+  }
+  function toggleType(k){ if(state.types.has(k)) state.types.delete(k); else state.types.add(k); renderFacets(); renderList(); }
+  function allTypes(){ state.types=new Set(TYPES.map(t=>t.k)); renderFacets(); renderList(); }
+  function setCat(k,e){ if(e) e.stopPropagation(); state.cat=(state.cat===k)?null:k; renderFacets(); renderList(); }
+
+  function filtered(){ return MEM.filter(m=>state.types.has(m.type) && (!state.cat || m.cat===state.cat)); }
+
+  function renderList(){
+    const list=filtered();
+    const search=state.mode==='search';
+    document.getElementById('rows').innerHTML=list.map((m,i)=>`
+      <div class="mrow ${i===0?'active':''}" onclick="selMem(${MEM.indexOf(m)})">
+        <div class="mrow-top">
+          <span class="tbadge"><span class="fd ${m.type}"></span>${m.type}</span>
+          <span class="mrow-score" style="display:${search?'flex':'none'}"><span class="bar"><i style="width:${Math.round(m.score*100)}%"></i></span><span class="n">${m.score.toFixed(2)}</span></span>
+        </div>
+        <div class="mrow-text">${m.content}</div>
+        <div class="mrow-meta">${m.meta.memory_key?`<span class="mk">${m.meta.memory_key}</span><span>·</span>`:''}<span>${m.cat}</span><span>· ${m.ts.split(' ')[0]}</span></div>
+      </div>`).join('');
+    document.getElementById('listCount').textContent=search
+      ? `${list.length} results · scored by SIMILARITY`
+      : `${list.length} of 128 loaded${state.cat?` · ${state.cat}`:''}`;
+    document.getElementById('matchCard') && (document.getElementById('matchCard').style.display=search?'block':'none');
+    if(list.length) selMem(MEM.indexOf(list[0]));
+  }
+
+  function setMode(mode,btn){
+    state.mode=mode;
+    document.querySelectorAll('.modeseg button').forEach(b=>b.classList.remove('on')); btn.classList.add('on');
+    document.getElementById('mode-browse').style.display=mode==='browse'?'block':'none';
+    document.getElementById('mode-search').style.display=mode==='search'?'block':'none';
+    renderList();
+  }
+
+  const TCOL={episodic:'--t-episodic',semantic:'--t-semantic',procedural:'--t-procedural',entity:'--t-entity',relationship:'--t-relationship',declarative:'--t-declarative',custom:'--t-custom'};
+  function selMem(idx){
+    const m=MEM[idx];
+    document.querySelectorAll('.mrow').forEach(r=>r.classList.remove('active'));
+    const rows=[...document.querySelectorAll('.mrow')];
+    const vis=filtered(); const vi=vis.indexOf(m); if(vi>=0&&rows[vi]) rows[vi].classList.add('active');
+    document.getElementById('dId').textContent=m.id;
+    document.getElementById('dIdV').textContent=m.id;
+    document.getElementById('dContent').textContent=m.content;
+    document.getElementById('dType').innerHTML=`<span class="fd ${m.type}"></span>${m.type}`;
+    document.getElementById('dCat').textContent=m.cat;
+    document.getElementById('dTypeV').textContent=m.type;
+    document.getElementById('dCatV').textContent=m.cat;
+    document.getElementById('dThread').textContent=m.thread;
+    document.getElementById('dTs').textContent=m.ts;
+    document.getElementById('dScore').textContent=m.score.toFixed(2);
+    // metadata json
+    const mj=Object.entries(m.meta).map(([k,v])=>`  <span class="key">"${k}"</span>: <span class="str">${typeof v==='string'?`"${v}"`:v}</span>`).join(',\n');
+    document.getElementById('dMeta').innerHTML='{\n'+mj+'\n}';
+    // vector
+    const col=getComputedStyle(document.documentElement).getPropertyValue(TCOL[m.type]);
+    const el=document.getElementById('emb'); el.innerHTML='';
+    for(let i=0;i<52;i++){ const b=document.createElement('i'); b.style.height=(18+Math.abs(Math.sin(i*1.7+m.type.length))*80)+'%'; b.style.background=col; el.appendChild(b); }
+    resetDelete();
+  }
+
+  function confirmDelete(btn){
+    if(btn.dataset.armed){ btn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M20 6L9 17l-5-5"/></svg>Deleted'; return; }
+    btn.dataset.armed='1'; btn.style.color='var(--danger)'; btn.style.borderColor='var(--danger)'; btn.style.background='var(--danger-weak)';
+    btn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M12 9v4M12 17h.01M10.3 3.9l-8 13.9A2 2 0 004 21h16a2 2 0 001.7-3.2l-8-13.9a2 2 0 00-3.4 0z"/></svg>Confirm delete?';
+  }
+  function resetDelete(){ const b=document.getElementById('delBtn'); delete b.dataset.armed; b.style.color=''; b.style.borderColor=''; b.style.background='';
+    b.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6M10 11v6M14 11v6"/></svg>Delete'; }
+  function confirmForget(btn){
+    if(btn.dataset.armed){ btn.innerHTML='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M20 6L9 17l-5-5"/></svg>Forgotten'; return; }
+    const n=filtered().length;
+    btn.dataset.armed='1'; btn.innerHTML=`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M12 9v4M12 17h.01M10.3 3.9l-8 13.9A2 2 0 004 21h16a2 2 0 001.7-3.2l-8-13.9a2 2 0 00-3.4 0z"/></svg>Confirm · forget ${n}?`;
+  }
+
+  function changeCollection(){
+    const c=(document.getElementById('colInput').value||'').trim()||'agentflow_memories';
+    document.getElementById('colInput').value=c;
+    // reload the store scope against the chosen collection (mock)
+    document.getElementById('dColV').textContent=c;
+    document.getElementById('loadedN').textContent='128 / 128';
+    renderFacets(); renderList();
+  }
+
+  renderFacets(); renderList();
+</script>
+</body>
+</html>
