@@ -17,10 +17,32 @@ export function useConnection() {
 
 // status: "idle" | "connecting" | "connected" | "error"
 
+// Map the form's auth mode onto the SDK's AgentFlowAuth union (bearer/basic/header).
+// bearer stays on the simpler authToken field; basic/header use the structured `auth`.
+function buildAuth(conn) {
+  if (conn.authMode === "basic") {
+    const username = (conn.authUsername || "").trim()
+    const password = conn.authPassword || ""
+    return username || password ? { type: "basic", username, password } : null
+  }
+  if (conn.authMode === "header") {
+    const name = (conn.authHeaderName || "").trim()
+    const value = (conn.authHeaderValue || "").trim()
+    const prefix = (conn.authHeaderPrefix || "").trim()
+    return name && value ? { type: "header", name, value, prefix: prefix || null } : null
+  }
+  return null
+}
+
 function buildClient(conn) {
   const baseUrl = validateAndNormalizeUrl(conn.backendUrl)
   const config = { baseUrl, timeout: 600000, debug: false }
-  if (conn.authMode === "bearer" && conn.authToken) config.authToken = conn.authToken.trim()
+  if (conn.authMode === "bearer" && conn.authToken) {
+    config.authToken = conn.authToken.trim()
+  } else {
+    const auth = buildAuth(conn)
+    if (auth) config.auth = auth
+  }
   return { client: new AgentFlowClient(config), baseUrl }
 }
 
@@ -99,6 +121,7 @@ export function ConnectionProvider({ children }) {
         backendUrl: baseUrl,
         authMode: normalized.authMode,
         authToken: normalized.authMode === "bearer" ? normalized.authToken : "",
+        auth: buildAuth(normalized),
       })
       if (remember) setSaved(upsertConnection(normalized))
 

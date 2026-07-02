@@ -1,6 +1,8 @@
+import { Provider } from "react-redux"
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom"
 
 import { ConnectionProvider } from "@/lib/connection/ConnectionContext"
+import { store } from "@/store"
 import AppShell from "@/components/shell/AppShell"
 import ChatPage from "@/pages/chat/ChatPage"
 import ConnectionPage from "@/pages/connect/ConnectionPage"
@@ -16,7 +18,8 @@ import ToolsPage from "@/pages/tools/ToolsPage"
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <Provider store={store}>
+      <BrowserRouter>
       <ConnectionProvider>
         <Routes>
         <Route path="/" element={<ConnectionPage />} />
@@ -35,6 +38,7 @@ export default function App() {
           <Route path="*" element={<Navigate to="/chat" replace />} />
         </Routes>
       </ConnectionProvider>
-    </BrowserRouter>
+      </BrowserRouter>
+    </Provider>
   )
 }

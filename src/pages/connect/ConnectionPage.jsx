@@ -8,11 +8,14 @@ import { useTheme } from "@/lib/use-theme"
 
 import styles from "./connect.module.css"
 
-// Only the auth modes the installed SDK actually transmits. Basic / custom-header
-// are deferred (see authNote) rather than shown as controls that silently no-op.
+// Every auth mode the installed SDK transmits (AgentFlowAuth union: bearer/basic/header).
+// "header" is how you reach a backend guarded by a custom BaseAuth that reads an
+// arbitrary header (e.g. X-API-Key) — see the note under the field.
 const AUTH_MODES = [
   { value: "none", label: "None (open backend)" },
   { value: "bearer", label: "Bearer token / JWT" },
+  { value: "basic", label: "Basic (user + password)" },
+  { value: "header", label: "Custom header — for a custom BaseAuth backend" },
 ]
 
 function hostLabel(url) {
@@ -33,12 +36,31 @@ export default function ConnectionPage() {
   const [authMode, setAuthMode] = useState("none")
   const [token, setToken] = useState("")
   const [showToken, setShowToken] = useState(false)
+  const [username, setUsername] = useState("")
+  const [password, setPassword] = useState("")
+  // Custom-header mode: any number of {name, value} rows. Handy for passing extra
+  // data a custom BaseAuth (or downstream tooling) reads off the request.
+  const [headers, setHeaders] = useState([{ name: "", value: "" }])
   const [remember, setRemember] = useState(true)
   const [activeId, setActiveId] = useState("local")
   const autoRan = useRef(false)
 
+  const updateHeader = (i, patch) =>
+    setHeaders((rows) => rows.map((r, idx) => (idx === i ? { ...r, ...patch } : r)))
+  const addHeader = () => setHeaders((rows) => [...rows, { name: "", value: "" }])
+  const removeHeader = (i) =>
+    setHeaders((rows) => (rows.length > 1 ? rows.filter((_, idx) => idx !== i) : rows))
+
   const runConnect = async ({ auto = false, override } = {}) => {
-    const src = override || { url, authMode, token, activeId }
+    const src = override || {
+      url,
+      authMode,
+      token,
+      activeId,
+      username,
+      password,
+      headers,
+    }
     const profile = saved.find((c) => c.id === src.activeId)
     const conn = {
       id: src.activeId && src.activeId !== "custom" ? src.activeId : newConnectionId(),
@@ -46,6 +68,10 @@ export default function ConnectionPage() {
       backendUrl: src.url,
       authMode: src.authMode,
       authToken: src.token,
+      authUsername: src.username,
+      authPassword: src.password,
+      authHeaders: src.headers,
+      authHeaderPrefix: src.headerPrefix,
     }
     const res = await connect(conn, { remember })
     if (res.ok && auto) navigate("/chat")
@@ -74,8 +100,14 @@ export default function ConnectionPage() {
   function pick(profile) {
     setActiveId(profile.id)
     setUrl(profile.backendUrl)
-    setAuthMode(profile.authMode || "none")
-    setToken(profile.authMode === "bearer" ? profile.authToken || "" : "")
+    const mode = profile.authMode || "none"
+    setAuthMode(mode)
+    setToken(mode === "bearer" ? profile.authToken || "" : "")
+    setUsername(mode === "basic" ? profile.authUsername || "" : "")
+    setPassword(mode === "basic" ? profile.authPassword || "" : "")
+    setHeaderName(mode === "header" ? profile.authHeaderName || "" : "")
+    setHeaderValue(mode === "header" ? profile.authHeaderValue || "" : "")
+    setHeaderPrefix(mode === "header" ? profile.authHeaderPrefix || "" : "")
   }
 
   // Enter-to-connect, mirroring the mockup's global keydown handler.
@@ -88,7 +120,7 @@ export default function ConnectionPage() {
     document.addEventListener("keydown", onKey)
     return () => document.removeEventListener("keydown", onKey)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [url, authMode, token, activeId, remember, status])
+  }, [url, authMode, token, username, password, headerName, headerValue, headerPrefix, activeId, remember, status])
 
   const metaRows =
     status === "connected"
@@ -193,9 +225,104 @@ export default function ConnectionPage() {
               </div>
             )}
 
+            {authMode === "basic" && (
+              <>
+                <div className={styles.field}>
+                  <label htmlFor="basic-user">Username</label>
+                  <input
+                    className={styles.input}
+                    id="basic-user"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    autoComplete="off"
+                    spellCheck={false}
+                  />
+                </div>
+                <div className={styles.field}>
+                  <label htmlFor="basic-pass">Password</label>
+                  <div className={styles.inputWrap}>
+                    <input
+                      className={`${styles.input} ${styles.tokenInput}`}
+                      id="basic-pass"
+                      type={showToken ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      autoComplete="off"
+                      spellCheck={false}
+                    />
+                    <button
+                      className={styles.reveal}
+                      onClick={() => setShowToken((s) => !s)}
+                      aria-label={showToken ? "Hide password" : "Show password"}
+                      type="button"
+                    >
+                      {showToken ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {authMode === "header" && (
+              <>
+                <div className={styles.field}>
+                  <label htmlFor="hdr-name">Header name</label>
+                  <input
+                    className={styles.input}
+                    id="hdr-name"
+                    value={headerName}
+                    onChange={(e) => setHeaderName(e.target.value)}
+                    placeholder="X-API-Key"
+                    autoComplete="off"
+                    spellCheck={false}
+                  />
+                </div>
+                <div className={styles.field}>
+                  <label htmlFor="hdr-value">Header value</label>
+                  <div className={styles.inputWrap}>
+                    <input
+                      className={`${styles.input} ${styles.tokenInput}`}
+                      id="hdr-value"
+                      type={showToken ? "text" : "password"}
+                      value={headerValue}
+                      onChange={(e) => setHeaderValue(e.target.value)}
+                      placeholder="sk-…"
+                      autoComplete="off"
+                      spellCheck={false}
+                    />
+                    <button
+                      className={styles.reveal}
+                      onClick={() => setShowToken((s) => !s)}
+                      aria-label={showToken ? "Hide value" : "Show value"}
+                      type="button"
+                    >
+                      {showToken ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </div>
+                <div className={styles.field}>
+                  <label htmlFor="hdr-prefix">Value prefix (optional)</label>
+                  <input
+                    className={styles.input}
+                    id="hdr-prefix"
+                    value={headerPrefix}
+                    onChange={(e) => setHeaderPrefix(e.target.value)}
+                    placeholder="Token"
+                    autoComplete="off"
+                    spellCheck={false}
+                  />
+                </div>
+              </>
+            )}
+
             <p className={styles.authNote}>
-              Local dev servers run auth-disabled — leave this on “None”. Basic and custom-header
-              auth arrive with the next client SDK.
+              {authMode === "none"
+                ? "Local dev servers run auth-disabled — leave this on “None”."
+                : authMode === "header"
+                  ? "Sends your value as a custom request header. Use this for a backend guarded by a custom BaseAuth (e.g. an X-API-Key check)."
+                  : authMode === "basic"
+                    ? "Sends an Authorization: Basic header. Your custom BaseAuth backend must decode it server-side."
+                    : "Sends an Authorization: Bearer header — matches the built-in “jwt” auth or any BaseAuth that reads a bearer token."}
             </p>
 
             <div className={styles.switchRow}>
