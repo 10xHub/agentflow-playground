@@ -80,21 +80,37 @@ export function ConnectionProvider({ children }) {
   const [saved, setSaved] = useState(() => listConnections())
   const clientRef = useRef(null)
 
-  // Hydrate the last-used connection (name/url) so the bar can show it before a probe.
+  // Rebuild the full connection object from persisted settings so a reload can
+  // re-verify without the user re-entering anything.
+  const connFromSettings = (s) => ({
+    id: "active",
+    name: s.name || "Backend",
+    backendUrl: s.backendUrl,
+    authMode: s.authMode || "none",
+    authToken: s.authMode === "bearer" ? s.authToken || s.auth?.token || "" : "",
+    authUsername: s.auth?.type === "basic" ? s.auth.username : "",
+    authPassword: s.auth?.type === "basic" ? s.auth.password : "",
+    authHeaders: s.authMode === "header" ? s.headers || [] : [],
+  })
+
+  // On load: if a backend was saved, show it immediately AND silently re-verify
+  // it in the background. The connection status lives only in React memory, so a
+  // reload/HMR restart would otherwise drop it to "idle" (disabling Send) even
+  // though the server is still up. We re-probe instead of forcing the user back
+  // to the connect page. A failed re-probe just leaves status idle — no error.
   useEffect(() => {
     const s = getCurrentSettings()
-    if (s.backendUrl) {
-      setActive({
-        id: "active",
-        name: s.name || "Backend",
-        backendUrl: s.backendUrl,
-        authMode: s.authMode,
-        authToken: s.authToken,
-      })
-    }
+    if (!s.backendUrl) return
+    const conn = connFromSettings(s)
+    setActive(conn)
+    // remember:false — we're rehydrating an already-saved connection, not adding one.
+    connect(conn, { remember: false, silent: true })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const connect = useCallback(async (conn, { remember = true } = {}) => {
+  // `silent` (used by the on-load re-verify): on failure fall back to idle instead
+  // of a red error state, since the user didn't just click Connect.
+  const connect = useCallback(async (conn, { remember = true, silent = false } = {}) => {
     setStatus("connecting")
     setError(null)
     let baseUrl
@@ -102,8 +118,8 @@ export function ConnectionProvider({ children }) {
     try {
       ;({ client, baseUrl } = buildClient(conn))
     } catch (e) {
-      setStatus("error")
-      setError(e.message)
+      setStatus(silent ? "idle" : "error")
+      if (!silent) setError(e.message)
       return { ok: false, error: e }
     }
 
@@ -138,8 +154,8 @@ export function ConnectionProvider({ children }) {
       return { ok: true, info: graphInfo }
     } catch (e) {
       clientRef.current = null
-      setStatus("error")
-      setError(humanizeError(e, baseUrl))
+      setStatus(silent ? "idle" : "error")
+      setError(silent ? null : humanizeError(e, baseUrl))
       setCapabilities(null)
       setInfo(null)
       setProbe(null)

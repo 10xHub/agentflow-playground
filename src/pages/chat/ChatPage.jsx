@@ -18,7 +18,16 @@ export default function ChatPage() {
   const messages = useSelector((s) => s.chat.messages)
   const generating = useSelector((s) => s.chat.generating)
   const error = useSelector((s) => s.chat.error)
+  const mode = useSelector((s) => s.chat.mode)
   const threadRef = useRef(null)
+
+  // How the current mode reaches the server, for the status lines below.
+  const transport =
+    mode === "invoke"
+      ? "POST /v1/graph/invoke"
+      : mode === "ws"
+        ? "WS /v1/graph/ws"
+        : "POST /v1/graph/stream"
 
   // Publish the inspector toggle into the shared connection bar; clear on leave.
   useEffect(() => {
@@ -43,16 +52,15 @@ export default function ChatPage() {
         <ChatHeader />
         <div className={styles.thread} ref={threadRef}>
           {messages.length === 0 ? (
-            <div className={styles.streamingNote}>
-              Send a message to start · POST /v1/graph/stream
-            </div>
+            <div className={styles.streamingNote}>Send a message to start · {transport}</div>
           ) : (
             messages.map((msg) => <Message key={msg.id} msg={msg} />)
           )}
 
           {generating && (
             <div className={styles.streamingNote}>
-              <span className={styles.sp} /> receiving stream · POST /v1/graph/stream
+              <span className={styles.sp} />{" "}
+              {mode === "invoke" ? "awaiting response" : "receiving stream"} · {transport}
             </div>
           )}
 

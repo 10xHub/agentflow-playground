@@ -60,15 +60,20 @@ export default function Message({ msg }) {
 
           {rm ? (
             <div className={styles.runmeta}>
-              <span>
-                <b>tokens</b> {rm.tokens}
-              </span>
-              <span>
-                <b>iterations</b> {rm.iterations}
-              </span>
-              <span>
-                <b>tools</b> {rm.tools}
-              </span>
+              {rm.usage ? (
+                <span title="prompt in · completion out · reasoning">
+                  <b>tokens</b> {rm.usage.prompt_tokens} in · {rm.usage.completion_tokens} out
+                  {rm.usage.reasoning_tokens
+                    ? ` · ${rm.usage.reasoning_tokens} reason`
+                    : ""}{" "}
+                  <span className={styles.tokTotal}>({rm.usage.total_tokens} total)</span>
+                </span>
+              ) : null}
+              {rm.usage?.calls ? (
+                <span>
+                  <b>llm calls</b> {rm.usage.calls}
+                </span>
+              ) : null}
               <span>
                 <b>path</b> {rm.path}
               </span>

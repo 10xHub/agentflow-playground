@@ -1,43 +1,163 @@
-import { ChevronDown, RotateCcw, Square } from "lucide-react"
-import { useState } from "react"
+import { ChevronDown, Plus, RotateCcw, Square, Trash2 } from "lucide-react"
+import { useEffect, useRef, useState } from "react"
+import { useDispatch, useSelector } from "react-redux"
 
-import { THREAD } from "../data"
+import {
+  newThread,
+  removeThread,
+  setGranularity,
+  setMode,
+  switchThread,
+} from "@/store/chatSlice"
+import { fixThread, stopGeneration } from "@/store/chatThunks"
+
 import styles from "../chat.module.css"
 
 const MODES = ["invoke", "stream", "ws"]
 
-export default function ChatHeader() {
-  const [mode, setMode] = useState("stream")
+function ThreadPicker() {
+  const dispatch = useDispatch()
+  const threadId = useSelector((s) => s.chat.threadId)
+  const { order, byId } = useSelector((s) => s.chat.threads)
+  const generating = useSelector((s) => s.chat.generating)
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+
+  // Close on outside click.
+  useEffect(() => {
+    if (!open) return undefined
+    const onDoc = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false)
+    }
+    document.addEventListener("mousedown", onDoc)
+    return () => document.removeEventListener("mousedown", onDoc)
+  }, [open])
+
+  const activeKey = threadId || "__draft__"
+  const active = byId[activeKey]
+
+  const pick = (id) => {
+    dispatch(switchThread(id))
+    setOpen(false)
+  }
 
   return (
-    <div className={styles.head}>
-      <button className={styles.threadPick} type="button">
-        <span className={`${styles.dot} ${THREAD.live ? styles.live : ""}`} />
-        <span className={styles.tLabel}>{THREAD.label}</span>
-        <span className={styles.tId}>{THREAD.id}</span>
+    <div className={styles.threadWrap} ref={ref}>
+      <button
+        className={styles.threadPick}
+        type="button"
+        title="Switch thread"
+        onClick={() => setOpen((o) => !o)}
+      >
+        <span className={`${styles.dot} ${threadId ? styles.live : ""}`} />
+        <span className={styles.tLabel}>{active?.title || "New thread"}</span>
+        <span className={styles.tId}>{threadId ? threadId.slice(0, 8) : "unassigned"}</span>
         <ChevronDown size={12} className={styles.chev} />
       </button>
 
+      {open && (
+        <div className={styles.threadMenu}>
+          <button
+            className={styles.threadNew}
+            type="button"
+            onClick={() => {
+              dispatch(newThread())
+              setOpen(false)
+            }}
+            disabled={generating}
+          >
+            <Plus size={13} /> New thread
+          </button>
+
+          <div className={styles.threadList}>
+            {order.length === 0 ? (
+              <div className={styles.threadEmpty}>No cached threads yet.</div>
+            ) : (
+              order.map((id) => {
+                const t = byId[id]
+                if (!t) return null
+                return (
+                  <div
+                    key={id}
+                    className={`${styles.threadItem} ${id === activeKey ? styles.threadActive : ""}`}
+                  >
+                    <button className={styles.threadItemMain} type="button" onClick={() => pick(id)}>
+                      <span className={styles.threadItemTitle}>{t.title}</span>
+                      <span className={styles.threadItemId}>
+                        {id === "__draft__" ? "draft" : id.slice(0, 8)} · {t.messages.length} msg
+                      </span>
+                    </button>
+                    <button
+                      className={styles.threadDel}
+                      type="button"
+                      title="Remove from cache"
+                      onClick={() => dispatch(removeThread(id))}
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                )
+              })
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+export default function ChatHeader() {
+  const dispatch = useDispatch()
+  const mode = useSelector((s) => s.chat.mode)
+  const granularity = useSelector((s) => s.chat.granularity)
+  const generating = useSelector((s) => s.chat.generating)
+  const threadId = useSelector((s) => s.chat.threadId)
+
+  return (
+    <div className={styles.head}>
+      <ThreadPicker />
+
       <div className={styles.seg} role="tablist">
         {MODES.map((m) => (
-          <button key={m} className={mode === m ? styles.on : ""} onClick={() => setMode(m)}>
+          <button
+            key={m}
+            className={mode === m ? styles.on : ""}
+            onClick={() => dispatch(setMode(m))}
+            disabled={generating}
+          >
             {m}
           </button>
         ))}
       </div>
 
-      <select className={styles.miniSelect} title="response_granularity" defaultValue="partial">
+      <select
+        className={styles.miniSelect}
+        title="response_granularity"
+        value={granularity}
+        onChange={(e) => dispatch(setGranularity(e.target.value))}
+        disabled={generating}
+      >
         <option value="full">full</option>
         <option value="partial">partial</option>
         <option value="low">low</option>
       </select>
 
       <div className={styles.headRight}>
-        <button className={`${styles.btnGhostSm} ${styles.danger}`} type="button">
+        <button
+          className={`${styles.btnGhostSm} ${styles.danger}`}
+          type="button"
+          onClick={() => dispatch(stopGeneration())}
+          disabled={!generating}
+        >
           <Square size={13} />
           Stop
         </button>
-        <button className={styles.btnGhostSm} type="button">
+        <button
+          className={styles.btnGhostSm}
+          type="button"
+          onClick={() => dispatch(fixThread())}
+          disabled={!threadId || generating}
+        >
           <RotateCcw size={13} />
           Fix thread
         </button>

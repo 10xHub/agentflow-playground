@@ -1,9 +1,9 @@
-import { Paperclip, SendHorizontal } from "lucide-react"
+import { Paperclip, SendHorizontal, Square } from "lucide-react"
 import { useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
 
 import { useConnection } from "@/lib/connection/ConnectionContext"
-import { sendMessage } from "@/store/chatThunks"
+import { sendMessage, stopGeneration } from "@/store/chatThunks"
 
 import styles from "../chat.module.css"
 
@@ -51,15 +51,21 @@ export default function Composer() {
             <Paperclip size={17} />
           </button>
           <span className={styles.composerHint}>{hint}</span>
-          <button
-            className={styles.send}
-            type="button"
-            onClick={submit}
-            disabled={!canSend}
-          >
-            {generating ? "Sending…" : "Send"}
-            <SendHorizontal size={14} />
-          </button>
+          {generating ? (
+            <button
+              className={`${styles.send} ${styles.stop}`}
+              type="button"
+              onClick={() => dispatch(stopGeneration())}
+            >
+              Stop
+              <Square size={13} />
+            </button>
+          ) : (
+            <button className={styles.send} type="button" onClick={submit} disabled={!canSend}>
+              Send
+              <SendHorizontal size={14} />
+            </button>
+          )}
         </div>
       </div>
     </div>
