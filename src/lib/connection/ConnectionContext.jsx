@@ -17,21 +17,28 @@ export function useConnection() {
 
 // status: "idle" | "connecting" | "connected" | "error"
 
-// Map the form's auth mode onto the SDK's AgentFlowAuth union (bearer/basic/header).
-// bearer stays on the simpler authToken field; basic/header use the structured `auth`.
+// Map the form's auth mode onto the SDK's AgentFlowAuth union (bearer/basic).
+// bearer stays on the simpler authToken field; basic uses the structured `auth`.
 function buildAuth(conn) {
   if (conn.authMode === "basic") {
     const username = (conn.authUsername || "").trim()
     const password = conn.authPassword || ""
     return username || password ? { type: "basic", username, password } : null
   }
-  if (conn.authMode === "header") {
-    const name = (conn.authHeaderName || "").trim()
-    const value = (conn.authHeaderValue || "").trim()
-    const prefix = (conn.authHeaderPrefix || "").trim()
-    return name && value ? { type: "header", name, value, prefix: prefix || null } : null
-  }
   return null
+}
+
+// "header" mode: any number of {name, value} rows, sent as plain request headers.
+// Non-empty, trimmed name required; later rows win on duplicate names.
+function buildHeaders(conn) {
+  if (conn.authMode !== "header" || !Array.isArray(conn.authHeaders)) return null
+  const out = {}
+  for (const row of conn.authHeaders) {
+    const name = (row?.name || "").trim()
+    const value = (row?.value || "").trim()
+    if (name && value) out[name] = value
+  }
+  return Object.keys(out).length ? out : null
 }
 
 function buildClient(conn) {
@@ -42,6 +49,8 @@ function buildClient(conn) {
   } else {
     const auth = buildAuth(conn)
     if (auth) config.auth = auth
+    const headers = buildHeaders(conn)
+    if (headers) config.headers = headers
   }
   return { client: new AgentFlowClient(config), baseUrl }
 }
@@ -122,6 +131,7 @@ export function ConnectionProvider({ children }) {
         authMode: normalized.authMode,
         authToken: normalized.authMode === "bearer" ? normalized.authToken : "",
         auth: buildAuth(normalized),
+        headers: normalized.authMode === "header" ? normalized.authHeaders : [],
       })
       if (remember) setSaved(upsertConnection(normalized))
 

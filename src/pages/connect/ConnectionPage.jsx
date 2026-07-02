@@ -1,4 +1,4 @@
-import { AlertTriangle, Clock, Eye, EyeOff } from "lucide-react"
+import { AlertTriangle, Clock, Eye, EyeOff, Plus, Trash2 } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { useNavigate, useSearchParams } from "react-router-dom"
 
@@ -71,7 +71,6 @@ export default function ConnectionPage() {
       authUsername: src.username,
       authPassword: src.password,
       authHeaders: src.headers,
-      authHeaderPrefix: src.headerPrefix,
     }
     const res = await connect(conn, { remember })
     if (res.ok && auto) navigate("/chat")
@@ -105,9 +104,8 @@ export default function ConnectionPage() {
     setToken(mode === "bearer" ? profile.authToken || "" : "")
     setUsername(mode === "basic" ? profile.authUsername || "" : "")
     setPassword(mode === "basic" ? profile.authPassword || "" : "")
-    setHeaderName(mode === "header" ? profile.authHeaderName || "" : "")
-    setHeaderValue(mode === "header" ? profile.authHeaderValue || "" : "")
-    setHeaderPrefix(mode === "header" ? profile.authHeaderPrefix || "" : "")
+    const savedHeaders = mode === "header" ? profile.authHeaders : null
+    setHeaders(savedHeaders?.length ? savedHeaders.map((h) => ({ ...h })) : [{ name: "", value: "" }])
   }
 
   // Enter-to-connect, mirroring the mockup's global keydown handler.
@@ -120,7 +118,7 @@ export default function ConnectionPage() {
     document.addEventListener("keydown", onKey)
     return () => document.removeEventListener("keydown", onKey)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [url, authMode, token, username, password, headerName, headerValue, headerPrefix, activeId, remember, status])
+  }, [url, authMode, token, username, password, headers, activeId, remember, status])
 
   const metaRows =
     status === "connected"
@@ -264,62 +262,67 @@ export default function ConnectionPage() {
             )}
 
             {authMode === "header" && (
-              <>
-                <div className={styles.field}>
-                  <label htmlFor="hdr-name">Header name</label>
-                  <input
-                    className={styles.input}
-                    id="hdr-name"
-                    value={headerName}
-                    onChange={(e) => setHeaderName(e.target.value)}
-                    placeholder="X-API-Key"
-                    autoComplete="off"
-                    spellCheck={false}
-                  />
-                </div>
-                <div className={styles.field}>
-                  <label htmlFor="hdr-value">Header value</label>
-                  <div className={styles.inputWrap}>
-                    <input
-                      className={`${styles.input} ${styles.tokenInput}`}
-                      id="hdr-value"
-                      type={showToken ? "text" : "password"}
-                      value={headerValue}
-                      onChange={(e) => setHeaderValue(e.target.value)}
-                      placeholder="sk-…"
-                      autoComplete="off"
-                      spellCheck={false}
-                    />
+              <div className={styles.field}>
+                {/* Sticky action bar so "Add header" stays reachable no matter
+                    how many rows are added — the rows below scroll, this doesn't. */}
+                <div className={styles.headerBar}>
+                  <label>Custom headers</label>
+                  <div className={styles.headerBarActions}>
                     <button
-                      className={styles.reveal}
+                      className={styles.ghost}
                       onClick={() => setShowToken((s) => !s)}
-                      aria-label={showToken ? "Hide value" : "Show value"}
                       type="button"
+                      aria-label={showToken ? "Hide values" : "Show values"}
                     >
-                      {showToken ? <EyeOff size={16} /> : <Eye size={16} />}
+                      {showToken ? <EyeOff size={14} /> : <Eye size={14} />}
+                    </button>
+                    <button className={styles.addBtn} onClick={addHeader} type="button">
+                      <Plus size={14} /> Add
                     </button>
                   </div>
                 </div>
-                <div className={styles.field}>
-                  <label htmlFor="hdr-prefix">Value prefix (optional)</label>
-                  <input
-                    className={styles.input}
-                    id="hdr-prefix"
-                    value={headerPrefix}
-                    onChange={(e) => setHeaderPrefix(e.target.value)}
-                    placeholder="Token"
-                    autoComplete="off"
-                    spellCheck={false}
-                  />
+                <div className={styles.headerList}>
+                  {headers.map((row, i) => (
+                    <div key={i} className={styles.headerRow}>
+                      <input
+                        className={styles.input}
+                        value={row.name}
+                        onChange={(e) => updateHeader(i, { name: e.target.value })}
+                        placeholder="Header-Name"
+                        autoComplete="off"
+                        spellCheck={false}
+                        aria-label="Header name"
+                      />
+                      <input
+                        className={styles.input}
+                        type={showToken ? "text" : "password"}
+                        value={row.value}
+                        onChange={(e) => updateHeader(i, { value: e.target.value })}
+                        placeholder="value"
+                        autoComplete="off"
+                        spellCheck={false}
+                        aria-label="Header value"
+                      />
+                      <button
+                        className={styles.reveal}
+                        onClick={() => removeHeader(i)}
+                        disabled={headers.length === 1}
+                        aria-label="Remove header"
+                        type="button"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  ))}
                 </div>
-              </>
+              </div>
             )}
 
             <p className={styles.authNote}>
               {authMode === "none"
                 ? "Local dev servers run auth-disabled — leave this on “None”."
                 : authMode === "header"
-                  ? "Sends your value as a custom request header. Use this for a backend guarded by a custom BaseAuth (e.g. an X-API-Key check)."
+                  ? "Sends these as custom request headers on every call — use for a backend guarded by a custom BaseAuth (e.g. an X-API-Key check), or to pass extra data your backend reads off the request."
                   : authMode === "basic"
                     ? "Sends an Authorization: Basic header. Your custom BaseAuth backend must decode it server-side."
                     : "Sends an Authorization: Bearer header — matches the built-in “jwt” auth or any BaseAuth that reads a bearer token."}

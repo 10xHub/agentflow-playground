@@ -186,6 +186,67 @@
   color: var(--text-secondary);
 }
 
+/* Multi-header rows (custom-header auth): a compact, self-contained editor.
+   The action bar stays put; only the row list scrolls, so "Add" is always
+   reachable however many headers you add. */
+.headerBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.headerBar > label {
+  margin: 0;
+}
+.headerBarActions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.addBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: var(--surface-2, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+  border-radius: 6px;
+  cursor: pointer;
+}
+.addBtn:hover {
+  color: var(--text-primary);
+  border-color: var(--accent, #22c55e);
+}
+.headerList {
+  max-height: 216px; /* ~4 rows, then scroll */
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-right: 2px;
+}
+.headerRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.headerRow .input {
+  flex: 1;
+  min-width: 0;
+}
+.headerRow .reveal {
+  position: static;
+  transform: none;
+  flex: 0 0 auto;
+}
+.headerRow .reveal:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
 .row2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
