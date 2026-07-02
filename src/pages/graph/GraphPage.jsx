@@ -1,34 +1,52 @@
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
+import { useDispatch, useSelector } from "react-redux"
+
+import { loadGraph } from "@/store/graphSlice"
 
 import GraphCanvas from "./components/GraphCanvas"
 import GraphInfoPane from "./components/GraphInfoPane"
 import NodePane from "./components/NodePane"
-import { GRAPH_META } from "./data"
 import styles from "./graph.module.css"
 
 export default function GraphPage() {
-  // agent selected by default, mirroring the mockup (it selects `tools`,
-  // but the live-run canvas + node detail read most naturally from `tools`).
-  const [selected, setSelected] = useState("tools")
-  const [tab, setTab] = useState("node")
+  const dispatch = useDispatch()
+  const { info, nodes, edges, status, error } = useSelector((s) => s.graph)
+  // The node currently executing in the active chat run (for live highlight).
+  const activeAgent = useSelector((s) => {
+    const last = [...s.chat.messages].reverse().find((m) => m.role === "agent")
+    return last?.streaming ? last.node : null
+  })
+
+  // Selection is by node id (stable uuid), matching the reaflow canvas.
+  const [selectedId, setSelectedId] = useState(null)
   const [live, setLive] = useState(true)
 
-  // Clicking a node box updates the Node tab detail and switches to it.
-  const selectNode = (name) => {
-    setSelected(name)
-    setTab("node")
-  }
+  // Load the real graph on mount (and whenever we reconnect).
+  useEffect(() => {
+    dispatch(loadGraph())
+  }, [dispatch])
+
+  const selectedNode = useMemo(
+    () => nodes.find((n) => n.id === selectedId) || null,
+    [nodes, selectedId]
+  )
+
+  const nodeCount = info?.node_count ?? nodes.length
+  const edgeCount = info?.edge_count ?? edges.length
+
+  const subtitle =
+    status === "loading"
+      ? "loading…"
+      : status === "error"
+        ? error || "failed to load"
+        : `${nodeCount} nodes · ${edgeCount} edges`
 
   return (
     <>
       <div className={styles.main}>
         <div className={styles.gHead}>
           <div className={styles.gTitle}>
-            Graph{" "}
-            <span className={styles.sub}>
-              {GRAPH_META.ref} · {GRAPH_META.nodeCount} nodes ·{" "}
-              {GRAPH_META.edgeCount} edges
-            </span>
+            Graph <span className={styles.sub}>{subtitle}</span>
           </div>
           <div className={styles.gRight}>
             <label className={styles.liveToggle}>
@@ -45,26 +63,20 @@ export default function GraphPage() {
           </div>
         </div>
 
-        <GraphCanvas selected={selected} onSelect={selectNode} live={live} />
+        <GraphCanvas
+          nodes={nodes}
+          edges={edges}
+          selected={selectedId}
+          onSelect={setSelectedId}
+          live={live}
+          activeNode={activeAgent}
+        />
       </div>
 
       <aside className={styles.panel}>
-        <div className={styles.pTabs}>
-          <button
-            className={tab === "node" ? styles.on : ""}
-            onClick={() => setTab("node")}
-          >
-            Node
-          </button>
-          <button
-            className={tab === "graph" ? styles.on : ""}
-            onClick={() => setTab("graph")}
-          >
-            Graph info
-          </button>
-        </div>
         <div className={styles.pBody}>
-          {tab === "node" ? <NodePane name={selected} /> : <GraphInfoPane />}
+          <NodePane node={selectedNode} nodes={nodes} edges={edges} />
+          <GraphInfoPane />
         </div>
       </aside>
     </>
