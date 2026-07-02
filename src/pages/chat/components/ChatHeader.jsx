@@ -13,7 +13,13 @@ import { fixThread, stopGeneration } from "@/store/chatThunks"
 
 import styles from "../chat.module.css"
 
-const MODES = ["invoke", "stream", "ws"]
+// ws works via the local client but is gated "coming soon" until the client is
+// published to npm (see README). Flip `soon:false` to enable it.
+const MODES = [
+  { id: "invoke", soon: false },
+  { id: "stream", soon: false },
+  { id: "ws", soon: true },
+]
 
 function ThreadPicker() {
   const dispatch = useDispatch()
@@ -120,12 +126,14 @@ export default function ChatHeader() {
       <div className={styles.seg} role="tablist">
         {MODES.map((m) => (
           <button
-            key={m}
-            className={mode === m ? styles.on : ""}
-            onClick={() => dispatch(setMode(m))}
-            disabled={generating}
+            key={m.id}
+            className={`${mode === m.id ? styles.on : ""} ${m.soon ? styles.soon : ""}`}
+            onClick={() => !m.soon && dispatch(setMode(m.id))}
+            disabled={generating || m.soon}
+            title={m.soon ? "WebSocket transport — coming soon" : undefined}
           >
-            {m}
+            {m.id}
+            {m.soon && <span className={styles.soonBadge}>soon</span>}
           </button>
         ))}
       </div>

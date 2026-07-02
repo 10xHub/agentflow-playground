@@ -101,6 +101,9 @@ const chatSlice = createSlice({
       state.error = action.payload
     },
     setMode: (state, action) => {
+      // ws is gated "coming soon" until the client is published (see ChatHeader);
+      // ignore attempts to activate it so a stale value can't leave the UI stuck.
+      if (action.payload === "ws") return
       state.mode = action.payload
     },
     setGranularity: (state, action) => {

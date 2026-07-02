@@ -15,7 +15,7 @@
     "format": "prettier --write \"src/**/*.{js,jsx,json,css}\""
   },
   "dependencies": {
-    "@10xscale/agentflow-client": "^0.0.4",
+    "@10xscale/agentflow-client": "file:../agentflow-client",
     "@hookform/resolvers": "^5.0.1",
     "@radix-ui/react-accordion": "^1.2.11",
     "@radix-ui/react-avatar": "^1.1.10",

@@ -378,22 +378,14 @@ export const sendMessage = (text) => async (dispatch, getState) => {
             dispatch(setAgentText({ id: agentId, text: t, mode: "replace" }))
           }
         })
-    } else {
-      const useWs = mode === "ws" && typeof client.wsStream === "function"
-      if (mode === "ws" && !useWs) {
-        // Installed SDK build lacks wsStream — degrade to SSE rather than crash.
-        dispatch(
-          pushEvent({
-            type: "note",
-            node: "—",
-            time: since(startedAt),
-            detail: "wsStream unavailable in this SDK build — using HTTP stream",
-          })
-        )
+    } else if (mode === "ws") {
+      if (typeof client.wsStream !== "function") {
+        throw new Error("This agentflow-client build does not support WebSocket streaming.")
       }
-      const stream = useWs
-        ? client.wsStream(outgoing, { config, response_granularity: granularity })
-        : client.stream(outgoing, { config, response_granularity: granularity })
+      const stream = client.wsStream(outgoing, { config, response_granularity: granularity })
+      sawText = await consumeStream(stream, { dispatch, getState, agentId, startedAt, signal })
+    } else {
+      const stream = client.stream(outgoing, { config, response_granularity: granularity })
       sawText = await consumeStream(stream, { dispatch, getState, agentId, startedAt, signal })
     }
 

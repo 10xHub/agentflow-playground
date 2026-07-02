@@ -196,6 +196,28 @@
   color: var(--text);
 }
 
+/* ws "coming soon": disabled, muted, with a small badge. */
+.seg button.soon {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.seg button.soon:hover {
+  color: var(--text-secondary);
+}
+.soonBadge {
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: var(--elevated);
+  color: var(--text-muted);
+}
+
 .miniSelect {
   height: 32px;
   padding: 0 28px 0 10px;

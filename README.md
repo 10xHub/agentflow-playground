@@ -6,6 +6,14 @@ Agentflow gives you everything you need to ship real multi-agent applications: g
 
 This playground is the React + Vite frontend for testing and interacting with an Agentflow backend through `@10xscale/agentflow-client`. Spin up a server with `agentflow play` and explore your agents visually.
 
+> **⚠️ Temporary local client link.** `@10xscale/agentflow-client` is currently
+> installed from the local monorepo path (`file:../agentflow-client`) because the
+> latest client (with WebSocket streaming, `stopGraph`/`fixGraph`) is not yet
+> published to npm. Rebuild it with `npm run build` in `../agentflow-client` after
+> changes. **Once published, swap the dependency in `package.json` back to a
+> versioned range** (e.g. `"^0.2.0"`) and remove this note. Until then, the `ws`
+> transport in the chat UI is marked *coming soon* and disabled.
+
 📖 **Docs:** https://10xhub.github.io/Agentflow/
 
 ## 🧩 The Agentflow Ecosystem
