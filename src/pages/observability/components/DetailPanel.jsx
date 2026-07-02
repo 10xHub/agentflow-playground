@@ -1,5 +1,3 @@
-import { ExternalLink } from "lucide-react"
-
 import styles from "../observability.module.css"
 
 const nf = new Intl.NumberFormat("en-US")
@@ -15,13 +13,11 @@ function attrsFor(sel) {
     ]
   }
   // span
-  if (sel.model) {
+  if (sel.model !== undefined && sel.kind === "llm") {
     return [
-      { k: "gen_ai.system", v: "google.genai" },
-      { k: "gen_ai.request.model", v: sel.model },
-      { k: "gen_ai.usage.input_tokens", v: nf.format(sel.in) },
-      { k: "gen_ai.usage.output_tokens", v: nf.format(sel.out) },
-      { k: "gen_ai.response.finish", v: "stop", ok: true },
+      { k: "gen_ai.request.model", v: sel.model || "—" },
+      { k: "gen_ai.usage.input_tokens", v: nf.format(sel.in || 0) },
+      { k: "gen_ai.usage.output_tokens", v: nf.format(sel.out || 0) },
       { k: "duration", v: sel.dur },
     ]
   }
@@ -73,10 +69,6 @@ export default function DetailPanel({ sel }) {
           <>
             <div className={styles.attrH}>Context</div>
             <div className={styles.attr}>
-              <span className={styles.ak}>session.id</span>
-              <span className={styles.av}>th_9f2a…c17</span>
-            </div>
-            <div className={styles.attr}>
               <span className={styles.ak}>span.id</span>
               <span className={styles.av}>{sel?.spanId ?? "—"}</span>
             </div>
@@ -84,11 +76,10 @@ export default function DetailPanel({ sel }) {
               <span className={styles.ak}>parent</span>
               <span className={styles.av}>{sel?.parent ?? "—"}</span>
             </div>
-
-            <button className={styles.detOpen} type="button">
-              <ExternalLink size={13} />
-              Open this span in Logfire
-            </button>
+            <div className={styles.attr}>
+              <span className={styles.ak}>kind</span>
+              <span className={styles.av}>{sel?.kind ?? "—"}</span>
+            </div>
           </>
         )}
       </div>

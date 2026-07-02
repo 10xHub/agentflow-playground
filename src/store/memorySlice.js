@@ -131,7 +131,11 @@ export const searchMemories = (query) => async (dispatch, getState) => {
         query,
         config: cfgFor(getState),
         limit: 25,
-        options: { retrieval_strategy: strategy?.toLowerCase(), distance_metric: metric },
+        // These are first-class SearchMemorySchema fields — passing them via
+        // `options` collides with the service's explicit kwargs (dummy store's
+        // asearch would get retrieval_strategy twice → 500).
+        retrieval_strategy: strategy?.toLowerCase(),
+        distance_metric: metric,
       })
     )
     dispatch(loaded((data.results || data.memories || []).map(normalize)))

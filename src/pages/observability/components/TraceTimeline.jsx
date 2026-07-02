@@ -1,24 +1,30 @@
 import { Clock } from "lucide-react"
 
-import { LEGEND, RULER, SPANS } from "../data"
 import styles from "../observability.module.css"
 
-export default function TraceTimeline({ selectedId, onSelect }) {
+const LEGEND = [
+  { kind: "root", label: "graph" },
+  { kind: "node", label: "node" },
+  { kind: "llm", label: "llm" },
+  { kind: "tool", label: "tool" },
+]
+
+export default function TraceTimeline({ spans, ruler, selectedId, onSelect }) {
   return (
     <div>
       <div className={styles.srcNote}>
         <Clock size={13} strokeWidth={1.7} />
-        Reconstructed from StreamChunk updates/state · graph → node → llm → tool · session.id =
+        Reconstructed from run events · graph → node → llm → tool · session.id =
         thread_id
       </div>
 
       <div className={styles.ruler}>
-        {RULER.map((r) => (
-          <span key={r}>{r}</span>
+        {ruler.map((r, i) => (
+          <span key={`${r}-${i}`}>{r}</span>
         ))}
       </div>
 
-      {SPANS.map((s) => (
+      {spans.map((s) => (
         <div
           key={s.id}
           className={`${styles.span} ${selectedId === s.id ? styles.sel : ""}`}

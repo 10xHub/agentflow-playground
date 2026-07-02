@@ -1,4 +1,3 @@
-import { BY_MODEL, BY_NODE, COST_CARDS, TOKEN_BREAKDOWN } from "../data"
 import styles from "../observability.module.css"
 
 function Table({ data }) {
@@ -20,11 +19,12 @@ function Table({ data }) {
   )
 }
 
-export default function CostPane() {
+export default function CostPane({ cost }) {
+  if (!cost) return null
   return (
     <div>
       <div className={styles.costCards}>
-        {COST_CARDS.map((c) => (
+        {cost.cards.map((c) => (
           <div className={styles.cc} key={c.label}>
             <div className={styles.l}>{c.label}</div>
             <div className={`${styles.v} ${c.accent ? styles.accent : ""}`}>
@@ -41,7 +41,7 @@ export default function CostPane() {
         <div>
           <div className={styles.secH}>Token breakdown</div>
           <div className={styles.bars}>
-            {TOKEN_BREAKDOWN.map((b) => (
+            {cost.breakdown.map((b) => (
               <div className={styles.br} key={b.key}>
                 <div className={styles.brTop}>
                   <span className={styles.bk}>{b.key}</span>
@@ -59,9 +59,9 @@ export default function CostPane() {
         </div>
         <div>
           <div className={styles.secH}>By model</div>
-          <Table data={BY_MODEL} />
+          <Table data={cost.byModel} />
           <div className={`${styles.secH} ${styles.secHGap}`}>By node</div>
-          <Table data={BY_NODE} />
+          <Table data={cost.byNode} />
         </div>
       </div>
     </div>

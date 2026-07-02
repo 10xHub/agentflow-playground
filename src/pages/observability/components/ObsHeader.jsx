@@ -1,6 +1,5 @@
 import { ChevronDown, ExternalLink } from "lucide-react"
 
-import { DEEP_LINKS, STATS, THREAD } from "../data"
 import styles from "../observability.module.css"
 
 const TABS = [
@@ -9,19 +8,29 @@ const TABS = [
   { id: "cost", label: "Cost & tokens" },
 ]
 
-export default function ObsHeader({ tab, onTab }) {
+// Deep-links to external tracing backends (surfaced but not configured here).
+const DEEP_LINKS = [
+  { id: "logfire", label: "Logfire · off", off: true },
+  { id: "langsmith", label: "LangSmith · off", off: true },
+  { id: "jaeger", label: "Jaeger · off", off: true },
+]
+
+const shortId = (id) =>
+  !id ? "—" : id.length > 14 ? `${id.slice(0, 8)}…${id.slice(-4)}` : id
+
+export default function ObsHeader({ tab, onTab, threadId, stats, runCount }) {
   return (
     <div className={styles.obsHead}>
       <div className={styles.ohTop}>
         <span className={styles.ohTitle}>Observability</span>
 
         <div className={styles.scope}>
-          scope <b>thread</b> · {THREAD.id}
+          scope <b>thread</b> · {shortId(threadId)}
           <ChevronDown size={12} className={styles.chev} />
         </div>
 
         <div className={styles.runPick}>
-          run 3 / 5
+          {runCount ? `latest of ${runCount}` : "no runs"}
           <ChevronDown size={12} className={styles.chev} />
         </div>
 
@@ -41,7 +50,7 @@ export default function ObsHeader({ tab, onTab }) {
       </div>
 
       <div className={styles.stats}>
-        {STATS.map((s) => (
+        {(stats || []).map((s) => (
           <div className={styles.stat} key={s.label}>
             <div className={styles.sl}>{s.label}</div>
             <div className={`${styles.sv} ${s.accent ? styles.accent : ""}`}>

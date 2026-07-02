@@ -1,16 +1,22 @@
 import { Search } from "lucide-react"
 import { useState } from "react"
 
-import { EVENTS, EVENT_CHIPS } from "../data"
 import styles from "../observability.module.css"
 
-export default function EventsPane({ selectedId, onSelect }) {
+const EVENT_CHIPS = ["all", "message", "updates", "state", "error"]
+
+export default function EventsPane({ events, selectedId, onSelect }) {
   const [chip, setChip] = useState("all")
   const [query, setQuery] = useState("")
 
-  const rows = EVENTS.filter((e) => {
+  const rows = (events || []).filter((e) => {
     if (chip !== "all" && e.type !== chip) return false
-    if (query && !`${e.node} ${e.summary} ${e.type}`.toLowerCase().includes(query.toLowerCase()))
+    if (
+      query &&
+      !`${e.node} ${e.summary} ${e.type}`
+        .toLowerCase()
+        .includes(query.toLowerCase())
+    )
       return false
     return true
   })
@@ -39,6 +45,12 @@ export default function EventsPane({ selectedId, onSelect }) {
           ))}
         </div>
       </div>
+
+      {rows.length === 0 && (
+        <div className={styles.srcNote} style={{ marginTop: 16 }}>
+          No events match.
+        </div>
+      )}
 
       {rows.map((e) => (
         <div

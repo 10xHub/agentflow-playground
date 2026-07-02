@@ -164,6 +164,16 @@
   overflow-y: auto;
   padding: 16px 20px 24px;
 }
+.obsEmpty {
+  display: grid;
+  place-items: center;
+  min-height: 220px;
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
 .srcNote {
   display: flex;
   align-items: center;

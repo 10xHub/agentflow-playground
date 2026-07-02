@@ -83,7 +83,29 @@ function RegressionPane({ regression }) {
   )
 }
 
-export default function Drilldown({ detail, tab, onTab, selectedCaseId, onSelectCase }) {
+export default function Drilldown({
+  detail,
+  status,
+  error,
+  tab,
+  onTab,
+  selectedCaseId,
+  onSelectCase,
+}) {
+  if (status === "loading") {
+    return (
+      <section className={styles.detail}>
+        <div className={styles.empty}>Loading report…</div>
+      </section>
+    )
+  }
+  if (status === "error") {
+    return (
+      <section className={styles.detail}>
+        <div className={styles.empty}>{error}</div>
+      </section>
+    )
+  }
   if (!detail) {
     return (
       <section className={styles.detail}>
@@ -154,8 +176,10 @@ export default function Drilldown({ detail, tab, onTab, selectedCaseId, onSelect
             selectedCaseId={selectedCaseId}
             onSelectCase={onSelectCase}
           />
-        ) : (
+        ) : detail.regression ? (
           <RegressionPane regression={detail.regression} />
+        ) : (
+          <div className={styles.empty}>No regression data — this run has no prior baseline.</div>
         )}
       </div>
     </section>
