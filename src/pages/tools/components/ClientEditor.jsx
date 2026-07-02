@@ -1,7 +1,14 @@
-import { Check, Play } from "lucide-react"
+import { Check, Play, Trash2 } from "lucide-react"
 import { useState } from "react"
+import { useDispatch } from "react-redux"
 
-import { paramSchemaObj } from "../data"
+import {
+  registerClientTools,
+  removeClientTool,
+  upsertClientTool,
+} from "@/store/toolsSlice"
+
+import { schemaFromParams } from "../normalize"
 import styles from "../tools.module.css"
 
 const LANGS = ["JavaScript", "TypeScript"]
@@ -13,19 +20,77 @@ const DEFAULT_MOCK = `{
   "ok": true
 }`
 
-// Editable detail for browser-owned (client) tools. All controls are real
-// React state — nothing is persisted or sent anywhere.
+// A stable-ish id without extra deps (Date.now is unavailable in workflows only;
+// here in the browser it's fine).
+const makeId = () => `ct_${Math.random().toString(36).slice(2, 10)}`
+
+// Editable detail for browser-owned (client) tools. Register persists to the
+// store + registers with the SDK and pushes to the server via setup().
 export default function ClientEditor({ tool }) {
+  const dispatch = useDispatch()
+
   const [name, setName] = useState(tool.name || "")
   const [desc, setDesc] = useState(tool.desc || "")
   const [code, setCode] = useState(tool.code || DEFAULT_CODE)
   const [params, setParams] = useState(
-    JSON.stringify(paramSchemaObj(tool.params || []), null, 2)
+    JSON.stringify(
+      tool.parameters && Object.keys(tool.parameters.properties || {}).length
+        ? tool.parameters
+        : schemaFromParams(tool.params || []),
+      null,
+      2
+    )
   )
   const [mock, setMock] = useState(tool.mock || DEFAULT_MOCK)
   const [lang, setLang] = useState("JavaScript")
-  const [callMode, setCallMode] = useState("mock") // mock | handler
-  const [registered, setRegistered] = useState(false)
+  const [callMode, setCallMode] = useState(tool.callMode || "mock")
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState(null)
+
+  const persist = () => {
+    let parameters
+    try {
+      parameters = JSON.parse(params)
+    } catch {
+      setMsg({ type: "error", text: "Parameters must be valid JSON." })
+      return null
+    }
+    if (!name.trim()) {
+      setMsg({ type: "error", text: "Tool name is required." })
+      return null
+    }
+    const record = {
+      id: tool.id || makeId(),
+      name: name.trim(),
+      description: desc,
+      code,
+      mock,
+      callMode,
+      parameters,
+      registered: tool.registered || false,
+    }
+    dispatch(upsertClientTool(record))
+    return record
+  }
+
+  const handleRegister = async () => {
+    const record = persist()
+    if (!record) return
+    setBusy(true)
+    setMsg(null)
+    try {
+      await dispatch(registerClientTools({ only: record.id }))
+      setMsg({ type: "ok", text: "Registered with the agent." })
+    } catch (e) {
+      setMsg({ type: "error", text: e?.message || "Registration failed." })
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const handleDelete = () => {
+    if (tool.id) dispatch(removeClientTool(tool.id))
+  }
 
   return (
     <>
@@ -34,20 +99,35 @@ export default function ClientEditor({ tool }) {
           <div className={styles.dName}>{name || "new_client_tool"}</div>
           <div className={styles.dBadges}>
             <span className={`${styles.nb} ${styles.client}`}>
-              <span className={styles.tdot} style={{ background: "var(--accent)" }} />
+              <span
+                className={styles.tdot}
+                style={{ background: "var(--accent)" }}
+              />
               client · browser
             </span>
             {tool.registered ? (
-              <span className={`${styles.nb} ${styles.registered}`}>● registered</span>
+              <span className={`${styles.nb} ${styles.registered}`}>
+                ● registered
+              </span>
             ) : (
               <span className={styles.nb}>unregistered</span>
             )}
           </div>
         </div>
+        {tool.id && (
+          <button
+            className={styles.delBtn}
+            type="button"
+            onClick={handleDelete}
+          >
+            <Trash2 size={14} strokeWidth={1.8} />
+          </button>
+        )}
       </div>
       <div className={styles.dDesc}>
-        {tool.desc ||
-          "Define a browser-owned tool. It is registered into the client SDK and, when the agent calls it, the playground resolves the remote_tool_call with your handler / mock response."}
+        Define a browser-owned tool. It is registered into the client SDK and,
+        when the agent calls it, the playground resolves the remote_tool_call
+        with your handler / mock response.
       </div>
 
       <div className={styles.fld}>
@@ -104,7 +184,8 @@ export default function ClientEditor({ tool }) {
 
       <div className={styles.fld}>
         <label>
-          Parameters <span className={styles.hint}>— JSON schema (sent to the model)</span>
+          Parameters{" "}
+          <span className={styles.hint}>— JSON schema (sent to the model)</span>
         </label>
         <textarea
           className={styles.code}
@@ -152,21 +233,33 @@ export default function ClientEditor({ tool }) {
       </div>
 
       <div className={styles.editorActions}>
-        <button className={styles.regBtn} onClick={() => setRegistered(true)} type="button">
+        <button
+          className={styles.regBtn}
+          onClick={handleRegister}
+          type="button"
+          disabled={busy}
+        >
           <Check size={14} strokeWidth={1.9} />
-          {registered
-            ? "Registered ✓"
+          {busy
+            ? "Registering…"
             : tool.registered
               ? "Update registration"
               : "Register tool"}
         </button>
-        <button className={styles.testBtn} type="button">
+        <button className={styles.testBtn} type="button" onClick={persist}>
           <Play size={14} strokeWidth={1.8} />
-          Test in Chat
+          Save draft
         </button>
-        <span className={styles.editorNote}>
-          registerTool() → setup() → resolves remote_tool_call in the stream/ws loop
-        </span>
+        {msg && (
+          <span
+            className={styles.editorNote}
+            style={{
+              color: msg.type === "error" ? "var(--danger)" : "var(--accent)",
+            }}
+          >
+            {msg.text}
+          </span>
+        )}
       </div>
     </>
   )

@@ -1,6 +1,6 @@
 import { Check, Pencil, RotateCcw } from "lucide-react"
 
-import { CATS, COLLECTIONS, SCOPE, TYPES } from "../data"
+import { COLLECTIONS } from "../data"
 import styles from "../memory.module.css"
 
 export default function FacetsColumn({
@@ -8,10 +8,13 @@ export default function FacetsColumn({
   onCollectionChange,
   loaded,
   types,
+  typeCounts,
   onToggleType,
   onAllTypes,
   cat,
+  catCounts,
   onSetCat,
+  onReload,
 }) {
   return (
     <aside className={styles.facets}>
@@ -19,7 +22,7 @@ export default function FacetsColumn({
         <div className={styles.scopeCard}>
           <div className={styles.scopeH}>
             <span className={styles.t}>Store scope</span>
-            <button className={styles.reload} type="button">
+            <button className={styles.reload} type="button" onClick={onReload}>
               <RotateCcw size={11} />
               Reload
             </button>
@@ -47,7 +50,7 @@ export default function FacetsColumn({
 
           <div className={styles.skv}>
             <span className={styles.k}>user_id</span>
-            <span className={styles.v}>{SCOPE.userId}</span>
+            <span className={styles.v}>from token</span>
           </div>
           <div className={styles.skv}>
             <span className={styles.k}>loaded</span>
@@ -71,7 +74,7 @@ export default function FacetsColumn({
             </span>
           </div>
           <div>
-            {TYPES.map((t) => {
+            {typeCounts.map((t) => {
               const on = types.has(t.k)
               return (
                 <div
@@ -99,7 +102,8 @@ export default function FacetsColumn({
             </span>
           </div>
           <div className={styles.catList}>
-            {CATS.map((c) => (
+            {catCounts.length === 0 && <div className={styles.catrow}>—</div>}
+            {catCounts.map((c) => (
               <div
                 key={c.k}
                 className={`${styles.catrow} ${cat === c.k ? styles.on : ""}`}

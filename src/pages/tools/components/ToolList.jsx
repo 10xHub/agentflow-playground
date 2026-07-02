@@ -1,11 +1,84 @@
 import { Plus } from "lucide-react"
+import { useMemo } from "react"
 
-import { GROUPS, TOOLS } from "../data"
+import { serverToolVM } from "../normalize"
 import styles from "../tools.module.css"
 
-const DOT_VAR = { client: "var(--accent)", server: "var(--blue)", mcp: "var(--violet)" }
+const DOT_VAR = {
+  client: "var(--accent)",
+  server: "var(--blue)",
+  mcp: "var(--violet)",
+}
 
-export default function ToolList({ selected, isNew, onSelect, onNew }) {
+// Row for a single tool.
+function ToolRow({ vm, active, onSelect }) {
+  return (
+    <div
+      className={`${styles.trow} ${active ? styles.active : ""}`}
+      onClick={() => onSelect(vm.key)}
+    >
+      <span className={styles.tdot} style={{ background: DOT_VAR[vm.kind] }} />
+      <span className={styles.tn}>{vm.name}</span>
+      {vm.kind === "client" ? (
+        vm.registered ? (
+          <span className={styles.rdot} title="registered" />
+        ) : (
+          <span className={styles.tp}>{vm.params.length}</span>
+        )
+      ) : (
+        <span className={styles.tp}>{vm.params.length}</span>
+      )}
+    </div>
+  )
+}
+
+export default function ToolList({
+  serverNodes,
+  clientVMs,
+  selectedKey,
+  isNew,
+  status,
+  error,
+  onSelect,
+  onNew,
+}) {
+  // Group server tools by node, splitting local/remote (server) vs mcp.
+  const groups = useMemo(() => {
+    const out = []
+    for (const node of serverNodes) {
+      const vms = (node.tools || []).map((t) => serverToolVM(t, node.node_name))
+      const serverTools = vms.filter((v) => v.kind === "server")
+      const mcpTools = vms.filter((v) => v.kind === "mcp")
+      if (serverTools.length) {
+        out.push({
+          id: `srv-${node.node_name}`,
+          label: `Server tools`,
+          sub: `node: ${node.node_name}`,
+          dot: "server",
+          vms: serverTools,
+        })
+      }
+      if (mcpTools.length) {
+        out.push({
+          id: `mcp-${node.node_name}`,
+          label: `MCP · ${node.node_name}`,
+          dot: "mcp",
+          vms: mcpTools,
+        })
+      }
+    }
+    if (clientVMs.length) {
+      out.push({
+        id: "client",
+        label: "Client tools",
+        sub: "browser",
+        dot: "client",
+        vms: clientVMs,
+      })
+    }
+    return out
+  }, [serverNodes, clientVMs])
+
   return (
     <section className={styles.list}>
       <div className={styles.listHead}>
@@ -16,32 +89,34 @@ export default function ToolList({ selected, isNew, onSelect, onNew }) {
         </button>
       </div>
       <div className={styles.listScroll}>
-        {GROUPS.map((g) => (
+        {status === "loading" && groups.length === 0 && (
+          <div className={styles.listMsg}>Loading tools…</div>
+        )}
+        {status === "error" && groups.length === 0 && (
+          <div className={styles.listMsg}>
+            {error || "Failed to load tools."}
+          </div>
+        )}
+        {status === "ready" && groups.length === 0 && (
+          <div className={styles.listMsg}>
+            No tools on this graph. Add a client tool to get started.
+          </div>
+        )}
+        {groups.map((g) => (
           <div key={g.id}>
             <div className={styles.grpH}>
               <span className={`${styles.gd} ${styles[g.dot]}`} />
               {g.label}
-              <span className={styles.gc}>{g.count}</span>
+              <span className={styles.gc}>{g.sub || g.vms.length}</span>
             </div>
-            {g.tools.map((key) => {
-              const t = TOOLS[key]
-              const active = !isNew && selected === key
-              return (
-                <div
-                  key={key}
-                  className={`${styles.trow} ${active ? styles.active : ""}`}
-                  onClick={() => onSelect(key)}
-                >
-                  <span className={styles.tdot} style={{ background: DOT_VAR[t.kind] }} />
-                  <span className={styles.tn}>{t.name}</span>
-                  {t.kind === "client" ? (
-                    <span className={styles.rdot} title="registered" />
-                  ) : (
-                    <span className={styles.tp}>{t.params.length}</span>
-                  )}
-                </div>
-              )
-            })}
+            {g.vms.map((vm) => (
+              <ToolRow
+                key={vm.key}
+                vm={vm}
+                active={!isNew && selectedKey === vm.key}
+                onSelect={onSelect}
+              />
+            ))}
           </div>
         ))}
       </div>

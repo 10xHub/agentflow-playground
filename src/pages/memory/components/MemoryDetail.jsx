@@ -1,7 +1,10 @@
 import { Pencil, Search, Trash2 } from "lucide-react"
 import { useEffect, useState } from "react"
+import { useDispatch } from "react-redux"
 
-import { SCOPE, embBars } from "../data"
+import { deleteMemory } from "@/store/memorySlice"
+
+import { embBars } from "../data"
 import styles from "../memory.module.css"
 
 function MetaJson({ meta }) {
@@ -24,10 +27,20 @@ function MetaJson({ meta }) {
 }
 
 export default function MemoryDetail({ mem, mode, strategy, metric, collection, query }) {
+  const dispatch = useDispatch()
   const [delArmed, setDelArmed] = useState(false)
 
   // Re-arm resets whenever the selected record changes (mirrors resetDelete()).
   useEffect(() => setDelArmed(false), [mem.id])
+
+  const onDelete = () => {
+    if (delArmed) {
+      dispatch(deleteMemory(mem.id))
+      setDelArmed(false)
+    } else {
+      setDelArmed(true)
+    }
+  }
 
   const search = mode === "search"
   const bars = embBars(mem.type)
@@ -55,7 +68,7 @@ export default function MemoryDetail({ mem, mode, strategy, metric, collection, 
           </button>
           <button
             className={`${styles.tbtn} ${styles.danger} ${delArmed ? styles.armed : ""}`}
-            onClick={() => setDelArmed(true)}
+            onClick={onDelete}
           >
             <Trash2 size={14} strokeWidth={1.7} />
             {delArmed ? "Confirm delete?" : "Delete"}
@@ -105,7 +118,7 @@ export default function MemoryDetail({ mem, mode, strategy, metric, collection, 
             </div>
             <div className={styles.kv}>
               <span className={styles.k}>user_id</span>
-              <span className={styles.v}>{SCOPE.userId}</span>
+              <span className={styles.v}>{mem.meta?.user_id || "from token"}</span>
             </div>
             <div className={styles.kv}>
               <span className={styles.k}>thread_id</span>

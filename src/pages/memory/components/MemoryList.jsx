@@ -1,7 +1,10 @@
-import { Check, ChevronDown, Search, Trash2 } from "lucide-react"
-import { useState } from "react"
+import { Check, Search, Trash2 } from "lucide-react"
+import { useEffect, useState } from "react"
+import { useDispatch } from "react-redux"
 
-import { DISTANCE_METRICS, RETRIEVAL_STRATEGIES, SCOPE } from "../data"
+import { forgetVisible, searchMemories } from "@/store/memorySlice"
+
+import { DISTANCE_METRICS, RETRIEVAL_STRATEGIES } from "../data"
 import styles from "../memory.module.css"
 
 export default function MemoryList({
@@ -13,26 +16,50 @@ export default function MemoryList({
   onSetMetric,
   cat,
   list,
+  total,
+  status,
+  error,
+  query,
   activeId,
   onSelect,
 }) {
+  const dispatch = useDispatch()
   const [forgetArmed, setForgetArmed] = useState(false)
+  const [browseFilter, setBrowseFilter] = useState("")
+  const [searchInput, setSearchInput] = useState(query || "")
   const search = mode === "search"
 
-  const confirmForget = () => setForgetArmed((a) => !a)
+  useEffect(() => setSearchInput(query || ""), [query])
+
+  const runSearch = () => {
+    if (searchInput.trim()) dispatch(searchMemories(searchInput.trim()))
+  }
+
+  const confirmForget = () => {
+    if (forgetArmed) {
+      dispatch(forgetVisible())
+      setForgetArmed(false)
+    } else {
+      setForgetArmed(true)
+    }
+  }
+
+  // Browse mode does an extra client-side text filter over the loaded rows.
+  const shown = search
+    ? list
+    : browseFilter.trim()
+      ? list.filter((m) => m.content.toLowerCase().includes(browseFilter.toLowerCase()))
+      : list
 
   const subLabel = search
-    ? `${list.length} results · scored by ${strategy}`
-    : `${list.length} of ${SCOPE.total} loaded${cat ? ` · ${cat}` : ""}`
+    ? `${shown.length} results · scored by ${strategy}`
+    : `${shown.length} of ${total} loaded${cat ? ` · ${cat}` : ""}`
 
   return (
     <section className={styles.list}>
       <div className={styles.listHead}>
         <div className={styles.modeseg}>
-          <button
-            className={mode === "browse" ? styles.on : ""}
-            onClick={() => onSetMode("browse")}
-          >
+          <button className={mode === "browse" ? styles.on : ""} onClick={() => onSetMode("browse")}>
             Browse loaded
           </button>
           <button className={mode === "search" ? styles.on : ""} onClick={() => onSetMode("search")}>
@@ -43,13 +70,24 @@ export default function MemoryList({
         {mode === "browse" ? (
           <div className={styles.search}>
             <Search size={14} strokeWidth={1.7} />
-            <input placeholder="Filter loaded memories by content…" spellCheck={false} />
+            <input
+              placeholder="Filter loaded memories by content…"
+              spellCheck={false}
+              value={browseFilter}
+              onChange={(e) => setBrowseFilter(e.target.value)}
+            />
           </div>
         ) : (
           <>
             <div className={styles.search}>
               <Search size={14} strokeWidth={1.7} />
-              <input defaultValue="what does the user like to drink" spellCheck={false} />
+              <input
+                placeholder="Semantic query… (press Enter)"
+                spellCheck={false}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && runSearch()}
+              />
             </div>
             <div className={styles.row2}>
               <select
@@ -82,14 +120,22 @@ export default function MemoryList({
         <button
           className={`${styles.forget} ${forgetArmed ? styles.armed : ""}`}
           onClick={confirmForget}
+          disabled={!shown.length}
         >
           {forgetArmed ? <Check size={12} strokeWidth={1.8} /> : <Trash2 size={12} strokeWidth={1.7} />}
-          {forgetArmed ? `Confirm · forget ${list.length}?` : "Forget filtered"}
+          {forgetArmed ? `Confirm · forget ${shown.length}?` : "Forget visible"}
         </button>
       </div>
 
       <div className={styles.rows}>
-        {list.map((m) => (
+        {status === "loading" && <div className={styles.memEmpty}>Loading memories…</div>}
+        {status === "error" && <div className={styles.memEmpty}>{error}</div>}
+        {status === "ready" && shown.length === 0 && (
+          <div className={styles.memEmpty}>
+            {search ? "No results — try another query." : "No memories in this collection."}
+          </div>
+        )}
+        {shown.map((m) => (
           <div
             key={m.id}
             className={`${styles.mrow} ${m.id === activeId ? styles.active : ""}`}
@@ -122,16 +168,6 @@ export default function MemoryList({
             </div>
           </div>
         ))}
-      </div>
-
-      <div className={styles.pager}>
-        <span>
-          {SCOPE.total} of {SCOPE.total} loaded
-        </span>
-        <button className={styles.loadmore}>
-          <ChevronDown size={12} strokeWidth={1.8} />
-          Load 100 more
-        </button>
       </div>
     </section>
   )

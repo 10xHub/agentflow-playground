@@ -9,7 +9,8 @@ export default function JsonSchema({ tool }) {
   const S = ({ children }) => <span className={styles.str}>{children}</span>
 
   const desc =
-    tool.desc.slice(0, 80).replace(/"/g, '\\"') + (tool.desc.length > 80 ? "…" : "")
+    tool.desc.slice(0, 80).replace(/"/g, '\\"') +
+    (tool.desc.length > 80 ? "…" : "")
   const required = tool.params.filter((p) => p.r)
 
   return (

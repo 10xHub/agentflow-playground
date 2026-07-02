@@ -1,87 +1,83 @@
-import { AlertTriangle, Trash2 } from "lucide-react"
-import { useState } from "react"
+import { Trash2 } from "lucide-react"
+import { useDispatch, useSelector } from "react-redux"
 
-import { MESSAGES, TURNS } from "../data"
+import { removeMessage } from "@/store/threadsSlice"
+
 import styles from "../threads.module.css"
 
-function MessageRow({ msg, onDelete }) {
+// Flatten a message's content blocks into a readable summary.
+const renderContent = (content) => {
+  if (typeof content === "string") return content
+  if (!Array.isArray(content)) return ""
+  return content
+    .map((b) => {
+      if (b?.type === "text") return b.text
+      if (b?.type === "reasoning") return `🧠 ${b.summary || b.details || ""}`
+      if (b?.type === "tool_call")
+        return `tool_call · ${b.name}(${JSON.stringify(b.args ?? {})})`
+      if (b?.type === "tool_result")
+        return `tool_result · ${JSON.stringify(b.output ?? b.content ?? {})}`
+      return `[${b?.type || "block"}]`
+    })
+    .join("\n")
+}
+
+const timeOf = (m) => {
+  if (!m.timestamp) return ""
+  const d = new Date(m.timestamp * 1000)
+  return Number.isNaN(d.getTime()) ? "" : d.toLocaleTimeString([], { hour12: false })
+}
+
+function MessageRow({ threadId, msg, onDelete }) {
   const roleClass = styles[msg.role] || ""
+  const body = renderContent(msg.content)
+  const isMono = /tool_call|tool_result|🧠/.test(body) || msg.role === "tool"
   return (
-    <div className={`${styles.mrow} ${msg.broken ? styles.broken : ""}`}>
+    <div className={styles.mrow}>
       <div className={styles.mrowH}>
-        <span className={`${styles.rb} ${roleClass}`}>{msg.roleLabel || msg.role}</span>
-        {msg.nodeLabel ? (
-          <span className={styles.mNode}>
-            node <b>{msg.node}</b>
-          </span>
-        ) : msg.nodeMeta ? (
-          <span className={styles.mNode}>
-            <b>{msg.node}</b> {msg.nodeMeta}
-          </span>
-        ) : (
-          <span className={styles.mNode}>
-            <b>{msg.node}</b>
-          </span>
-        )}
-        {msg.brokenTag ? <span className={styles.brokenTag}>{msg.brokenTag}</span> : null}
-        <span className={styles.mTime}>{msg.time}</span>
+        <span className={`${styles.rb} ${roleClass}`}>{msg.role}</span>
+        <span className={styles.mNode}>
+          <b>{msg.message_id?.slice(0, 8) || "—"}</b>
+        </span>
+        <span className={styles.mTime}>{timeOf(msg)}</span>
         <button
           type="button"
           className={styles.mDel}
           title="Delete message"
-          onClick={() => onDelete(msg.id)}
+          onClick={() => onDelete(threadId, msg.message_id)}
         >
           <Trash2 size={14} strokeWidth={1.7} />
         </button>
       </div>
       <div className={styles.mrowBody}>
-        {msg.pre ? (
-          <pre>{msg.pre}</pre>
-        ) : (
-          <>
-            {msg.body}
-            {msg.mono ? (
-              <>
-                <br />
-                <span className="mono">{msg.mono}</span>
-              </>
-            ) : null}
-          </>
-        )}
+        {isMono ? <pre>{body}</pre> : body || <em>(empty)</em>}
       </div>
     </div>
   )
 }
 
 export default function MessagesPane() {
-  const [deleted, setDeleted] = useState(() => new Set())
-  const onDelete = (id) => setDeleted((prev) => new Set(prev).add(id))
-  const messages = MESSAGES.filter((m) => !deleted.has(m.id))
+  const dispatch = useDispatch()
+  const { selectedId, detail, detailStatus, busy } = useSelector((s) => s.threads)
+  const messages = detail?.messages || []
+
+  const onDelete = (threadId, messageId) => {
+    if (!threadId || !messageId) return
+    dispatch(removeMessage(threadId, messageId))
+  }
+
+  if (detailStatus === "loading") return <div className={styles.paneEmpty}>Loading messages…</div>
+  if (!messages.length) return <div className={styles.paneEmpty}>No messages in this thread.</div>
 
   return (
-    <div>
-      <div className={styles.diag}>
-        <AlertTriangle size={17} strokeWidth={1.8} />
-        <div className={styles.diagB}>
-          <div className={styles.dt}>Dangling tool call detected</div>
-          <div className={styles.dd}>
-            Message <code>msg_4f…</code> issues a <code>tool_call</code> with no matching{" "}
-            <code>tool_result</code>, wedging the thread at node <code>tools</code>. Run{" "}
-            <b>Fix thread</b> to clear it, or delete the offending message below, then re-check.
-          </div>
-        </div>
-      </div>
-
-      {messages.map((msg) => (
-        <div key={msg.id}>
-          {TURNS[msg.id] ? (
-            <div className={styles.mline}>
-              <span className={styles.lbl}>{TURNS[msg.id]}</span>
-              <span className={styles.l} />
-            </div>
-          ) : null}
-          <MessageRow msg={msg} onDelete={onDelete} />
-        </div>
+    <div className={busy ? styles.dim : ""}>
+      {messages.map((msg, i) => (
+        <MessageRow
+          key={msg.message_id || i}
+          threadId={selectedId}
+          msg={msg}
+          onDelete={onDelete}
+        />
       ))}
     </div>
   )

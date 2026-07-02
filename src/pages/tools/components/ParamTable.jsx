@@ -2,7 +2,11 @@ import styles from "../tools.module.css"
 
 export default function ParamTable({ params }) {
   if (!params.length) {
-    return <div className={styles.dDesc} style={{ margin: 0 }}>No parameters.</div>
+    return (
+      <div className={styles.dDesc} style={{ margin: 0 }}>
+        No parameters.
+      </div>
+    )
   }
   return (
     <div className={styles.ptable}>

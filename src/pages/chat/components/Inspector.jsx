@@ -1,8 +1,14 @@
-import { Copy, Plus, RefreshCw, Save, Trash2, X } from "lucide-react"
-import { useEffect, useMemo, useState } from "react"
+import { Copy, RefreshCw, Save, X } from "lucide-react"
+import { useEffect, useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
 
 import { loadGraphInfo } from "@/store/chatThunks"
+import {
+  FIXED_FIELDS,
+  fetchThreadState,
+  saveThreadState,
+  setField,
+} from "@/store/stateSlice"
 
 import styles from "../chat.module.css"
 
@@ -151,56 +157,87 @@ function CurlPane() {
 }
 
 // ---- State pane -----------------------------------------------------------
-// Bidirectional view of the current thread's AgentState. Three fields are fixed
-// (context / context_summary / execution_meta); everything else is dynamic and
-// schema-driven, so the field list is not hardcoded. DUMMY DATA for now — the
-// Sync/Save buttons are placeholders until the checkpointer API is wired in.
+// Bidirectional view of the CURRENT THREAD's AgentState, backed by the
+// thread-keyed `threadState` slice (state persists per thread in Redux). Three
+// fields are fixed (context / context_summary / execution_meta); every other
+// key is a graph-defined field surfaced from the schema, so the list is dynamic.
+// Sync = GET /v1/threads/{id}/state · Save = PUT (changed keys only).
 
-const FIXED_FIELDS = ["context", "context_summary", "execution_meta", "state"]
-
-// Stand-in state + schema. Mirrors what /v1/checkpointer thread state returns:
-// a couple of fixed fields plus arbitrary dynamic fields defined by the graph.
-const DUMMY_STATE = {
-  context: [
-    { message_id: "m1", role: "user", content: "What's the weather in Paris?" },
-    {
-      message_id: "m2",
-      role: "assistant",
-      content: "It's 18°C and clear in Paris right now.",
-    },
-  ],
-  context_summary:
-    "User is asking about weather. Assistant answered for Paris.",
-  execution_meta: {
-    current_node: "MAIN",
-    step: 4,
-    status: "idle",
-    thread_id: "thread_demo_01",
-    interrupted_node: null,
-    interrupt_reason: "",
-  },
-  // --- dynamic (graph-defined) fields ---
-  user_name: "Ada",
-  turn_count: 3,
-  preferences: { units: "metric", tone: "concise" },
+// A metadata row: renders "—" for empty values; objects pretty-print as JSON.
+const metaVal = (v) => {
+  if (v === null || v === undefined || v === "") return "—"
+  if (typeof v === "object") return JSON.stringify(v)
+  return String(v)
 }
 
-const DUMMY_SCHEMA = {
-  user_name: {
-    title: "User Name",
-    description: "Display name for the current user",
-    type: "string",
-  },
-  turn_count: {
-    title: "Turn Count",
-    description: "Number of completed turns",
-    type: "number",
-  },
-  preferences: {
-    title: "Preferences",
-    description: "Per-user settings object",
-    type: "object",
-  },
+// Compact a possibly-structured value (tool output, args) to a single string.
+const asText = (v) => {
+  if (v === null || v === undefined) return ""
+  if (typeof v === "string") return v
+  try {
+    return JSON.stringify(v)
+  } catch {
+    return String(v)
+  }
+}
+
+// Render one content block to a readable line. Assistant/tool turns often carry
+// NO text block — just tool_call / tool_result / reasoning — so a text-only
+// extractor shows them as empty. This handles every block type the core emits.
+const blockToText = (b) => {
+  if (typeof b === "string") return b
+  switch (b?.type) {
+    case "text":
+      return b.text || ""
+    case "tool_call":
+    case "remote_tool_call":
+      return `🛠 ${b.name}(${asText(b.args ?? {})})`
+    case "tool_result": {
+      const tag =
+        b.is_error || b.status === "failed" ? "⚠ tool error" : "↳ result"
+      return `${tag}: ${asText(b.output ?? b.content)}`
+    }
+    case "reasoning":
+      return `💭 ${b.summary || (b.details || []).join(" ") || "reasoning"}`
+    case "error":
+      return `⚠ ${b.message || "error"}`
+    case "image":
+    case "audio":
+    case "video":
+    case "document":
+      return `[${b.type}]`
+    case "data":
+      return `[data ${b.mime_type || ""}]`
+    default:
+      return b?.type ? `[${b.type}]` : asText(b)
+  }
+}
+
+// Message content is a plain string or a list of typed blocks. Join every block
+// to a readable multi-line summary so assistant tool calls and tool results are
+// visible instead of blank. Also fold in top-level tool call fields some
+// providers put on the message (tools_calls / reasoning) when content is bare.
+const messageText = (msg) => {
+  const content = msg?.content ?? msg
+  const lines = []
+  if (typeof content === "string") {
+    if (content) lines.push(content)
+  } else if (Array.isArray(content)) {
+    content.forEach((b) => {
+      const t = blockToText(b)
+      if (t) lines.push(t)
+    })
+  }
+  // Some assistant turns carry tool calls on a sibling field, not in content.
+  if (Array.isArray(msg?.tools_calls)) {
+    msg.tools_calls.forEach((tc) => {
+      const fn = tc?.function || tc
+      lines.push(
+        `🛠 ${fn?.name || tc?.name || "tool"}(${asText(fn?.arguments ?? tc?.args ?? {})})`
+      )
+    })
+  }
+  return lines.join("\n")
 }
 
 // Serialize a value for a text input; objects/arrays render as pretty JSON.
@@ -209,7 +246,7 @@ const toEditable = (v) =>
 
 // A dynamic field: JSON is parsed back to a value; anything else stays a string.
 // The parent remounts this (via a key that includes the sync nonce) whenever a
-// Sync replaces the state, so `raw` re-seeds from `value` without an effect.
+// fresh load replaces the state, so `raw` re-seeds from `value` without an effect.
 function DynamicField({ fieldKey, info, value, onChange }) {
   const [raw, setRaw] = useState(() => toEditable(value))
   const [invalid, setInvalid] = useState(false)
@@ -235,7 +272,8 @@ function DynamicField({ fieldKey, info, value, onChange }) {
       <div className={styles.stFieldHead}>
         <span className={styles.stFieldKey}>{info?.title || fieldKey}</span>
         <span className={styles.stFieldType}>
-          {info?.type || (structured ? "json" : "string")}
+          {(Array.isArray(info?.type) ? info.type[0] : info?.type) ||
+            (structured ? "json" : "string")}
         </span>
         {info?.description && (
           <span className={styles.stFieldDesc}>{info.description}</span>
@@ -255,191 +293,250 @@ function DynamicField({ fieldKey, info, value, onChange }) {
   )
 }
 
+// Diagnostic view of execution_meta — the "what is the run doing / why is it
+// blocked" data. Read-only: it is owned by the engine, not the user.
+function ExecutionMeta({ meta }) {
+  const status = meta.status || "—"
+  const interrupted = meta.interrupted_node || meta.interrupt_reason
+  const err = meta.internal_data?.error
+
+  const dotClass =
+    status === "running"
+      ? styles.running
+      : status.startsWith("interrupted")
+        ? styles.interrupted
+        : status === "error"
+          ? styles.error
+          : ""
+
+  const rows = [
+    ["status", status, true],
+    ["current_node", metaVal(meta.current_node)],
+    ["step", metaVal(meta.step)],
+    ["thread_id", metaVal(meta.thread_id)],
+    ["stop_request", metaVal(meta.stop_current_execution)],
+  ]
+
+  return (
+    <div className={styles.stCard}>
+      <div className={styles.stCardHead}>
+        <span className={styles.stCardTitle}>Execution Meta</span>
+      </div>
+      {rows.map(([k, v, isStatus]) => (
+        <div className={styles.stMetaRow} key={k}>
+          <span className={styles.stMetaKey}>{k}</span>
+          <span className={styles.stMetaVal}>
+            {isStatus && <span className={`${styles.stDot} ${dotClass}`} />}
+            {v}
+          </span>
+        </div>
+      ))}
+
+      {/* Only surfaced when the run is actually blocked. */}
+      {interrupted && (
+        <>
+          <div className={styles.stMetaRow}>
+            <span className={styles.stMetaKey}>interrupted_node</span>
+            <span className={styles.stMetaVal}>
+              {metaVal(meta.interrupted_node)}
+            </span>
+          </div>
+          <div className={styles.stMetaRow}>
+            <span className={styles.stMetaKey}>interrupt_reason</span>
+            <span className={styles.stMetaVal}>
+              {metaVal(meta.interrupt_reason)}
+            </span>
+          </div>
+          {meta.interrupt_data && (
+            <div className={styles.stMetaRow}>
+              <span className={styles.stMetaKey}>interrupt_data</span>
+              <span className={styles.stMetaVal}>
+                {metaVal(meta.interrupt_data)}
+              </span>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Last engine error, if any. */}
+      {err && (
+        <div className={styles.stMetaRow}>
+          <span className={styles.stMetaKey}>error</span>
+          <span className={`${styles.stMetaVal} ${styles.stInvalid}`}>
+            {metaVal(err)}
+          </span>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function StatePane() {
+  const dispatch = useDispatch()
   const threadId = useSelector((s) => s.chat.threadId)
-
-  // Local working copy of the state (the "form"); dummy for now.
-  const [draft, setDraft] = useState(DUMMY_STATE)
-  const [syncing, setSyncing] = useState(false)
-  const [saving, setSaving] = useState(false)
-  // Bumped on every Sync; part of each field's key so editors re-seed cleanly.
-  const [syncNonce, setSyncNonce] = useState(0)
-
-  const dynamicKeys = useMemo(
-    () =>
-      [
-        ...new Set([...Object.keys(DUMMY_SCHEMA), ...Object.keys(draft)]),
-      ].filter((k) => !FIXED_FIELDS.includes(k)),
-    [draft]
+  const schema = useSelector((s) => s.graph.stateSchema)
+  const entry = useSelector((s) =>
+    threadId ? s.threadState.byThread[threadId] : null
   )
 
-  const setField = (key, value) => setDraft((d) => ({ ...d, [key]: value }))
+  // Fetch this thread's state the first time the pane sees it (and re-fetch when
+  // the active thread changes). Each thread keeps its own entry in Redux.
+  useEffect(() => {
+    if (threadId && !entry) dispatch(fetchThreadState(threadId))
+  }, [threadId, entry, dispatch])
 
-  const removeMessage = (idx) =>
-    setDraft((d) => ({ ...d, context: d.context.filter((_, i) => i !== idx) }))
-
-  const addMessage = () =>
-    setDraft((d) => ({
-      ...d,
-      context: [
-        ...d.context,
-        { message_id: `m${d.context.length + 1}`, role: "user", content: "" },
-      ],
-    }))
-
-  // Placeholders until the checkpointer API is connected.
-  const onSync = () => {
-    setSyncing(true)
-    setTimeout(() => {
-      setDraft(DUMMY_STATE)
-      setSyncNonce((n) => n + 1)
-      setSyncing(false)
-    }, 500)
-  }
-  const onSave = () => {
-    setSaving(true)
-    setTimeout(() => setSaving(false), 500)
+  if (!threadId) {
+    return empty("No active thread — send a message first to create one.")
   }
 
-  const meta = draft.execution_meta || {}
-  const status = meta.status || "idle"
+  const status = entry?.status || "idle"
+  const draft = entry?.draft
+  const schemaProps = schema?.properties || {}
+
+  // Union of schema-declared fields and whatever the state actually carries,
+  // minus the fixed ones — this is the dynamic field list (not hardcoded).
+  const dynamicKeys = [
+    ...new Set([...Object.keys(schemaProps), ...Object.keys(draft || {})]),
+  ].filter((k) => !FIXED_FIELDS.includes(k))
+
+  // A nonce that changes whenever a fresh server snapshot lands, so dynamic
+  // field editors re-seed cleanly (via key) without an effect. `server` is a new
+  // object reference on each load, so JSON length is a cheap stand-in.
+  const syncNonce = entry?.server ? JSON.stringify(entry.server).length : 0
+
+  const context = draft?.context || []
+  const meta = draft?.execution_meta || {}
+
+  const onSync = () => dispatch(fetchThreadState(threadId))
+  const onSave = () => dispatch(saveThreadState(threadId))
 
   return (
     <>
       <div className={styles.stActions}>
-        <span className={styles.stThread}>
-          {threadId ? `thread ${threadId}` : "no active thread"}
-        </span>
+        <span className={styles.stThread}>thread {threadId}</span>
         <button
           className={styles.stBtn}
           type="button"
           onClick={onSync}
-          disabled={syncing}
+          disabled={status === "loading"}
         >
-          <RefreshCw size={12} className={syncing ? styles.spin : ""} /> Sync
+          <RefreshCw
+            size={12}
+            className={status === "loading" ? styles.spin : ""}
+          />{" "}
+          Sync
         </button>
         <button
           className={`${styles.stBtn} ${styles.primary}`}
           type="button"
           onClick={onSave}
-          disabled={saving}
+          disabled={entry?.saving || !draft}
         >
-          <Save size={12} /> {saving ? "Saving…" : "Save"}
+          <Save size={12} /> {entry?.saving ? "Saving…" : "Save"}
         </button>
       </div>
 
-      {/* Context messages (fixed field) */}
-      <div className={styles.stCard}>
-        <div className={styles.stCardHead}>
-          <span className={styles.stCardTitle}>
-            Context{" "}
-            <span className={styles.stCardCount}>({draft.context.length})</span>
-          </span>
-          <button className={styles.stAdd} type="button" onClick={addMessage}>
-            <Plus size={11} /> Add
-          </button>
+      {entry?.error && (
+        <div className={styles.stHint} style={{ marginBottom: 8 }}>
+          {entry.error}
         </div>
-        <p className={styles.stCardDesc}>Short-term conversation memory.</p>
-        {draft.context.length === 0 && (
-          <div className={styles.inspEmpty}>No messages.</div>
-        )}
-        {draft.context.map((m, i) => (
-          <div className={styles.stMsg} key={m.message_id || i}>
-            <div className={styles.stMsgHead}>
-              <span className={`${styles.stRole} ${styles[m.role] || ""}`}>
-                {m.role}
+      )}
+
+      {status === "loading" && !draft ? (
+        empty("Loading thread state…")
+      ) : !draft ? (
+        empty("No state yet for this thread.")
+      ) : (
+        <>
+          {/* Context messages — read-only. The state `context` field uses an
+              append-reducer server-side, so it can't be replaced via Save;
+              editing/adding messages belongs to the Thread Inspector. Here we
+              just show the short-term memory the run is working with. */}
+          <div className={styles.stCard}>
+            <div className={styles.stCardHead}>
+              <span className={styles.stCardTitle}>
+                Context{" "}
+                <span className={styles.stCardCount}>({context.length})</span>
               </span>
-              <button
-                className={styles.stMsgDel}
-                type="button"
-                onClick={() => removeMessage(i)}
-                title="Remove message"
-              >
-                <Trash2 size={12} />
-              </button>
+            </div>
+            <p className={styles.stCardDesc}>
+              Short-term conversation memory (read-only).
+            </p>
+            {context.length === 0 && (
+              <div className={styles.inspEmpty}>No messages.</div>
+            )}
+            {context.map((m, i) => {
+              const text = messageText(m)
+              return (
+                <div className={styles.stMsg} key={m.message_id || i}>
+                  <div className={styles.stMsgHead}>
+                    <span
+                      className={`${styles.stRole} ${styles[m.role] || ""}`}
+                    >
+                      {m.role || "message"}
+                    </span>
+                  </div>
+                  <textarea
+                    className={styles.stArea}
+                    value={text || "(empty)"}
+                    rows={Math.min(6, Math.max(2, text.split("\n").length))}
+                    readOnly
+                    spellCheck={false}
+                  />
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Context summary (fixed field) */}
+          <div className={styles.stCard}>
+            <div className={styles.stCardHead}>
+              <span className={styles.stCardTitle}>Context Summary</span>
             </div>
             <textarea
               className={styles.stArea}
-              value={
-                typeof m.content === "string"
-                  ? m.content
-                  : JSON.stringify(m.content, null, 2)
-              }
-              rows={2}
+              value={draft.context_summary || ""}
+              rows={3}
+              placeholder="Rolling summary of the conversation…"
               onChange={(e) =>
-                setDraft((d) => ({
-                  ...d,
-                  context: d.context.map((mm, ii) =>
-                    ii === i ? { ...mm, content: e.target.value } : mm
-                  ),
-                }))
+                dispatch(
+                  setField({
+                    threadId,
+                    key: "context_summary",
+                    value: e.target.value,
+                  })
+                )
               }
               spellCheck={false}
             />
           </div>
-        ))}
-      </div>
 
-      {/* Context summary (fixed field) */}
-      <div className={styles.stCard}>
-        <div className={styles.stCardHead}>
-          <span className={styles.stCardTitle}>Context Summary</span>
-        </div>
-        <textarea
-          className={styles.stArea}
-          value={draft.context_summary || ""}
-          rows={3}
-          placeholder="Rolling summary of the conversation…"
-          onChange={(e) => setField("context_summary", e.target.value)}
-          spellCheck={false}
-        />
-      </div>
+          {/* Execution metadata (fixed field, diagnostic / read-only) */}
+          <ExecutionMeta meta={meta} />
 
-      {/* Execution metadata (fixed field, mostly diagnostic) */}
-      <div className={styles.stCard}>
-        <div className={styles.stCardHead}>
-          <span className={styles.stCardTitle}>Execution Meta</span>
-        </div>
-        <div className={styles.stMetaRow}>
-          <span className={styles.stMetaKey}>status</span>
-          <span className={styles.stMetaVal}>
-            <span className={`${styles.stDot} ${styles[status] || ""}`} />
-            {status}
-          </span>
-        </div>
-        <div className={styles.stMetaRow}>
-          <span className={styles.stMetaKey}>current_node</span>
-          <span className={styles.stMetaVal}>{meta.current_node ?? "—"}</span>
-        </div>
-        <div className={styles.stMetaRow}>
-          <span className={styles.stMetaKey}>step</span>
-          <span className={styles.stMetaVal}>{meta.step ?? "—"}</span>
-        </div>
-        <div className={styles.stMetaRow}>
-          <span className={styles.stMetaKey}>thread_id</span>
-          <span className={styles.stMetaVal}>{meta.thread_id ?? "—"}</span>
-        </div>
-      </div>
-
-      {/* Dynamic (graph-defined) fields — not fixed, editable */}
-      <div className={styles.trajHead}>
-        <span>Dynamic fields</span>
-        <span className={styles.tjThread}>{dynamicKeys.length} fields</span>
-      </div>
-      {dynamicKeys.length === 0 ? (
-        <div className={styles.inspEmpty}>
-          No dynamic state fields on this graph.
-        </div>
-      ) : (
-        dynamicKeys.map((key) => (
-          <DynamicField
-            key={`${key}:${syncNonce}`}
-            fieldKey={key}
-            info={DUMMY_SCHEMA[key]}
-            value={draft[key]}
-            onChange={(v) => setField(key, v)}
-          />
-        ))
+          {/* Dynamic (graph-defined) fields — not fixed, editable */}
+          <div className={styles.trajHead}>
+            <span>Dynamic fields</span>
+            <span className={styles.tjThread}>{dynamicKeys.length} fields</span>
+          </div>
+          {dynamicKeys.length === 0 ? (
+            <div className={styles.inspEmpty}>
+              No dynamic state fields on this graph.
+            </div>
+          ) : (
+            dynamicKeys.map((key) => (
+              <DynamicField
+                key={`${key}:${syncNonce}`}
+                fieldKey={key}
+                info={schemaProps[key]}
+                value={draft[key]}
+                onChange={(v) =>
+                  dispatch(setField({ threadId, key, value: v }))
+                }
+              />
+            ))
+          )}
+        </>
       )}
     </>
   )

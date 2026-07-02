@@ -154,6 +154,33 @@
   font-weight: 600;
   letter-spacing: -0.01em;
 }
+.delBtn {
+  margin-left: auto;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
+}
+.delBtn:hover {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+.listMsg {
+  padding: 16px 10px;
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
 .dBadges {
   display: flex;
   align-items: center;

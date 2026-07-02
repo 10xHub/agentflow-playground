@@ -17,7 +17,7 @@ export default function ReadonlyDetail({ tool }) {
   ) : (
     <span className={styles.nb}>
       <span className={styles.tdot} style={{ background: "var(--blue)" }} />
-      server{tool.src === "remote" ? " · remote" : " · local"}
+      server · {tool.src || "local"}
     </span>
   )
 
@@ -52,10 +52,11 @@ export default function ReadonlyDetail({ tool }) {
       <div className={styles.note}>
         <Info size={15} strokeWidth={1.7} />
         <span>
-          <b>Read-only.</b> {isMcp ? "MCP tool schemas" : "Server tool schemas"} come from{" "}
-          <span className="mono">all_tools()</span> on the node. Listing them in the UI needs a
-          small backend endpoint that exposes this (not served today); client tools below run
-          fully in the browser.
+          <b>Read-only.</b> {isMcp ? "MCP tool schemas" : "Server tool schemas"}{" "}
+          come live from <span className="mono">GET /v1/graph/tools</span> (
+          <span className="mono">all_tools()</span> on node{" "}
+          <span className="mono">{tool.node}</span>) and can't be edited from
+          the playground. Client tools run fully in the browser.
         </span>
       </div>
     </>
