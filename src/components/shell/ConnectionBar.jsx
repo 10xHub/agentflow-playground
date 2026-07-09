@@ -72,7 +72,12 @@ export default function ConnectionBar({ right = null }) {
         <button className={styles.iconbtn} type="button" onClick={toggle} title="Toggle theme">
           {theme === "light" ? <Moon size={15} /> : <Sun size={15} />}
         </button>
-        <button className={styles.iconbtn} type="button" title="Settings">
+        <button
+          className={styles.iconbtn}
+          type="button"
+          title="Settings"
+          onClick={() => navigate("/settings")}
+        >
           <Settings size={15} />
         </button>
       </div>

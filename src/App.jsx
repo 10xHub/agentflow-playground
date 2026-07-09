@@ -11,6 +11,7 @@ import LivePage from "@/pages/live/LivePage"
 import MemoryPage from "@/pages/memory/MemoryPage"
 import ObservabilityPage from "@/pages/observability/ObservabilityPage"
 import Placeholder from "@/pages/Placeholder"
+import SettingsPage from "@/pages/settings/SettingsPage"
 import ThreadsPage from "@/pages/threads/ThreadsPage"
 import ToolsPage from "@/pages/tools/ToolsPage"
 import { store } from "@/store"
@@ -40,10 +41,7 @@ export default function App() {
                 path="/files"
                 element={<Placeholder name="Files" note="coming soon" />}
               />
-              <Route
-                path="/settings"
-                element={<Placeholder name="Settings" />}
-              />
+              <Route path="/settings" element={<SettingsPage />} />
             </Route>
             <Route path="*" element={<Navigate to="/chat" replace />} />
           </Routes>

@@ -1,0 +1,342 @@
+/* Settings — config hub. Card aesthetic mirrors the Memory scope card.
+   Global tokens (--bg, --surface, --border, --accent, …) come from tokens.css. */
+
+.page {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  background: var(--bg);
+}
+.scroll {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 32px 24px 64px;
+}
+
+.head {
+  margin-bottom: 20px;
+}
+.head h1 {
+  margin: 0 0 6px;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text);
+}
+.head p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-muted);
+  max-width: 52ch;
+}
+
+/* ---- card ---- */
+.card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  padding: 16px;
+  margin-bottom: 16px;
+}
+.cardH {
+  margin-bottom: 14px;
+}
+.cardH h2 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* ---- active connection ---- */
+.activeConn {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-2);
+  padding: 12px;
+}
+.acTop {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.acName {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+.acUrl {
+  margin-top: 3px;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  word-break: break-all;
+}
+.acMeta {
+  margin-top: 8px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  flex-shrink: 0;
+}
+.dot.live {
+  background: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-weak);
+}
+
+.badge {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 1px 6px;
+  border-radius: 5px;
+}
+
+.caps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.cap {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--text-secondary);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 2px 7px;
+  border-radius: 5px;
+}
+.cap.capOff {
+  color: var(--text-muted);
+  opacity: 0.5;
+}
+
+.err {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  font-size: 11.5px;
+  color: var(--danger);
+}
+
+.acActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+/* ---- buttons ---- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    color 0.15s,
+    border-color 0.15s,
+    background 0.15s;
+}
+.btn:hover:not(:disabled) {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.btnPrimary {
+  background: var(--btn-bg);
+  color: var(--btn-text);
+  border-color: transparent;
+}
+.btnPrimary:hover:not(:disabled) {
+  color: var(--btn-text);
+  opacity: 0.9;
+}
+
+.noneConn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* ---- saved connections ---- */
+.subH {
+  margin: 18px 0 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.savedList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.empty {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  padding: 8px 2px;
+}
+.savedRow {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.savedRow.rowActive {
+  border-color: var(--accent);
+}
+.savedPick {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s;
+}
+.savedPick:hover:not(:disabled) {
+  background: var(--elevated);
+}
+.savedPick:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.srBody {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 2px;
+}
+.srName {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.srUrl {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.srCheck {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+.rowDel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  border: none;
+  border-left: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition:
+    color 0.15s,
+    background 0.15s;
+}
+.rowDel:hover {
+  color: var(--danger);
+  background: var(--elevated);
+}
+
+/* ---- appearance / setting row ---- */
+.settingRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.stLabel {
+  min-width: 0;
+}
+.stTitle {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+}
+.stDesc {
+  margin-top: 3px;
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+.seg {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  padding: 3px;
+  gap: 2px;
+}
+.segBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    color 0.15s,
+    background 0.15s;
+}
+.segBtn:hover {
+  color: var(--text);
+}
+.segBtn.segOn {
+  background: var(--elevated);
+  color: var(--text);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
