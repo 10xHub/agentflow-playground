@@ -36,7 +36,7 @@ export default function App() {
               <Route path="/graph" element={<GraphPage />} />
               <Route path="/tools" element={<ToolsPage />} />
               {/* Files is a "coming soon" stub until the real /v1/files
-                  integration lands; FilesPage.jsx is kept for that work. */}
+                  integration lands. */}
               <Route
                 path="/files"
                 element={<Placeholder name="Files" note="coming soon" />}
