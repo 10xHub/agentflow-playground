@@ -1,14 +1,13 @@
-import { MicOff, Radio, WifiOff } from "lucide-react"
+import { MicOff, WifiOff } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 
 import { useConnection } from "@/lib/connection/ConnectionContext"
 
+import LiveSession from "./components/LiveSession"
 import styles from "./live.module.css"
 
-// Full-width centered state panel. The real audio-to-audio session UI is
-// deferred; until then Live only ever shows an honest availability state, never
-// the old dummy waveform/transcript mock (Stage/Transcript/SessionPanel are kept
-// on disk for that future build).
+// Full-width centered state panel for the unavailable/not-connected cases; the
+// live-capable case renders <LiveSession/> instead.
 function Gate({ icon: Icon, title, body, note, action, onAction }) {
   return (
     <div className={styles.gate}>
@@ -65,14 +64,8 @@ export function LivePage() {
     )
   }
 
-  // Live-capable agent — real audio session UI is deferred for now.
-  return (
-    <Gate
-      icon={Radio}
-      title="Live-capable agent"
-      body="This agent supports realtime audio sessions. The live session UI is coming soon."
-    />
-  )
+  // Live-capable agent — drive a real realtime session over /v1/graph/live.
+  return <LiveSession />
 }
 
 export default LivePage
