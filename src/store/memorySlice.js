@@ -10,7 +10,7 @@ import { getAgentFlowClient } from "@/lib/agentflow-client"
 const initialState = {
   mode: "browse", // "browse" | "search"
   items: [], // normalized memory rows (see normalize())
-  status: "idle", // idle | loading | ready | error
+  status: "idle", // idle | loading | ready | error | unconfigured
   error: null,
   selectedId: null,
   query: "",
@@ -69,6 +69,15 @@ const memorySlice = createSlice({
       s.status = "error"
       s.error = a.payload
     },
+    // The agent has no store backend wired in agentflow.json — the API answers
+    // the store endpoints with 503 "Store is not configured". This is not an
+    // error the user can act on from here, so it gets its own empty state.
+    unconfigured: (s, a) => {
+      s.status = "unconfigured"
+      s.items = []
+      s.selectedId = null
+      s.error = a.payload || null
+    },
     setBusy: (s, a) => {
       s.busy = a.payload
     },
@@ -85,10 +94,25 @@ export const {
   loading,
   loaded,
   failed,
+  unconfigured,
   setBusy,
 } = memorySlice.actions
 
 const unwrap = (res) => res?.data || res || {}
+
+// The store service raises HTTP 503 "Store is not configured" when no `store`
+// is wired in agentflow.json. The client surfaces that as an AgentFlowError with
+// statusCode 503; match on it (with a message fallback) to branch to the
+// dedicated "not configured" state instead of the generic error state.
+const isStoreUnconfigured = (e) =>
+  e?.statusCode === 503 || /not configured/i.test(e?.message || "")
+
+// Route a failed store fetch: the "not configured" case gets its own state,
+// everything else is a generic error.
+const dispatchFetchError = (dispatch, e, fallback) => {
+  if (isStoreUnconfigured(e)) dispatch(unconfigured(e?.message))
+  else dispatch(failed(e?.message || fallback))
+}
 
 const cfgFor = (getState) => {
   const { collection } = getState().memory
@@ -109,7 +133,7 @@ export const browseMemories = () => async (dispatch, getState) => {
     const data = unwrap(await client.listMemories({ config: cfgFor(getState), limit: 100 }))
     dispatch(loaded((data.memories || []).map(normalize)))
   } catch (e) {
-    dispatch(failed(e?.message || "Failed to list memories"))
+    dispatchFetchError(dispatch, e, "Failed to list memories")
   }
 }
 
@@ -140,7 +164,7 @@ export const searchMemories = (query) => async (dispatch, getState) => {
     )
     dispatch(loaded((data.results || data.memories || []).map(normalize)))
   } catch (e) {
-    dispatch(failed(e?.message || "Search failed"))
+    dispatchFetchError(dispatch, e, "Search failed")
   }
 }
 

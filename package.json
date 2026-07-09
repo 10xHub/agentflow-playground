@@ -4,7 +4,11 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "build:client": "npm --prefix ../agentflow-client run build",
+    "watch:client": "npm --prefix ../agentflow-client run dev",
+    "predev": "npm run build:client",
     "dev": "vite",
+    "prebuild": "npm run build:client",
     "build": "vite build",
     "test": "vitest",
     "coverage": "vitest run --coverage",

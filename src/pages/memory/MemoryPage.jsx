@@ -1,3 +1,4 @@
+import { DatabaseZap } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
 
@@ -24,10 +25,22 @@ const ALL_TYPES = [
   "custom",
 ]
 
+/**
+ *
+ */
 export default function MemoryPage() {
   const dispatch = useDispatch()
-  const { items, mode, strategy, metric, collection, selectedId, status, error, query } =
-    useSelector((s) => s.memory)
+  const {
+    items,
+    mode,
+    strategy,
+    metric,
+    collection,
+    selectedId,
+    status,
+    error,
+    query,
+  } = useSelector((s) => s.memory)
 
   // Local facet UI state (client-side filtering over the loaded set).
   const [types, setTypes] = useState(() => new Set(ALL_TYPES))
@@ -72,12 +85,41 @@ export default function MemoryPage() {
   const activeMem = items.find((m) => m.id === activeId) || null
 
   const toggleType = (k) =>
-    setTypes((prev) => {
-      const next = new Set(prev)
+    setTypes((previous) => {
+      const next = new Set(previous)
       if (next.has(k)) next.delete(k)
       else next.add(k)
       return next
     })
+
+  // No store backend wired for this agent — the API answered 503 "Store is not
+  // configured". Show a single explanatory panel instead of the empty inspector.
+  if (status === "unconfigured") {
+    return (
+      <div className={styles.unconfiguredPage}>
+        <div className={styles.unconfigured}>
+          <DatabaseZap size={30} strokeWidth={1.5} />
+          <h2>Memory not configured</h2>
+          <p>
+            This agent has no memory store wired up, so there are no memories to
+            inspect.
+          </p>
+          <p className={styles.unconfiguredHint}>
+            Set a <code>store</code> in your <code>agentflow.json</code> (for
+            example a <code>QdrantStore</code> or <code>Mem0Store</code>) and
+            restart the API server, then reload this page.
+          </p>
+          <button
+            type="button"
+            className={styles.unconfiguredRetry}
+            onClick={() => dispatch(browseMemories())}
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className={styles.page}>
@@ -91,7 +133,7 @@ export default function MemoryPage() {
         onAllTypes={() => setTypes(new Set(ALL_TYPES))}
         cat={cat}
         catCounts={catCounts}
-        onSetCat={(k) => setCat((cur) => (cur === k ? null : k))}
+        onSetCat={(k) => setCat((current) => (current === k ? null : k))}
         onReload={() => dispatch(browseMemories())}
       />
 
@@ -109,7 +151,9 @@ export default function MemoryPage() {
         error={error}
         query={query}
         activeId={activeId}
-        onSelect={(id) => dispatch({ type: "memory/selectMemory", payload: id })}
+        onSelect={(id) =>
+          dispatch({ type: "memory/selectMemory", payload: id })
+        }
       />
 
       {activeMem && (

@@ -1,5 +1,5 @@
 // Temporary stand-in for routes still being converted from the HTML mockups.
-export default function Placeholder({ name }) {
+export default function Placeholder({ name, note = "coming next" }) {
   return (
     <div
       style={{
@@ -11,7 +11,7 @@ export default function Placeholder({ name }) {
         fontSize: 12,
       }}
     >
-      {name} — coming next
+      {name} — {note}
     </div>
   )
 }
