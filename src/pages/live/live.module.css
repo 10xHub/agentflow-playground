@@ -610,3 +610,61 @@
   margin-top: 3px;
   line-height: 1.5;
 }
+
+/* ---- availability gate (not connected / not live-capable / coming soon) ---- */
+.gate {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 0;
+  padding: 24px;
+  background: var(--bg);
+}
+.gateInner {
+  max-width: 460px;
+  text-align: center;
+  color: var(--text-muted);
+}
+.gateIcon {
+  color: var(--text-muted);
+  opacity: 0.7;
+}
+.gateInner h2 {
+  margin: 14px 0 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+}
+.gateInner p {
+  margin: 0 0 8px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.gateNote {
+  font-size: 12px;
+}
+.gateInner code {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+.gateBtn {
+  margin-top: 16px;
+  padding: 7px 18px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+}
+.gateBtn:hover {
+  border-color: var(--accent);
+}

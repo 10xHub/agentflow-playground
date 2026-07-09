@@ -15,8 +15,10 @@ export function deriveCapabilities(info) {
     { name: "ws", on: true, detail: "WS /v1/graph/ws" },
     {
       name: "live",
-      on: false,
-      detail: "realtime audio · requires a live-capable agent (not probed)",
+      on: Boolean(i.is_realtime),
+      detail: i.is_realtime
+        ? "realtime audio · agent is live-capable (WS /v1/graph/live)"
+        : "realtime audio · this agent is not a live agent",
     },
     {
       name: "store",
