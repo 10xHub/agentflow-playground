@@ -49,17 +49,17 @@ export function LivePage() {
 
   // Connected, but this agent is not a realtime (live) agent.
   if (!liveSupported) {
+    const notLiveBody = (
+      <span>
+        The connected agent <code>{active?.name || "backend"}</code> isn&apos;t
+        a realtime (live) agent, so there&apos;s no audio session to run here.
+      </span>
+    )
     return (
       <Gate
         icon={MicOff}
         title="Live not available for this agent"
-        body={
-          <span>
-            The connected agent <code>{active?.name || "backend"}</code>{" "}
-            isn&apos;t a realtime (live) agent, so there&apos;s no audio session
-            to run here.
-          </span>
-        }
+        body={notLiveBody}
         note="To use Live, connect an agent whose graph exposes a live node (e.g. a Gemini live model). Live sessions run over the /v1/graph/live WebSocket, which only realtime agents accept."
       />
     )
