@@ -6,9 +6,11 @@ import { createMicCapture, createPcmPlayer } from "@/lib/realtime-audio"
 
 import styles from "../live.module.css"
 
-// The server's mock live agent is fixed to this model; the init frame's model is
-// only an override, so any value works, but we send the real one for clarity.
-const LIVE_MODEL = "gemini-2.5-flash-live"
+// We deliberately do NOT send a `model` in the init frame. The init `model` is a
+// per-session override that would win over the server's config, and Live model
+// availability is key/region specific — hardcoding one here caused sessions to close
+// (model "not found for bidiGenerateContent"). Omitting it makes the server's LIVE_MODEL
+// (agentflow-api/graph/live.py, env-overridable) the single source of truth.
 
 const STATUS_LABEL = {
   idle: "Not started",
@@ -87,9 +89,10 @@ export default function LiveSession() {
 
     let session
     try {
-      // Reconnect disabled: a session ends once, so `close` is terminal here.
+      // Reconnect disabled: a session ends once, so `close` is terminal here. No `model`:
+      // the server's configured LIVE_MODEL is authoritative (see note above).
       session = client.realtime(
-        { model: LIVE_MODEL, modalities: "AUDIO" },
+        { modalities: "AUDIO" },
         { reconnect: { enabled: false } }
       )
     } catch (e) {
@@ -164,7 +167,7 @@ export default function LiveSession() {
         <div className={styles.sessTitle}>
           <Radio size={16} strokeWidth={1.8} />
           Live session
-          <span className={styles.mockTag}>mock agent</span>
+          <span className={styles.mockTag}>Gemini Live</span>
         </div>
         <div className={styles.sessStatus}>
           <span className={`${styles.sdot} ${live ? styles.sdotLive : ""}`} />

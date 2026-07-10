@@ -1122,3 +1122,138 @@
 .stDot.error {
   background: var(--danger, #e5484d);
 }
+
+/* ---- realtime-agent gate (Chat is unavailable for live graphs) ---- */
+.rtGate {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  padding: 32px 24px;
+  overflow-y: auto;
+}
+.rtCard {
+  width: 100%;
+  max-width: 468px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.rtEmblem {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  display: grid;
+  place-items: center;
+  border-radius: 20px;
+  color: var(--accent);
+  background: var(--accent-weak);
+  border: 1px solid rgba(62, 207, 142, 0.22);
+  margin-bottom: 22px;
+}
+.rtWaves {
+  position: absolute;
+  bottom: 12px;
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 14px;
+}
+.rtWaves i {
+  width: 3px;
+  height: 40%;
+  border-radius: 2px;
+  background: var(--accent);
+  opacity: 0.85;
+  animation: rt-wave 1.1s ease-in-out infinite;
+}
+.rtWaves i:nth-child(2) {
+  animation-delay: 0.18s;
+}
+.rtWaves i:nth-child(3) {
+  animation-delay: 0.36s;
+}
+.rtWaves i:nth-child(4) {
+  animation-delay: 0.54s;
+}
+@keyframes rt-wave {
+  0%,
+  100% {
+    height: 30%;
+  }
+  50% {
+    height: 100%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rtWaves i {
+    animation: none;
+    height: 60%;
+  }
+}
+.rtTitle {
+  font-family: var(--sans);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 10px;
+}
+.rtBody {
+  font-size: 13px;
+  line-height: 1.62;
+  color: var(--text-secondary);
+  margin: 0 0 22px;
+  max-width: 400px;
+}
+.rtCode {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text);
+  background: var(--elevated);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 1px 6px;
+}
+.rtActions {
+  display: flex;
+  gap: 10px;
+}
+.rtPrimary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 9px;
+  background: var(--accent);
+  color: #fff;
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+.rtPrimary:hover {
+  filter: brightness(1.07);
+}
+.rtHelp {
+  margin: 26px 0 0;
+  padding-top: 18px;
+  border-top: 1px dashed var(--border);
+  width: 100%;
+  max-width: 400px;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+.rtHelp code {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0 4px;
+}
