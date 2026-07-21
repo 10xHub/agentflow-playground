@@ -1,10 +1,10 @@
+import { getMultimodalConfig as apiGetMultimodalConfig } from "@api/config.api"
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit"
 
 import {
   DEFAULT_MAX_SIZE_MB,
   DEFAULT_DOCUMENT_HANDLING,
 } from "@/lib/multimodal"
-import { getMultimodalConfig as apiGetMultimodalConfig } from "@api/config.api"
 
 const FAILED_TO_LOAD = "Failed to load multimodal config"
 

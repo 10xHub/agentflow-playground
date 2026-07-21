@@ -21,22 +21,27 @@ const MODES = [
   { id: "ws", soon: true },
 ]
 
-function ThreadPicker() {
+/**
+ *
+ */
+const ThreadPicker = () => {
   const dispatch = useDispatch()
   const threadId = useSelector((s) => s.chat.threadId)
   const { order, byId } = useSelector((s) => s.chat.threads)
   const generating = useSelector((s) => s.chat.generating)
   const [open, setOpen] = useState(false)
-  const ref = useRef(null)
+  const reference = useRef(null)
 
   // Close on outside click.
   useEffect(() => {
     if (!open) return undefined
-    const onDoc = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false)
+    const onDocument = (e) => {
+      if (reference.current && !reference.current.contains(e.target)) {
+        setOpen(false)
+      }
     }
-    document.addEventListener("mousedown", onDoc)
-    return () => document.removeEventListener("mousedown", onDoc)
+    document.addEventListener("mousedown", onDocument)
+    return () => document.removeEventListener("mousedown", onDocument)
   }, [open])
 
   const activeKey = threadId || "__draft__"
@@ -48,7 +53,7 @@ function ThreadPicker() {
   }
 
   return (
-    <div className={styles.threadWrap} ref={ref}>
+    <div className={styles.threadWrap} ref={reference}>
       <button
         className={styles.threadPick}
         type="button"
@@ -119,6 +124,9 @@ function ThreadPicker() {
   )
 }
 
+/**
+ *
+ */
 export default function ChatHeader() {
   const dispatch = useDispatch()
   const mode = useSelector((s) => s.chat.mode)

@@ -5,6 +5,9 @@ import styles from "./settings.module.css"
 // Config hub: manage the active/saved backend connections (delegating deep
 // add/edit to the Connect page) and the persisted theme. Everything here is
 // stored locally in the browser.
+/**
+ *
+ */
 export default function SettingsPage() {
   return (
     <div className={styles.page}>

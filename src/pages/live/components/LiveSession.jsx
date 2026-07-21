@@ -22,53 +22,58 @@ const STATUS_LABEL = {
 
 // A voice-to-voice session over /v1/graph/live: push-to-talk streams mic PCM to the
 // agent, the agent's audio plays back, and both transcripts stream in as text.
+/**
+ *
+ */
 export default function LiveSession() {
   const [status, setStatus] = useState("idle")
   const [error, setError] = useState(null)
   const [messages, setMessages] = useState([])
   const [recording, setRecording] = useState(false)
 
-  const sessionRef = useRef(null)
-  const playerRef = useRef(null)
-  const micRef = useRef(null)
-  const openRef = useRef({ user: null, agent: null })
-  const idRef = useRef(0)
-  const scrollRef = useRef(null)
+  const sessionReference = useRef(null)
+  const playerReference = useRef(null)
+  const micReference = useRef(null)
+  const openReference = useRef({ user: null, agent: null })
+  const idReference = useRef(0)
+  const scrollReference = useRef(null)
 
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight })
+    scrollReference.current?.scrollTo({
+      top: scrollReference.current.scrollHeight,
+    })
   }, [messages])
 
   // Append a transcript delta, coalescing consecutive chunks from the same speaker
   // into one message until its `finished` marker arrives.
   const appendTranscript = (role, text, finished) => {
-    setMessages((prev) => {
-      const openId = openRef.current[role]
+    setMessages((previous) => {
+      const openId = openReference.current[role]
       if (openId == null) {
-        const id = (idRef.current += 1)
-        openRef.current[role] = finished ? null : id
-        return [...prev, { id, role, text, done: finished }]
+        const id = (idReference.current += 1)
+        openReference.current[role] = finished ? null : id
+        return [...previous, { id, role, text, done: finished }]
       }
-      const next = prev.map((m) =>
+      const next = previous.map((m) =>
         m.id === openId ? { ...m, text: m.text + text, done: finished } : m
       )
-      if (finished) openRef.current[role] = null
+      if (finished) openReference.current[role] = null
       return next
     })
   }
 
   const stopMic = () => {
-    micRef.current?.stop()
-    micRef.current = null
+    micReference.current?.stop()
+    micReference.current = null
     setRecording(false)
   }
 
   const teardown = () => {
     stopMic()
-    playerRef.current?.close()
-    playerRef.current = null
-    sessionRef.current = null
-    openRef.current = { user: null, agent: null }
+    playerReference.current?.close()
+    playerReference.current = null
+    sessionReference.current = null
+    openReference.current = { user: null, agent: null }
   }
 
   const start = () => {
@@ -84,8 +89,8 @@ export default function LiveSession() {
     setMessages([])
     setError(null)
     setStatus("connecting")
-    openRef.current = { user: null, agent: null }
-    playerRef.current = createPcmPlayer()
+    openReference.current = { user: null, agent: null }
+    playerReference.current = createPcmPlayer()
 
     let session
     try {
@@ -101,10 +106,10 @@ export default function LiveSession() {
       teardown()
       return
     }
-    sessionRef.current = session
+    sessionReference.current = session
 
     session.on("open", () => setStatus("live"))
-    session.on("audio", (pcm, rate) => playerRef.current?.play(pcm, rate))
+    session.on("audio", (pcm, rate) => playerReference.current?.play(pcm, rate))
     session.on("input_transcript", (e) =>
       appendTranscript("user", e.text || "", e.finished)
     )
@@ -122,7 +127,7 @@ export default function LiveSession() {
   }
 
   const stop = () => {
-    sessionRef.current?.close()
+    sessionReference.current?.close()
     teardown()
     setStatus("ended")
   }
@@ -133,27 +138,27 @@ export default function LiveSession() {
     if (status !== "live") return
     if (recording) {
       stopMic()
-      sessionRef.current?.activityEnd()
+      sessionReference.current?.activityEnd()
       return
     }
     try {
-      sessionRef.current?.activityStart()
-      micRef.current = await createMicCapture((frame) =>
-        sessionRef.current?.sendAudio(frame)
+      sessionReference.current?.activityStart()
+      micReference.current = await createMicCapture((frame) =>
+        sessionReference.current?.sendAudio(frame)
       )
       setRecording(true)
     } catch (e) {
       setError(e?.message || "Microphone unavailable")
-      sessionRef.current?.activityEnd()
+      sessionReference.current?.activityEnd()
     }
   }
 
   // Close the socket + mic if the user navigates away mid-session.
   useEffect(() => {
     return () => {
-      micRef.current?.stop()
-      sessionRef.current?.close()
-      playerRef.current?.close()
+      micReference.current?.stop()
+      sessionReference.current?.close()
+      playerReference.current?.close()
     }
   }, [])
 
@@ -195,7 +200,7 @@ export default function LiveSession() {
         </div>
       )}
 
-      <div className={styles.transcript} ref={scrollRef}>
+      <div className={styles.transcript} ref={scrollReference}>
         {messages.length === 0 && (
           <div className={styles.sessEmpty}>
             {status === "idle"

@@ -98,16 +98,16 @@ const chatSlice = createSlice({
   reducers: {
     setThreadId: (state, action) => {
       const newId = action.payload
-      const prevKey = state.threadId || DRAFT_ID
+      const previousKey = state.threadId || DRAFT_ID
       state.threadId = newId
       // Migrate the draft cache entry onto the real id the server just assigned,
       // so the thread persists under a stable, reloadable key.
-      if (newId && newId !== prevKey && state.threads.byId[prevKey]) {
-        const entry = state.threads.byId[prevKey]
-        delete state.threads.byId[prevKey]
+      if (newId && newId !== previousKey && state.threads.byId[previousKey]) {
+        const entry = state.threads.byId[previousKey]
+        delete state.threads.byId[previousKey]
         state.threads.byId[newId] = { ...entry, id: newId }
         state.threads.order = state.threads.order.map((id) =>
-          id === prevKey ? newId : id
+          id === previousKey ? newId : id
         )
       }
       syncActive(state)
@@ -265,8 +265,9 @@ const chatSlice = createSlice({
       }
       // Bump updatedAt and persist the completed turn.
       const key = state.threadId || DRAFT_ID
-      if (state.threads.byId[key])
+      if (state.threads.byId[key]) {
         state.threads.byId[key].updatedAt = m.runMeta?.finishedAt || 0
+      }
       syncActive(state)
     },
     appendErrorAnswer: (state, action) => {
@@ -289,8 +290,9 @@ const chatSlice = createSlice({
     },
     pushFrame: (state, action) => {
       state.frames.push(action.payload) // chronological
-      if (state.frames.length > MAX_LOG)
+      if (state.frames.length > MAX_LOG) {
         state.frames.splice(0, state.frames.length - MAX_LOG)
+      }
     },
   },
 })

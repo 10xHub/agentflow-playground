@@ -2,7 +2,6 @@ import PropTypes from "prop-types"
 import { useMemo, useState } from "react"
 import { Canvas, Edge, Node } from "reaflow"
 
-import GraphInfoPanel from "@/components/graph/graph-info-panel"
 import {
   Card,
   CardContent,
@@ -11,6 +10,8 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { useIsMobile } from "@/hooks/use-is-mobile"
+
+import GraphInfoPanel from "@/components/graph/graph-info-panel"
 
 const COLOR_PALETTE = [
   "#3b82f6",

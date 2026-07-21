@@ -4,6 +4,9 @@ import styles from "../tools.module.css"
 
 // Syntax-highlighted `{ type:"function", function:{…} }` schema, mirroring the
 // mockup's tokenized <span class=key/str> output. Purely presentational.
+/**
+ *
+ */
 export default function JsonSchema({ tool }) {
   const K = ({ children }) => <span className={styles.key}>{children}</span>
   const S = ({ children }) => <span className={styles.str}>{children}</span>
@@ -38,7 +41,7 @@ export default function JsonSchema({ tool }) {
       {`,\n      `}
       <K>"properties"</K>
       {`: {\n`}
-      {tool.params.map((p, i) => (
+      {tool.params.map((p, index) => (
         <Fragment key={p.n}>
           {"      "}
           <K>"{p.n}"</K>
@@ -55,16 +58,15 @@ export default function JsonSchema({ tool }) {
             </>
           )}
           {" }"}
-          {i < tool.params.length - 1 ? ",\n" : "\n"}
+          {index < tool.params.length - 1 ? ",\n" : "\n"}
         </Fragment>
       ))}
       {`      },\n      `}
-      <K>"required"</K>
-      {": ["}
-      {required.map((p, i) => (
+      <K>"required"</K>: [
+      {required.map((p, index) => (
         <Fragment key={p.n}>
           <S>"{p.n}"</S>
-          {i < required.length - 1 ? ", " : ""}
+          {index < required.length - 1 ? ", " : ""}
         </Fragment>
       ))}
       {`]\n    }\n  }\n}`}

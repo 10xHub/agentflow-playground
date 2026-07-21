@@ -1,5 +1,8 @@
 import styles from "../evals.module.css"
 
+/**
+ *
+ */
 export default function RunList({ runs, selectedId, onSelect }) {
   return (
     <section className={styles.runs}>
@@ -21,7 +24,9 @@ export default function RunList({ runs, selectedId, onSelect }) {
           >
             <div className={styles.rrowTop}>
               <span className={styles.rrowName}>{r.name}</span>
-              <span className={`${styles.passPill} ${styles[r.status]}`}>{r.rate.toFixed(1)}%</span>
+              <span className={`${styles.passPill} ${styles[r.status]}`}>
+                {r.rate.toFixed(1)}%
+              </span>
             </div>
             <div className={styles.rrowMeta}>
               <span>{r.run}</span>

@@ -62,16 +62,16 @@ export const setThemeMode = (mode) => {
   notify()
 }
 
-const subscribe = (cb) => {
-  listeners.add(cb)
-  return () => listeners.delete(cb)
+const subscribe = (callback) => {
+  listeners.add(callback)
+  return () => listeners.delete(callback)
 }
 
 /**
  * Theme controls. `theme` is the resolved "light"|"dark" (drives icons/labels),
  * `mode` is the stored choice "light"|"dark"|"system" (drives the selector).
  */
-export function useTheme() {
+export const useTheme = () => {
   const mode = useSyncExternalStore(subscribe, readMode, () => DEFAULT_MODE)
   const setMode = useCallback((m) => setThemeMode(m), [])
   // Toggle commits an explicit light/dark (so the top-bar toggle also persists).

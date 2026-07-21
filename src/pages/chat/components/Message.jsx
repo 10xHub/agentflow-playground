@@ -1,7 +1,11 @@
-import ContentBlock from "./ContentBlock"
-import RichText from "./RichText"
 import styles from "../chat.module.css"
 
+import ContentBlock from "./ContentBlock"
+import RichText from "./RichText"
+
+/**
+ *
+ */
 export default function Message({ msg }) {
   if (msg.role === "user") {
     return (
@@ -32,8 +36,8 @@ export default function Message({ msg }) {
             <span className="mono">{msg.node}</span>
           </div>
 
-          {msg.blocks?.map((block, i) => (
-            <ContentBlock key={i} block={block} />
+          {msg.blocks?.map((block, index) => (
+            <ContentBlock key={index} block={block} />
           ))}
 
           <div className={styles.prose} style={{ marginTop: 12 }}>

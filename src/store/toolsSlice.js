@@ -56,8 +56,8 @@ const toolsSlice = createSlice({
     // ---- client tool CRUD (browser-owned) ----
     upsertClientTool: (state, action) => {
       const tool = action.payload
-      const idx = state.clientTools.findIndex((t) => t.id === tool.id)
-      if (idx >= 0) state.clientTools[idx] = tool
+      const index = state.clientTools.findIndex((t) => t.id === tool.id)
+      if (index >= 0) state.clientTools[index] = tool
       else state.clientTools.push(tool)
       persistClientTools(state.clientTools)
     },
@@ -119,11 +119,11 @@ export const loadTools = () => async (dispatch) => {
 // parsed mock JSON; in "handler" mode it runs the user's function body.
 const buildHandler = (tool) => {
   if (tool.callMode === "handler" && tool.code) {
-    return async (args) => {
+    return async (arguments_) => {
       // The code defines a function; evaluate it and call it with args.
-      // eslint-disable-next-line no-new-func
-      const fn = new Function(`${tool.code}\nreturn ${tool.name};`)()
-      return fn(args)
+
+      const function_ = new Function(`${tool.code}\nreturn ${tool.name};`)()
+      return function_(arguments_)
     }
   }
   return async () => {

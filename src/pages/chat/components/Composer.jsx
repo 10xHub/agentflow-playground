@@ -6,9 +6,13 @@ import { useConnection } from "@/lib/connection/ConnectionContext"
 import { summariseRunOptions } from "@/lib/run-options"
 import { sendMessage, stopGeneration } from "@/store/chatThunks"
 
-import RunOptionsPopup from "./RunOptionsPopup"
 import styles from "../chat.module.css"
 
+import RunOptionsPopup from "./RunOptionsPopup"
+
+/**
+ *
+ */
 export default function Composer() {
   const dispatch = useDispatch()
   const generating = useSelector((s) => s.chat.generating)

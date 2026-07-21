@@ -3,7 +3,10 @@ import styles from "../observability.module.css"
 const nf = new Intl.NumberFormat("en-US")
 
 // Build attr rows for the current selection (a span or an event).
-function attrsFor(sel) {
+/**
+ *
+ */
+const attributesFor = (sel) => {
   if (!sel) return []
   if (sel.selType === "event") {
     return [
@@ -28,17 +31,20 @@ function attrsFor(sel) {
   ]
 }
 
+/**
+ *
+ */
 export default function DetailPanel({ sel }) {
   const isEvent = sel?.selType === "event"
 
   const title = isEvent ? "Event detail" : "Span detail"
-  const kind = isEvent ? sel.type : sel?.kind ?? "—"
+  const kind = isEvent ? sel.type : (sel?.kind ?? "—")
   const name = isEvent
     ? `${sel.type} · ${sel.node}`
     : (sel?.name ?? "").replace(/^\w+: /, "")
   const sub = isEvent ? `offset ${sel.time}` : `${sel?.dur ?? ""} · status OK`
 
-  const attrs = attrsFor(sel)
+  const attributes = attributesFor(sel)
 
   return (
     <aside className={styles.detail}>
@@ -50,12 +56,16 @@ export default function DetailPanel({ sel }) {
         <div className={styles.detName}>{name}</div>
         <div className={styles.detSub}>{sub}</div>
 
-        <div className={styles.attrH}>{isEvent ? "Attributes" : "GenAI semconv"}</div>
+        <div className={styles.attrH}>
+          {isEvent ? "Attributes" : "GenAI semconv"}
+        </div>
         <div>
-          {attrs.map((a) => (
+          {attributes.map((a) => (
             <div className={styles.attr} key={a.k}>
               <span className={styles.ak}>{a.k}</span>
-              <span className={`${styles.av} ${a.ok ? styles.ok : ""}`}>{a.v}</span>
+              <span className={`${styles.av} ${a.ok ? styles.ok : ""}`}>
+                {a.v}
+              </span>
             </div>
           ))}
         </div>

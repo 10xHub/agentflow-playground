@@ -6,6 +6,15 @@ import { useNavigate } from "react-router-dom"
 
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
+import ct from "@constants"
+
+import ForgetDialog from "./components/forget-dialog"
+import MemoryDetail from "./components/memory-detail"
+import MemoryForm from "./components/memory-form"
+import MemoryList from "./components/memory-list"
+import MemorySearchControls from "./components/memory-search-controls"
+import MemoryToolbar from "./components/memory-toolbar"
+
 import {
   loadMemories,
   searchMemories,
@@ -19,14 +28,6 @@ import {
   setSearchField,
   clearError,
 } from "@/services/store/slices/memory.slice"
-import ct from "@constants"
-
-import ForgetDialog from "./components/forget-dialog"
-import MemoryDetail from "./components/memory-detail"
-import MemoryForm from "./components/memory-form"
-import MemoryList from "./components/memory-list"
-import MemorySearchControls from "./components/memory-search-controls"
-import MemoryToolbar from "./components/memory-toolbar"
 
 const NotConfigured = ({ onBack }) => (
   <div className="flex h-full flex-col items-center justify-center gap-4 p-8 text-center">

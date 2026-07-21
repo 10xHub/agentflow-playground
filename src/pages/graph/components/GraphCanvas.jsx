@@ -124,9 +124,9 @@ export default function GraphCanvas({
         onCanvasClick={(event) => {
           if (event.target === event.currentTarget) onSelect(null)
         }}
-        node={(nodeProps) => (
+        node={(nodeProperties) => (
           <Node
-            {...nodeProps}
+            {...nodeProperties}
             rx={14}
             ry={14}
             className={styles.rfNode}
@@ -176,8 +176,8 @@ export default function GraphCanvas({
             }}
           </Node>
         )}
-        edge={(edgeProps) => (
-          <Edge {...edgeProps} className={styles.reaflowEdge} />
+        edge={(edgeProperties) => (
+          <Edge {...edgeProperties} className={styles.reaflowEdge} />
         )}
       />
     </div>

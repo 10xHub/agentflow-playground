@@ -218,11 +218,11 @@ export const saveThreadState = (threadId) => async (dispatch, getState) => {
   let client
   try {
     client = getAgentFlowClient()
-  } catch (err) {
+  } catch (error) {
     dispatch(
       saveFailed({
         threadId,
-        error: err?.message || "Not connected to a backend",
+        error: error?.message || "Not connected to a backend",
       })
     )
     return
@@ -233,11 +233,11 @@ export const saveThreadState = (threadId) => async (dispatch, getState) => {
     await client.updateThreadState(threadId, {}, patch)
     dispatch(saveDone(threadId))
     await dispatch(fetchThreadState(threadId)) // re-sync to server truth
-  } catch (err) {
+  } catch (error) {
     dispatch(
       saveFailed({
         threadId,
-        error: err?.message || "Failed to save thread state",
+        error: error?.message || "Failed to save thread state",
       })
     )
   }

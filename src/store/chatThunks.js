@@ -80,8 +80,9 @@ const summarizeChunk = (chunk) => {
     if (text) return `delta: ${JSON.stringify(text.slice(0, 80))}`
     if (Array.isArray(message.content)) {
       const kinds = message.content.map((b) => b?.type).filter(Boolean)
-      if (kinds.length)
+      if (kinds.length) {
         return `${message.role || "message"}: ${kinds.join(", ")}`
+      }
     }
     return `${message.role || "message"}`
   }
@@ -249,8 +250,9 @@ const consumeStream = async (
     }
 
     emitContentBlocks(dispatch, agentId, message)
-    if (message.usages)
+    if (message.usages) {
       dispatch(addUsage({ id: agentId, usage: message.usages }))
+    }
 
     const text = textFromContent(message.content)
     if (text) {
@@ -301,12 +303,13 @@ export const stopGeneration = () => async (dispatch, getState) => {
   // Aborting the local iterator is what actually stops the UI stream; the server
   // stopGraph call is best-effort and only exists on newer SDK builds.
   if (activeAbort) activeAbort.abort()
-  const threadId = getState().chat.threadId
+  const { threadId } = getState().chat
   if (threadId) {
     try {
       const client = getAgentFlowClient()
-      if (typeof client.stopGraph === "function")
+      if (typeof client.stopGraph === "function") {
         await client.stopGraph(threadId)
+      }
     } catch {
       /* best-effort server stop */
     }
@@ -316,7 +319,7 @@ export const stopGeneration = () => async (dispatch, getState) => {
 
 /** Re-run the "fix thread" recovery endpoint for the current thread. */
 export const fixThread = () => async (dispatch, getState) => {
-  const threadId = getState().chat.threadId
+  const { threadId } = getState().chat
   if (!threadId) return
   try {
     const client = getAgentFlowClient()
@@ -351,7 +354,7 @@ export const sendMessage = (text) => async (dispatch, getState) => {
   const { mode, granularity, runOptions } = getState().chat
   const startedAt = Date.now()
   const outgoing = [Message.text_message(trimmed, "user")]
-  const threadId = getState().chat.threadId
+  const { threadId } = getState().chat
 
   // Per-run overrides from the composer popup. Refuse to send malformed JSON
   // rather than silently dropping what the user typed.

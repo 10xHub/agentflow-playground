@@ -13,13 +13,11 @@ import { useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import { Outlet, useLocation, useNavigate } from "react-router-dom"
 
-import ModeToggle from "@/components/layout/header/theme-switch"
 import { Separator } from "@/components/ui/separator"
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { Toaster } from "@/components/ui/toaster"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { ReactQueryDevtools } from "@/lib/devtools"
-import { setActiveThread } from "@/services/store/slices/chat.slice"
 import ct from "@constants"
 
 import { Button } from "../ui/button"
@@ -32,6 +30,9 @@ import SettingsSheet from "./sheets/settings-sheet"
 import ViewStateSheet from "./sheets/state"
 import ThreadSettingsSheet from "./sheets/thread-settings-sheet"
 import ViewGraphSheet from "./sheets/view-graph-sheet"
+
+import ModeToggle from "@/components/layout/header/theme-switch"
+import { setActiveThread } from "@/services/store/slices/chat.slice"
 
 /**
  * MainLayout component renders the main application layout with sidebar, header, and content area.

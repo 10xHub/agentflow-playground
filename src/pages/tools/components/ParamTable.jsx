@@ -1,6 +1,9 @@
 import styles from "../tools.module.css"
 
-export default function ParamTable({ params }) {
+/**
+ *
+ */
+export default function ParameterTable({ params }) {
   if (!params.length) {
     return (
       <div className={styles.dDesc} style={{ margin: 0 }}>

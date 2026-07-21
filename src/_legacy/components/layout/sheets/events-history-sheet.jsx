@@ -17,8 +17,9 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet"
-import { clearEvents } from "@/services/store/slices/events.slice"
 import ct from "@constants/"
+
+import { clearEvents } from "@/services/store/slices/events.slice"
 
 const formatEventTimestamp = (timestamp) => {
   const date = new Date(timestamp)

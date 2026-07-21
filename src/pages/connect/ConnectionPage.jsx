@@ -18,7 +18,10 @@ const AUTH_MODES = [
   { value: "header", label: "Custom header — for a custom BaseAuth backend" },
 ]
 
-function hostLabel(url) {
+/**
+ *
+ */
+const hostLabel = (url) => {
   try {
     return new URL(url).host
   } catch {
@@ -26,11 +29,15 @@ function hostLabel(url) {
   }
 }
 
+/**
+ *
+ */
 export default function ConnectionPage() {
   const navigate = useNavigate()
-  const [params, setParams] = useSearchParams()
+  const [parameters, setParameters] = useSearchParams()
   const { theme, toggle } = useTheme()
-  const { status, error, capabilities, info, probe, saved, connect } = useConnection()
+  const { status, error, capabilities, info, probe, saved, connect } =
+    useConnection()
 
   const [url, setUrl] = useState("http://localhost:8000")
   const [authMode, setAuthMode] = useState("none")
@@ -45,14 +52,19 @@ export default function ConnectionPage() {
   const [activeId, setActiveId] = useState("local")
   const autoRan = useRef(false)
 
-  const updateHeader = (i, patch) =>
-    setHeaders((rows) => rows.map((r, idx) => (idx === i ? { ...r, ...patch } : r)))
-  const addHeader = () => setHeaders((rows) => [...rows, { name: "", value: "" }])
-  const removeHeader = (i) =>
-    setHeaders((rows) => (rows.length > 1 ? rows.filter((_, idx) => idx !== i) : rows))
+  const updateHeader = (index, patch) =>
+    setHeaders((rows) =>
+      rows.map((r, index_) => (index_ === index ? { ...r, ...patch } : r))
+    )
+  const addHeader = () =>
+    setHeaders((rows) => [...rows, { name: "", value: "" }])
+  const removeHeader = (index) =>
+    setHeaders((rows) =>
+      rows.length > 1 ? rows.filter((_, index_) => index_ !== index) : rows
+    )
 
   const runConnect = async ({ auto = false, override } = {}) => {
-    const src = override || {
+    const source = override || {
       url,
       authMode,
       token,
@@ -61,16 +73,19 @@ export default function ConnectionPage() {
       password,
       headers,
     }
-    const profile = saved.find((c) => c.id === src.activeId)
+    const profile = saved.find((c) => c.id === source.activeId)
     const conn = {
-      id: src.activeId && src.activeId !== "custom" ? src.activeId : newConnectionId(),
-      name: profile?.name || hostLabel(src.url),
-      backendUrl: src.url,
-      authMode: src.authMode,
-      authToken: src.token,
-      authUsername: src.username,
-      authPassword: src.password,
-      authHeaders: src.headers,
+      id:
+        source.activeId && source.activeId !== "custom"
+          ? source.activeId
+          : newConnectionId(),
+      name: profile?.name || hostLabel(source.url),
+      backendUrl: source.url,
+      authMode: source.authMode,
+      authToken: source.token,
+      authUsername: source.username,
+      authPassword: source.password,
+      authHeaders: source.headers,
     }
     const res = await connect(conn, { remember })
     if (res.ok && auto) navigate("/chat")
@@ -81,22 +96,34 @@ export default function ConnectionPage() {
   // `agentflow play` appends, and makes a connection shareable as a link.
   useEffect(() => {
     if (autoRan.current) return
-    const backendUrl = params.get("backendUrl") || params.get("base_url")
+    const backendUrl =
+      parameters.get("backendUrl") || parameters.get("base_url")
     if (!backendUrl) return
     autoRan.current = true
-    const urlToken = params.get("token") || ""
+    const urlToken = parameters.get("token") || ""
     const nextAuth = urlToken ? "bearer" : "none"
     setUrl(backendUrl)
     setToken(urlToken)
     setAuthMode(nextAuth)
     setActiveId("custom")
     // Strip params so tokens don't linger in history; then probe + auto-advance.
-    setParams({}, { replace: true })
-    runConnect({ auto: true, override: { url: backendUrl, authMode: nextAuth, token: urlToken, activeId: "custom" } })
+    setParameters({}, { replace: true })
+    runConnect({
+      auto: true,
+      override: {
+        url: backendUrl,
+        authMode: nextAuth,
+        token: urlToken,
+        activeId: "custom",
+      },
+    })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  function pick(profile) {
+  /**
+   *
+   */
+  const pick = (profile) => {
     setActiveId(profile.id)
     setUrl(profile.backendUrl)
     const mode = profile.authMode || "none"
@@ -105,26 +132,54 @@ export default function ConnectionPage() {
     setUsername(mode === "basic" ? profile.authUsername || "" : "")
     setPassword(mode === "basic" ? profile.authPassword || "" : "")
     const savedHeaders = mode === "header" ? profile.authHeaders : null
-    setHeaders(savedHeaders?.length ? savedHeaders.map((h) => ({ ...h })) : [{ name: "", value: "" }])
+    setHeaders(
+      savedHeaders?.length
+        ? savedHeaders.map((h) => ({ ...h }))
+        : [{ name: "", value: "" }]
+    )
   }
 
   // Enter-to-connect, mirroring the mockup's global keydown handler.
   useEffect(() => {
-    function onKey(e) {
-      if (e.key === "Enter" && e.target.tagName !== "TEXTAREA" && status !== "connecting") {
+    /**
+     *
+     */
+    const onKey = (e) => {
+      if (
+        e.key === "Enter" &&
+        e.target.tagName !== "TEXTAREA" &&
+        status !== "connecting"
+      ) {
         runConnect()
       }
     }
     document.addEventListener("keydown", onKey)
     return () => document.removeEventListener("keydown", onKey)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [url, authMode, token, username, password, headers, activeId, remember, status])
+  }, [
+    url,
+    authMode,
+    token,
+    username,
+    password,
+    headers,
+    activeId,
+    remember,
+    status,
+  ])
 
   const metaRows =
     status === "connected"
       ? [
-          probe && { key: "ping", value: `pong · ${probe.latencyMs}ms`, ok: true },
-          probe && { key: "graph", value: `${probe.nodes ?? "?"} nodes · ${probe.edges ?? "?"} edges` },
+          probe && {
+            key: "ping",
+            value: `pong · ${probe.latencyMs}ms`,
+            ok: true,
+          },
+          probe && {
+            key: "graph",
+            value: `${probe.nodes ?? "?"} nodes · ${probe.edges ?? "?"} edges`,
+          },
           info?.state_type && { key: "state", value: info.state_type },
         ].filter(Boolean)
       : []
@@ -144,7 +199,7 @@ export default function ConnectionPage() {
           </button>
           <a
             className={styles.ghost}
-            href="https://10xhub.github.io/Agentflow/"
+            href="https://agentflow.10xscale.ai/"
             target="_blank"
             rel="noreferrer"
           >
@@ -160,8 +215,8 @@ export default function ConnectionPage() {
             <div className={styles.eyebrow}>Connect a backend</div>
             <h1 className={styles.title}>Point at a deployment</h1>
             <p className={styles.lede}>
-              Connect to any Agentflow API — a local dev server or a live deployment. Everything
-              you see is scoped to the token you provide.
+              Connect to any Agentflow API — a local dev server or a live
+              deployment. Everything you see is scoped to the token you provide.
             </p>
 
             <div className={styles.field}>
@@ -276,18 +331,24 @@ export default function ConnectionPage() {
                     >
                       {showToken ? <EyeOff size={14} /> : <Eye size={14} />}
                     </button>
-                    <button className={styles.addBtn} onClick={addHeader} type="button">
+                    <button
+                      className={styles.addBtn}
+                      onClick={addHeader}
+                      type="button"
+                    >
                       <Plus size={14} /> Add
                     </button>
                   </div>
                 </div>
                 <div className={styles.headerList}>
-                  {headers.map((row, i) => (
-                    <div key={i} className={styles.headerRow}>
+                  {headers.map((row, index) => (
+                    <div key={index} className={styles.headerRow}>
                       <input
                         className={styles.input}
                         value={row.name}
-                        onChange={(e) => updateHeader(i, { name: e.target.value })}
+                        onChange={(e) =>
+                          updateHeader(index, { name: e.target.value })
+                        }
                         placeholder="Header-Name"
                         autoComplete="off"
                         spellCheck={false}
@@ -297,7 +358,9 @@ export default function ConnectionPage() {
                         className={styles.input}
                         type={showToken ? "text" : "password"}
                         value={row.value}
-                        onChange={(e) => updateHeader(i, { value: e.target.value })}
+                        onChange={(e) =>
+                          updateHeader(index, { value: e.target.value })
+                        }
                         placeholder="value"
                         autoComplete="off"
                         spellCheck={false}
@@ -305,7 +368,7 @@ export default function ConnectionPage() {
                       />
                       <button
                         className={styles.reveal}
-                        onClick={() => removeHeader(i)}
+                        onClick={() => removeHeader(index)}
                         disabled={headers.length === 1}
                         aria-label="Remove header"
                         type="button"
@@ -370,7 +433,9 @@ export default function ConnectionPage() {
                 >
                   <span
                     className={`${styles.dot} ${
-                      status === "connected" && activeId === p.id ? styles.live : styles.idle
+                      status === "connected" && activeId === p.id
+                        ? styles.live
+                        : styles.idle
                     }`}
                   />
                   <div className={styles.pBody}>
@@ -399,7 +464,8 @@ export default function ConnectionPage() {
                       title={c.detail}
                       className={`${styles.cap} ${c.on ? styles.on : styles.off}`}
                     >
-                      <span className={styles.ci}>{c.on ? "✓" : "–"}</span> {c.name}
+                      <span className={styles.ci}>{c.on ? "✓" : "–"}</span>{" "}
+                      {c.name}
                     </div>
                   ))}
                 </div>
@@ -407,7 +473,11 @@ export default function ConnectionPage() {
                   {metaRows.map((m) => (
                     <div key={m.key}>
                       <b>{m.key}</b>&nbsp;&nbsp;
-                      {m.ok ? <span className={styles.ok}>{m.value}</span> : m.value}
+                      {m.ok ? (
+                        <span className={styles.ok}>{m.value}</span>
+                      ) : (
+                        m.value
+                      )}
                     </div>
                   ))}
                 </div>
@@ -432,7 +502,10 @@ export default function ConnectionPage() {
             {status === "idle" && (
               <div className={styles.empty}>
                 <Clock size={30} strokeWidth={1.5} />
-                <p>Connect to probe the backend and detect what this deployment supports.</p>
+                <p>
+                  Connect to probe the backend and detect what this deployment
+                  supports.
+                </p>
               </div>
             )}
           </div>
@@ -441,7 +514,11 @@ export default function ConnectionPage() {
 
       <div className={styles.footer}>
         Press <span className={styles.kbd}>↵</span> to connect ·{" "}
-        <a href="https://10xhub.github.io/Agentflow/" target="_blank" rel="noreferrer">
+        <a
+          href="https://agentflow.10xscale.ai/"
+          target="_blank"
+          rel="noreferrer"
+        >
           agentflow docs
         </a>
       </div>

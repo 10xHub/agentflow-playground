@@ -8,9 +8,12 @@ import DetailPanel from "./components/DetailPanel"
 import EventsPane from "./components/EventsPane"
 import ObsHeader from "./components/ObsHeader"
 import TraceTimeline from "./components/TraceTimeline"
-import { buildViewModel } from "./transform"
 import styles from "./observability.module.css"
+import { buildViewModel } from "./transform"
 
+/**
+ *
+ */
 export default function ObservabilityPage() {
   const dispatch = useDispatch()
   const threadId = useSelector((s) => s.chat.threadId)
@@ -59,7 +62,9 @@ export default function ObservabilityPage() {
           ) : status === "loading" ? (
             <div className={styles.obsEmpty}>Loading trace…</div>
           ) : status === "error" ? (
-            <div className={styles.obsEmpty}>{error || "Failed to load trace."}</div>
+            <div className={styles.obsEmpty}>
+              {error || "Failed to load trace."}
+            </div>
           ) : empty ? (
             <div className={styles.obsEmpty}>
               No runs captured for this thread yet. Send a message in Chat.

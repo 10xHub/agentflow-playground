@@ -2,17 +2,20 @@ import { PanelRight } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { useSelector } from "react-redux"
 
-import { BarButton } from "@/components/shell/ConnectionBar"
 import { useConnectionBarSlot } from "@/components/shell/AppShell"
+import { BarButton } from "@/components/shell/ConnectionBar"
 import { useConnection } from "@/lib/connection/ConnectionContext"
 
+import styles from "./chat.module.css"
 import ChatHeader from "./components/ChatHeader"
 import Composer from "./components/Composer"
 import Inspector from "./components/Inspector"
 import Message from "./components/Message"
 import RealtimeGate from "./components/RealtimeGate"
-import styles from "./chat.module.css"
 
+/**
+ *
+ */
 export default function ChatPage() {
   const [inspectorOpen, setInspectorOpen] = useState(false)
   const { setBarRight } = useConnectionBarSlot()
@@ -26,7 +29,7 @@ export default function ChatPage() {
   const generating = useSelector((s) => s.chat.generating)
   const error = useSelector((s) => s.chat.error)
   const mode = useSelector((s) => s.chat.mode)
-  const threadRef = useRef(null)
+  const threadReference = useRef(null)
 
   // How the current mode reaches the server, for the status lines below.
   const transport =
@@ -57,8 +60,8 @@ export default function ChatPage() {
 
   // Keep the newest message in view as it streams in.
   useEffect(() => {
-    const el = threadRef.current
-    if (el) el.scrollTop = el.scrollHeight
+    const element = threadReference.current
+    if (element) element.scrollTop = element.scrollHeight
   }, [messages])
 
   if (isRealtime) {
@@ -73,13 +76,15 @@ export default function ChatPage() {
     <>
       <div className={styles.main}>
         <ChatHeader />
-        <div className={styles.thread} ref={threadRef}>
+        <div className={styles.thread} ref={threadReference}>
           {messages.length === 0 ? (
             <div className={styles.streamingNote}>
               Send a message to start · {transport}
             </div>
           ) : (
-            messages.map((msg) => <Message key={msg.id} msg={msg} />)
+            messages.map((message) => (
+              <Message key={message.id} msg={message} />
+            ))
           )}
 
           {generating && (

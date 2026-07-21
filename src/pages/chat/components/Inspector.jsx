@@ -23,14 +23,18 @@ const TAB_LABEL = {
 
 const empty = (text) => <div className={styles.inspEmpty}>{text}</div>
 
-function EventsPane() {
+/**
+ *
+ */
+const EventsPane = () => {
   const events = useSelector((s) => s.chat.events)
-  if (!events.length)
+  if (!events.length) {
     return empty("No events yet — send a message to see the live stream.")
+  }
   return (
     <>
-      {events.map((e, i) => (
-        <div className={styles.ev} key={i}>
+      {events.map((e, index) => (
+        <div className={styles.ev} key={index}>
           <div className={styles.evH}>
             <span className={`${styles.evType} ${styles[e.type] || ""}`}>
               {e.type}
@@ -45,7 +49,10 @@ function EventsPane() {
   )
 }
 
-function GraphPane() {
+/**
+ *
+ */
+const GraphPane = () => {
   const dispatch = useDispatch()
   const graphInfo = useSelector((s) => s.chat.graphInfo)
 
@@ -70,12 +77,12 @@ function GraphPane() {
       </div>
       {nodes.length ? (
         <div className={styles.traj}>
-          {nodes.map((n, i) => {
+          {nodes.map((n, index) => {
             const name =
-              typeof n === "string" ? n : n?.name || n?.id || `node ${i}`
+              typeof n === "string" ? n : n?.name || n?.id || `node ${index}`
             const meta = typeof n === "string" ? "" : n?.type || n?.kind || ""
             return (
-              <div key={i} className={styles.tstep}>
+              <div key={index} className={styles.tstep}>
                 <span className={styles.tdot} />
                 <div className={styles.tinfo}>
                   <span className={styles.tname}>{name}</span>
@@ -94,14 +101,18 @@ function GraphPane() {
   )
 }
 
-function FramesPane() {
+/**
+ *
+ */
+const FramesPane = () => {
   const frames = useSelector((s) => s.chat.frames)
-  if (!frames.length)
+  if (!frames.length) {
     return empty("No frames yet — the send/receive log appears here.")
+  }
   return (
     <>
-      {frames.map((f, i) => (
-        <div className={styles.frame} key={i}>
+      {frames.map((f, index) => (
+        <div className={styles.frame} key={index}>
           <div className={styles.fh}>
             <span className={`${styles.fdir} ${styles[f.dir]}`}>
               {f.dir === "out" ? "▲ send" : "▼ recv"}
@@ -116,25 +127,29 @@ function FramesPane() {
 }
 
 // Build a real, copy-pasteable cURL from the last request snapshot.
-const toCurl = (req) => {
-  if (!req) return null
+const toCurl = (request) => {
+  if (!request) return null
   const lines = [
-    `curl ${req.mode === "invoke" ? "" : "-N "}-X ${req.method} '${req.url}' \\`,
+    `curl ${request.mode === "invoke" ? "" : "-N "}-X ${request.method} '${request.url}' \\`,
   ]
-  Object.entries(req.headers || {}).forEach(([k, v]) => {
+  Object.entries(request.headers || {}).forEach(([k, v]) => {
     lines.push(`  -H '${k}: ${v}' \\`)
   })
-  lines.push(`  -d '${JSON.stringify(req.body)}'`)
+  lines.push(`  -d '${JSON.stringify(request.body)}'`)
   return lines.join("\n")
 }
 
-function CurlPane() {
-  const req = useSelector((s) => s.chat.lastRequest)
+/**
+ *
+ */
+const CurlPane = () => {
+  const request = useSelector((s) => s.chat.lastRequest)
   const [copied, setCopied] = useState(false)
-  const curl = toCurl(req)
+  const curl = toCurl(request)
 
-  if (!curl)
+  if (!curl) {
     return empty("No request yet — send a message to generate a cURL command.")
+  }
 
   const copy = async () => {
     try {
@@ -164,7 +179,7 @@ function CurlPane() {
 // Sync = GET /v1/threads/{id}/state · Save = PUT (changed keys only).
 
 // A metadata row: renders "—" for empty values; objects pretty-print as JSON.
-const metaVal = (v) => {
+const metaValue = (v) => {
   if (v === null || v === undefined || v === "") return "—"
   if (typeof v === "object") return JSON.stringify(v)
   return String(v)
@@ -217,8 +232,8 @@ const blockToText = (b) => {
 // to a readable multi-line summary so assistant tool calls and tool results are
 // visible instead of blank. Also fold in top-level tool call fields some
 // providers put on the message (tools_calls / reasoning) when content is bare.
-const messageText = (msg) => {
-  const content = msg?.content ?? msg
+const messageText = (message) => {
+  const content = message?.content ?? message
   const lines = []
   if (typeof content === "string") {
     if (content) lines.push(content)
@@ -229,11 +244,11 @@ const messageText = (msg) => {
     })
   }
   // Some assistant turns carry tool calls on a sibling field, not in content.
-  if (Array.isArray(msg?.tools_calls)) {
-    msg.tools_calls.forEach((tc) => {
-      const fn = tc?.function || tc
+  if (Array.isArray(message?.tools_calls)) {
+    message.tools_calls.forEach((tc) => {
+      const function_ = tc?.function || tc
       lines.push(
-        `🛠 ${fn?.name || tc?.name || "tool"}(${asText(fn?.arguments ?? tc?.args ?? {})})`
+        `🛠 ${function_?.name || tc?.name || "tool"}(${asText(function_?.arguments ?? tc?.args ?? {})})`
       )
     })
   }
@@ -247,7 +262,10 @@ const toEditable = (v) =>
 // A dynamic field: JSON is parsed back to a value; anything else stays a string.
 // The parent remounts this (via a key that includes the sync nonce) whenever a
 // fresh load replaces the state, so `raw` re-seeds from `value` without an effect.
-function DynamicField({ fieldKey, info, value, onChange }) {
+/**
+ *
+ */
+const DynamicField = ({ fieldKey, info, value, onChange }) => {
   const [raw, setRaw] = useState(() => toEditable(value))
   const [invalid, setInvalid] = useState(false)
 
@@ -295,10 +313,13 @@ function DynamicField({ fieldKey, info, value, onChange }) {
 
 // Diagnostic view of execution_meta — the "what is the run doing / why is it
 // blocked" data. Read-only: it is owned by the engine, not the user.
-function ExecutionMeta({ meta }) {
+/**
+ *
+ */
+const ExecutionMeta = ({ meta }) => {
   const status = meta.status || "—"
   const interrupted = meta.interrupted_node || meta.interrupt_reason
-  const err = meta.internal_data?.error
+  const error = meta.internal_data?.error
 
   const dotClass =
     status === "running"
@@ -311,10 +332,10 @@ function ExecutionMeta({ meta }) {
 
   const rows = [
     ["status", status, true],
-    ["current_node", metaVal(meta.current_node)],
-    ["step", metaVal(meta.step)],
-    ["thread_id", metaVal(meta.thread_id)],
-    ["stop_request", metaVal(meta.stop_current_execution)],
+    ["current_node", metaValue(meta.current_node)],
+    ["step", metaValue(meta.step)],
+    ["thread_id", metaValue(meta.thread_id)],
+    ["stop_request", metaValue(meta.stop_current_execution)],
   ]
 
   return (
@@ -338,20 +359,20 @@ function ExecutionMeta({ meta }) {
           <div className={styles.stMetaRow}>
             <span className={styles.stMetaKey}>interrupted_node</span>
             <span className={styles.stMetaVal}>
-              {metaVal(meta.interrupted_node)}
+              {metaValue(meta.interrupted_node)}
             </span>
           </div>
           <div className={styles.stMetaRow}>
             <span className={styles.stMetaKey}>interrupt_reason</span>
             <span className={styles.stMetaVal}>
-              {metaVal(meta.interrupt_reason)}
+              {metaValue(meta.interrupt_reason)}
             </span>
           </div>
           {meta.interrupt_data && (
             <div className={styles.stMetaRow}>
               <span className={styles.stMetaKey}>interrupt_data</span>
               <span className={styles.stMetaVal}>
-                {metaVal(meta.interrupt_data)}
+                {metaValue(meta.interrupt_data)}
               </span>
             </div>
           )}
@@ -359,11 +380,11 @@ function ExecutionMeta({ meta }) {
       )}
 
       {/* Last engine error, if any. */}
-      {err && (
+      {error && (
         <div className={styles.stMetaRow}>
           <span className={styles.stMetaKey}>error</span>
           <span className={`${styles.stMetaVal} ${styles.stInvalid}`}>
-            {metaVal(err)}
+            {metaValue(error)}
           </span>
         </div>
       )}
@@ -371,7 +392,10 @@ function ExecutionMeta({ meta }) {
   )
 }
 
-function StatePane() {
+/**
+ *
+ */
+const StatePane = () => {
   const dispatch = useDispatch()
   const threadId = useSelector((s) => s.chat.threadId)
   const schema = useSelector((s) => s.graph.stateSchema)
@@ -391,12 +415,12 @@ function StatePane() {
 
   const status = entry?.status || "idle"
   const draft = entry?.draft
-  const schemaProps = schema?.properties || {}
+  const schemaProperties = schema?.properties || {}
 
   // Union of schema-declared fields and whatever the state actually carries,
   // minus the fixed ones — this is the dynamic field list (not hardcoded).
   const dynamicKeys = [
-    ...new Set([...Object.keys(schemaProps), ...Object.keys(draft || {})]),
+    ...new Set([...Object.keys(schemaProperties), ...Object.keys(draft || {})]),
   ].filter((k) => !FIXED_FIELDS.includes(k))
 
   // A nonce that changes whenever a fresh server snapshot lands, so dynamic
@@ -465,10 +489,10 @@ function StatePane() {
             {context.length === 0 && (
               <div className={styles.inspEmpty}>No messages.</div>
             )}
-            {context.map((m, i) => {
+            {context.map((m, index) => {
               const text = messageText(m)
               return (
-                <div className={styles.stMsg} key={m.message_id || i}>
+                <div className={styles.stMsg} key={m.message_id || index}>
                   <div className={styles.stMsgHead}>
                     <span
                       className={`${styles.stRole} ${styles[m.role] || ""}`}
@@ -528,7 +552,7 @@ function StatePane() {
               <DynamicField
                 key={`${key}:${syncNonce}`}
                 fieldKey={key}
-                info={schemaProps[key]}
+                info={schemaProperties[key]}
                 value={draft[key]}
                 onChange={(v) =>
                   dispatch(setField({ threadId, key, value: v }))
@@ -542,6 +566,9 @@ function StatePane() {
   )
 }
 
+/**
+ *
+ */
 export default function Inspector({ onClose }) {
   const [tab, setTab] = useState("events")
 

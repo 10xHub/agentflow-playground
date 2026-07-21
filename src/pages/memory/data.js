@@ -39,7 +39,12 @@ export const RETRIEVAL_STRATEGIES = [
   "GRAPH_TRAVERSAL",
 ]
 
-export const DISTANCE_METRICS = ["cosine", "dot_product", "euclidean", "manhattan"]
+export const DISTANCE_METRICS = [
+  "cosine",
+  "dot_product",
+  "euclidean",
+  "manhattan",
+]
 
 export const MEM = [
   {
@@ -50,7 +55,11 @@ export const MEM = [
     ts: "2026-06-18 09:41",
     score: 0.91,
     content: "User prefers oat-milk lattes with no added sugar.",
-    meta: { memory_key: "drink_preference", source: "long_term_memory", confidence: 0.86 },
+    meta: {
+      memory_key: "drink_preference",
+      source: "long_term_memory",
+      confidence: 0.86,
+    },
   },
   {
     id: "mem_38dd91a0…9b1",
@@ -116,10 +125,13 @@ export const MEM = [
 ]
 
 // Deterministic embedding-bar heights for a given memory (mirrors the mockup's sine walk).
-export function embBars(type) {
+/**
+ *
+ */
+export const embBars = (type) => {
   const bars = []
-  for (let i = 0; i < 52; i++) {
-    bars.push(18 + Math.abs(Math.sin(i * 1.7 + type.length)) * 80)
+  for (let index = 0; index < 52; index++) {
+    bars.push(18 + Math.abs(Math.sin(index * 1.7 + type.length)) * 80)
   }
   return bars
 }

@@ -60,7 +60,12 @@ export const CONVERSATION = [
 ]
 
 export const EVENTS = [
-  { type: "message", node: "agent", time: "+2.31s", detail: 'delta: "…an afternoon shower is likely"' },
+  {
+    type: "message",
+    node: "agent",
+    time: "+2.31s",
+    detail: 'delta: "…an afternoon shower is likely"',
+  },
   {
     type: "state",
     node: "execution_meta",
@@ -79,7 +84,12 @@ export const EVENTS = [
     time: "+0.51s",
     detail: 'tool_call get_weather({location:"Dhaka, BD"})',
   },
-  { type: "message", node: "agent", time: "+0.12s", detail: "reasoning start · 2 steps" },
+  {
+    type: "message",
+    node: "agent",
+    time: "+0.12s",
+    detail: "reasoning start · 2 steps",
+  },
 ]
 
 export const TRAJECTORY = [

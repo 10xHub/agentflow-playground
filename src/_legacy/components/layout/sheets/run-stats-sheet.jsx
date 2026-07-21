@@ -17,11 +17,12 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet"
 import { formatDuration, formatTokenCount, hasTokens } from "@/lib/token-usage"
+import ct from "@constants/"
+
 import {
   selectLatestRun,
   selectRunHistory,
 } from "@/services/store/slices/runs.slice"
-import ct from "@constants/"
 
 const formatRunTime = (timestamp) => {
   if (!timestamp) {

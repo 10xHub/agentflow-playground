@@ -18,13 +18,14 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
+import ct from "@constants/"
+
 import {
   deleteThread,
   setActiveThread,
   fetchApiThreads,
   selectThread,
 } from "@/services/store/slices/chat.slice"
-import ct from "@constants/"
 
 const getThreadPreview = (thread) => {
   const latestMessage = thread.messages?.[thread.messages.length - 1]

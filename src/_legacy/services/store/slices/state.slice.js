@@ -1,6 +1,6 @@
+import { fetchStateSchema, fetchState, putState } from "@api/state.api"
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit"
 
-import { fetchStateSchema, fetchState, putState } from "@api/state.api"
 import ct from "@constants/"
 
 const THREAD_ID_REQUIRED_ERROR = "Thread ID is required"

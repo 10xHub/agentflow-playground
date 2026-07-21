@@ -1,4 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod"
+import { fetchStateScheme } from "@store/slices/state.slice"
 import { Settings, CheckCircle, Plus, Trash2 } from "lucide-react"
 import PropTypes from "prop-types"
 import React, { useEffect, useState } from "react"
@@ -6,7 +7,6 @@ import { useForm, useFieldArray } from "react-hook-form"
 import { useSelector, useDispatch } from "react-redux"
 import { z } from "zod"
 
-import VerificationStepper from "@/components/setup/verification-stepper"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -22,14 +22,15 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/components/ui/use-toast"
 import { inferAuthMode } from "@/lib/settings-utils"
+import ct from "@constants"
+
+import VerificationStepper from "@/components/setup/verification-stepper"
 import {
   resetVerification,
   setSettings,
   testPingEndpoint,
   testGraphEndpoint,
 } from "@/services/store/slices/settings.slice"
-import ct from "@constants"
-import { fetchStateScheme } from "@store/slices/state.slice"
 
 const authModeOptions = [
   {

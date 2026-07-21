@@ -11,27 +11,31 @@ const DOT_VAR = {
 }
 
 // Row for a single tool.
-function ToolRow({ vm, active, onSelect }) {
-  return (
-    <div
-      className={`${styles.trow} ${active ? styles.active : ""}`}
-      onClick={() => onSelect(vm.key)}
-    >
-      <span className={styles.tdot} style={{ background: DOT_VAR[vm.kind] }} />
-      <span className={styles.tn}>{vm.name}</span>
-      {vm.kind === "client" ? (
-        vm.registered ? (
-          <span className={styles.rdot} title="registered" />
-        ) : (
-          <span className={styles.tp}>{vm.params.length}</span>
-        )
+/**
+ *
+ */
+const ToolRow = ({ vm, active, onSelect }) => (
+  <div
+    className={`${styles.trow} ${active ? styles.active : ""}`}
+    onClick={() => onSelect(vm.key)}
+  >
+    <span className={styles.tdot} style={{ background: DOT_VAR[vm.kind] }} />
+    <span className={styles.tn}>{vm.name}</span>
+    {vm.kind === "client" ? (
+      vm.registered ? (
+        <span className={styles.rdot} title="registered" />
       ) : (
         <span className={styles.tp}>{vm.params.length}</span>
-      )}
-    </div>
-  )
-}
+      )
+    ) : (
+      <span className={styles.tp}>{vm.params.length}</span>
+    )}
+  </div>
+)
 
+/**
+ *
+ */
 export default function ToolList({
   serverNodes,
   clientVMs,

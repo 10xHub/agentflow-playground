@@ -12,9 +12,10 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { buildMessageText, getMessageCopyText } from "@/lib/messageContent"
-import { selectRunByFinalMessageId } from "@/services/store/slices/runs.slice"
 
 import RunStatsBadge from "./RunStatsBadge"
+
+import { selectRunByFinalMessageId } from "@/services/store/slices/runs.slice"
 
 /**
  * Markdown components for syntax highlighting

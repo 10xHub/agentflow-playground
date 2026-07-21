@@ -8,8 +8,9 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 
-import { displayName, typeLabel } from "./GraphCanvas"
 import styles from "../graph.module.css"
+
+import { displayName, typeLabel } from "./GraphCanvas"
 
 /**
  * Node Details card (ported from the legacy view). Shows the selected node's

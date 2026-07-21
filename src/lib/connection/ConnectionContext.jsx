@@ -1,25 +1,45 @@
 import { AgentFlowClient } from "@10xscale/agentflow-client"
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react"
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react"
 
 import { validateAndNormalizeUrl } from "@/lib/agentflow-client"
 import { getCurrentSettings, saveCurrentSettings } from "@/lib/settings-utils"
 
 import { deriveCapabilities } from "./capabilities"
-import { listConnections, removeConnection, upsertConnection } from "./connections-store"
+import {
+  listConnections,
+  removeConnection,
+  upsertConnection,
+} from "./connections-store"
 
 const ConnectionContext = createContext(null)
 
-export function useConnection() {
-  const ctx = useContext(ConnectionContext)
-  if (!ctx) throw new Error("useConnection must be used within <ConnectionProvider>")
-  return ctx
+/**
+ *
+ */
+export const useConnection = () => {
+  const context = useContext(ConnectionContext)
+  if (!context) {
+    throw new Error("useConnection must be used within <ConnectionProvider>")
+  }
+  return context
 }
 
 // status: "idle" | "connecting" | "connected" | "error"
 
 // Map the form's auth mode onto the SDK's AgentFlowAuth union (bearer/basic).
 // bearer stays on the simpler authToken field; basic uses the structured `auth`.
-function buildAuth(conn) {
+/**
+ *
+ */
+const buildAuth = (conn) => {
   if (conn.authMode === "basic") {
     const username = (conn.authUsername || "").trim()
     const password = conn.authPassword || ""
@@ -30,8 +50,13 @@ function buildAuth(conn) {
 
 // "header" mode: any number of {name, value} rows, sent as plain request headers.
 // Non-empty, trimmed name required; later rows win on duplicate names.
-function buildHeaders(conn) {
-  if (conn.authMode !== "header" || !Array.isArray(conn.authHeaders)) return null
+/**
+ *
+ */
+const buildHeaders = (conn) => {
+  if (conn.authMode !== "header" || !Array.isArray(conn.authHeaders)) {
+    return null
+  }
   const out = {}
   for (const row of conn.authHeaders) {
     const name = (row?.name || "").trim()
@@ -41,7 +66,10 @@ function buildHeaders(conn) {
   return Object.keys(out).length ? out : null
 }
 
-function buildClient(conn) {
+/**
+ *
+ */
+const buildClient = (conn) => {
   const baseUrl = validateAndNormalizeUrl(conn.backendUrl)
   const config = { baseUrl, timeout: 600000, debug: false }
   if (conn.authMode === "bearer" && conn.authToken) {
@@ -56,21 +84,34 @@ function buildClient(conn) {
 }
 
 // Turn SDK / fetch failures into a short, honest message for the probe pane.
-function humanizeError(err, baseUrl) {
-  const msg = err?.message || String(err)
-  if (err?.status === 401 || err?.status === 403 || /unauthor/i.test(msg)) {
+/**
+ *
+ */
+const humanizeError = (error, baseUrl) => {
+  const message = error?.message || String(error)
+  if (
+    error?.status === 401 ||
+    error?.status === 403 ||
+    /unauthor/i.test(message)
+  ) {
     return "Rejected (401/403) — this backend needs a valid token."
   }
-  if (err?.name === "AbortError" || /timeout|timed out/i.test(msg)) {
+  if (error?.name === "AbortError" || /timeout|timed out/i.test(message)) {
     return `Timed out reaching ${baseUrl}.`
   }
-  if (err instanceof TypeError || /failed to fetch|networkerror|load failed/i.test(msg)) {
+  if (
+    error instanceof TypeError ||
+    /failed to fetch|networkerror|load failed/i.test(message)
+  ) {
     return `Could not reach ${baseUrl} — is the server running? (network or CORS)`
   }
-  return msg
+  return message
 }
 
-export function ConnectionProvider({ children }) {
+/**
+ *
+ */
+export const ConnectionProvider = ({ children }) => {
   const [status, setStatus] = useState("idle")
   const [error, setError] = useState(null)
   const [active, setActive] = useState(null) // {id,name,backendUrl,authMode,authToken}
@@ -78,7 +119,7 @@ export function ConnectionProvider({ children }) {
   const [info, setInfo] = useState(null)
   const [probe, setProbe] = useState(null) // {latencyMs, nodes, edges}
   const [saved, setSaved] = useState(() => listConnections())
-  const clientRef = useRef(null)
+  const clientReference = useRef(null)
 
   // Rebuild the full connection object from persisted settings so a reload can
   // re-verify without the user re-entering anything.
@@ -87,7 +128,8 @@ export function ConnectionProvider({ children }) {
     name: s.name || "Backend",
     backendUrl: s.backendUrl,
     authMode: s.authMode || "none",
-    authToken: s.authMode === "bearer" ? s.authToken || s.auth?.token || "" : "",
+    authToken:
+      s.authMode === "bearer" ? s.authToken || s.auth?.token || "" : "",
     authUsername: s.auth?.type === "basic" ? s.auth.username : "",
     authPassword: s.auth?.type === "basic" ? s.auth.password : "",
     authHeaders: s.authMode === "header" ? s.headers || [] : [],
@@ -110,61 +152,68 @@ export function ConnectionProvider({ children }) {
 
   // `silent` (used by the on-load re-verify): on failure fall back to idle instead
   // of a red error state, since the user didn't just click Connect.
-  const connect = useCallback(async (conn, { remember = true, silent = false } = {}) => {
-    setStatus("connecting")
-    setError(null)
-    let baseUrl
-    let client
-    try {
-      ;({ client, baseUrl } = buildClient(conn))
-    } catch (e) {
-      setStatus(silent ? "idle" : "error")
-      if (!silent) setError(e.message)
-      return { ok: false, error: e }
-    }
+  const connect = useCallback(
+    async (conn, { remember = true, silent = false } = {}) => {
+      setStatus("connecting")
+      setError(null)
+      let baseUrl
+      let client
+      try {
+        ;({ client, baseUrl } = buildClient(conn))
+      } catch (e) {
+        setStatus(silent ? "idle" : "error")
+        if (!silent) setError(e.message)
+        return { ok: false, error: e }
+      }
 
-    const started = performance.now()
-    try {
-      await client.ping()
-      const graph = await client.graph()
-      const latencyMs = Math.round(performance.now() - started)
-      const graphInfo = graph?.data?.info || null
-      const nodes = graphInfo?.node_count ?? graph?.data?.nodes?.length ?? null
-      const edges = graphInfo?.edge_count ?? graph?.data?.edges?.length ?? null
+      const started = performance.now()
+      try {
+        await client.ping()
+        const graph = await client.graph()
+        const latencyMs = Math.round(performance.now() - started)
+        const graphInfo = graph?.data?.info || null
+        const nodes =
+          graphInfo?.node_count ?? graph?.data?.nodes?.length ?? null
+        const edges =
+          graphInfo?.edge_count ?? graph?.data?.edges?.length ?? null
 
-      clientRef.current = client
-      const normalized = { ...conn, backendUrl: baseUrl }
-      setActive(normalized)
-      setInfo(graphInfo)
-      setCapabilities(deriveCapabilities(graphInfo))
-      setProbe({ latencyMs, nodes, edges })
-      setStatus("connected")
+        clientReference.current = client
+        const normalized = { ...conn, backendUrl: baseUrl }
+        setActive(normalized)
+        setInfo(graphInfo)
+        setCapabilities(deriveCapabilities(graphInfo))
+        setProbe({ latencyMs, nodes, edges })
+        setStatus("connected")
 
-      // Persist the active connection for SDK reuse across the app.
-      saveCurrentSettings({
-        name: normalized.name,
-        backendUrl: baseUrl,
-        authMode: normalized.authMode,
-        authToken: normalized.authMode === "bearer" ? normalized.authToken : "",
-        auth: buildAuth(normalized),
-        headers: normalized.authMode === "header" ? normalized.authHeaders : [],
-      })
-      if (remember) setSaved(upsertConnection(normalized))
+        // Persist the active connection for SDK reuse across the app.
+        saveCurrentSettings({
+          name: normalized.name,
+          backendUrl: baseUrl,
+          authMode: normalized.authMode,
+          authToken:
+            normalized.authMode === "bearer" ? normalized.authToken : "",
+          auth: buildAuth(normalized),
+          headers:
+            normalized.authMode === "header" ? normalized.authHeaders : [],
+        })
+        if (remember) setSaved(upsertConnection(normalized))
 
-      return { ok: true, info: graphInfo }
-    } catch (e) {
-      clientRef.current = null
-      setStatus(silent ? "idle" : "error")
-      setError(silent ? null : humanizeError(e, baseUrl))
-      setCapabilities(null)
-      setInfo(null)
-      setProbe(null)
-      return { ok: false, error: e }
-    }
-  }, [])
+        return { ok: true, info: graphInfo }
+      } catch (e) {
+        clientReference.current = null
+        setStatus(silent ? "idle" : "error")
+        setError(silent ? null : humanizeError(e, baseUrl))
+        setCapabilities(null)
+        setInfo(null)
+        setProbe(null)
+        return { ok: false, error: e }
+      }
+    },
+    []
+  )
 
   const disconnect = useCallback(() => {
-    clientRef.current = null
+    clientReference.current = null
     setStatus("idle")
     setError(null)
     setCapabilities(null)
@@ -174,7 +223,7 @@ export function ConnectionProvider({ children }) {
 
   const removeSaved = useCallback((id) => setSaved(removeConnection(id)), [])
 
-  const getClient = useCallback(() => clientRef.current, [])
+  const getClient = useCallback(() => clientReference.current, [])
 
   const value = useMemo(
     () => ({
@@ -191,8 +240,24 @@ export function ConnectionProvider({ children }) {
       getClient,
       isConnected: status === "connected",
     }),
-    [status, error, active, capabilities, info, probe, saved, connect, disconnect, removeSaved, getClient]
+    [
+      status,
+      error,
+      active,
+      capabilities,
+      info,
+      probe,
+      saved,
+      connect,
+      disconnect,
+      removeSaved,
+      getClient,
+    ]
   )
 
-  return <ConnectionContext.Provider value={value}>{children}</ConnectionContext.Provider>
+  return (
+    <ConnectionContext.Provider value={value}>
+      {children}
+    </ConnectionContext.Provider>
+  )
 }

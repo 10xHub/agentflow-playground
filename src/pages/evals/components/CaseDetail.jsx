@@ -2,6 +2,9 @@ import styles from "../evals.module.css"
 
 const RUBRIC_COLOR = { danger: "var(--danger)", accent: "var(--accent)" }
 
+/**
+ *
+ */
 export default function CaseDetail({ activeCase }) {
   if (!activeCase) {
     return (
@@ -10,7 +13,9 @@ export default function CaseDetail({ activeCase }) {
           <span className={styles.cdTitle}>No case selected</span>
         </div>
         <div className={styles.cdBody}>
-          <div className={styles.empty}>Select a case to inspect input, output and rubric.</div>
+          <div className={styles.empty}>
+            Select a case to inspect input, output and rubric.
+          </div>
         </div>
       </aside>
     )
@@ -29,14 +34,18 @@ export default function CaseDetail({ activeCase }) {
       </div>
       <div className={styles.cdBody}>
         <div className={styles.cdH}>Input</div>
-        <div className={`${styles.cdBox} ${styles.mono}`}>{activeCase.input}</div>
+        <div className={`${styles.cdBox} ${styles.mono}`}>
+          {activeCase.input}
+        </div>
 
         {isSim && activeCase.conversation && (
           <>
             <div className={styles.cdH}>Simulated conversation</div>
-            {activeCase.conversation.map((turn, i) => (
-              <div className={styles.turn} key={i}>
-                <div className={`${styles.tav} ${turn.role === "sim" ? styles.u : styles.a}`}>
+            {activeCase.conversation.map((turn, index) => (
+              <div className={styles.turn} key={index}>
+                <div
+                  className={`${styles.tav} ${turn.role === "sim" ? styles.u : styles.a}`}
+                >
                   {turn.role === "sim" ? "SIM" : "AG"}
                 </div>
                 <div className={styles.tbub}>{turn.text}</div>
@@ -46,10 +55,14 @@ export default function CaseDetail({ activeCase }) {
         )}
 
         <div className={styles.cdH}>Expected</div>
-        <div className={`${styles.cdBox} ${styles.expected}`}>{activeCase.expected}</div>
+        <div className={`${styles.cdBox} ${styles.expected}`}>
+          {activeCase.expected}
+        </div>
 
         <div className={styles.cdH}>Actual</div>
-        <div className={`${styles.cdBox} ${styles.actual} ${fail ? styles.fail : ""}`}>
+        <div
+          className={`${styles.cdBox} ${styles.actual} ${fail ? styles.fail : ""}`}
+        >
           {activeCase.actual}
         </div>
 
@@ -61,7 +74,10 @@ export default function CaseDetail({ activeCase }) {
                 <span className={styles.rk}>{r.key}</span>
                 <span className={styles.rt}>
                   <i
-                    style={{ width: `${r.value * 100}%`, background: RUBRIC_COLOR[r.tone] }}
+                    style={{
+                      width: `${r.value * 100}%`,
+                      background: RUBRIC_COLOR[r.tone],
+                    }}
                   />
                 </span>
                 <span className={styles.rv}>{r.value.toFixed(2)}</span>

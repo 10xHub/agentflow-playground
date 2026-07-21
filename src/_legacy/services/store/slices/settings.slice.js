@@ -1,3 +1,4 @@
+import { pingBackend, fetchGraphData } from "@api/setup-integration.api"
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit"
 
 import {
@@ -6,7 +7,6 @@ import {
   getCurrentSettings,
   saveCurrentSettings,
 } from "@/lib/settings-utils"
-import { pingBackend, fetchGraphData } from "@api/setup-integration.api"
 import ct from "@constants/"
 
 const createVerificationState = () => ({

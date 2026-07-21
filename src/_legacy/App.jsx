@@ -1,3 +1,4 @@
+import { store, persistor } from "@store/"
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client"
 import { Suspense } from "react"
 import { Provider } from "react-redux"
@@ -6,7 +7,6 @@ import { PersistGate } from "redux-persist/integration/react"
 
 import { ThemeProvider } from "@/lib/context/theme-provider"
 import { asyncStoragePersister, queryClient } from "@/lib/query-client"
-import { store, persistor } from "@store/"
 
 import router from "./route/index"
 

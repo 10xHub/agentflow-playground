@@ -5,6 +5,9 @@ import styles from "../observability.module.css"
 
 const EVENT_CHIPS = ["all", "message", "updates", "state", "error"]
 
+/**
+ *
+ */
 export default function EventsPane({ events, selectedId, onSelect }) {
   const [chip, setChip] = useState("all")
   const [query, setQuery] = useState("")
@@ -16,8 +19,9 @@ export default function EventsPane({ events, selectedId, onSelect }) {
       !`${e.node} ${e.summary} ${e.type}`
         .toLowerCase()
         .includes(query.toLowerCase())
-    )
+    ) {
       return false
+    }
     return true
   })
 

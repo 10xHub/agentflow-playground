@@ -26,7 +26,9 @@ const normalize = (m) => ({
   type: m.memory_type || "custom",
   cat: m.metadata?.category || "general",
   thread: m.thread_id || "—",
-  ts: m.timestamp ? new Date(m.timestamp).toISOString().replace("T", " ").slice(0, 16) : "—",
+  ts: m.timestamp
+    ? new Date(m.timestamp).toISOString().replace("T", " ").slice(0, 16)
+    : "—",
   score: typeof m.score === "number" ? m.score : 0,
   content: m.content || "",
   meta: m.metadata || {},
@@ -130,7 +132,9 @@ export const browseMemories = () => async (dispatch, getState) => {
   }
   dispatch(loading())
   try {
-    const data = unwrap(await client.listMemories({ config: cfgFor(getState), limit: 100 }))
+    const data = unwrap(
+      await client.listMemories({ config: cfgFor(getState), limit: 100 })
+    )
     dispatch(loaded((data.memories || []).map(normalize)))
   } catch (e) {
     dispatchFetchError(dispatch, e, "Failed to list memories")
@@ -194,7 +198,9 @@ export const forgetVisible = () => async (dispatch, getState) => {
   dispatch(setBusy(true))
   try {
     // No bulk endpoint that matches arbitrary ids; delete individually.
-    await Promise.all(ids.map((id) => client.deleteMemory(id).catch(() => null)))
+    await Promise.all(
+      ids.map((id) => client.deleteMemory(id).catch(() => null))
+    )
     await dispatch(refreshMemories())
   } finally {
     dispatch(setBusy(false))

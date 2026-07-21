@@ -1,5 +1,6 @@
-import ThreadList from "@/components/threads/thread-list"
 import { Sidebar, SidebarContent, SidebarGroup } from "@/components/ui/sidebar"
+
+import ThreadList from "@/components/threads/thread-list"
 
 /**
  * AppSidebar component renders a collapsible sidebar with application navigation and chat threads.

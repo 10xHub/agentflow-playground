@@ -1,8 +1,8 @@
+import Dashboard from "@pages/dashboard"
+import MemoryPage from "@pages/memory"
 import { Navigate, useParams } from "react-router-dom"
 
 import ct from "@constants/"
-import Dashboard from "@pages/dashboard"
-import MemoryPage from "@pages/memory"
 
 // Component to redirect chat thread to dashboard with threadId in query params
 const ChatThreadRedirect = () => {

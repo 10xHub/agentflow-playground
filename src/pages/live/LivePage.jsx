@@ -8,25 +8,29 @@ import styles from "./live.module.css"
 
 // Full-width centered state panel for the unavailable/not-connected cases; the
 // live-capable case renders <LiveSession/> instead.
-function Gate({ icon: Icon, title, body, note, action, onAction }) {
-  return (
-    <div className={styles.gate}>
-      <div className={styles.gateInner}>
-        <Icon size={30} strokeWidth={1.5} className={styles.gateIcon} />
-        <h2>{title}</h2>
-        <p>{body}</p>
-        {note && <p className={styles.gateNote}>{note}</p>}
-        {action && (
-          <button type="button" className={styles.gateBtn} onClick={onAction}>
-            {action}
-          </button>
-        )}
-      </div>
+/**
+ *
+ */
+const Gate = ({ icon: Icon, title, body, note, action, onAction }) => (
+  <div className={styles.gate}>
+    <div className={styles.gateInner}>
+      <Icon size={30} strokeWidth={1.5} className={styles.gateIcon} />
+      <h2>{title}</h2>
+      <p>{body}</p>
+      {note && <p className={styles.gateNote}>{note}</p>}
+      {action && (
+        <button type="button" className={styles.gateBtn} onClick={onAction}>
+          {action}
+        </button>
+      )}
     </div>
-  )
-}
+  </div>
+)
 
-export function LivePage() {
+/**
+ *
+ */
+export const LivePage = () => {
   const navigate = useNavigate()
   const { isConnected, capabilities, active } = useConnection()
   const liveSupported = Boolean(

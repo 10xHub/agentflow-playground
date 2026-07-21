@@ -1,4 +1,7 @@
 // Temporary stand-in for routes still being converted from the HTML mockups.
+/**
+ *
+ */
 export default function Placeholder({ name, note = "coming next" }) {
   return (
     <div

@@ -1,9 +1,9 @@
+import { changeTheme } from "@store/slices/theme.slice"
 import PropTypes from "prop-types"
 import { createContext, useContext, useEffect, useMemo } from "react"
 import { useDispatch, useSelector } from "react-redux"
 
 import ct from "@constants/"
-import { changeTheme } from "@store/slices/theme.slice"
 
 const initialState = {
   theme: "system",

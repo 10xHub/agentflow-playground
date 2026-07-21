@@ -6,12 +6,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 import styles from "../graph.module.css"
 
-function cx(...c) {
-  return c.filter(Boolean).join(" ")
-}
+/**
+ *
+ */
+const cx = (...c) => c.filter(Boolean).join(" ")
 
 // Nodes / edges headline stats.
-function Stats({ nodeCount, edgeCount }) {
+/**
+ *
+ */
+const Stats = ({ nodeCount, edgeCount }) => {
   const items = [
     {
       icon: GitBranch,
@@ -37,7 +41,10 @@ function Stats({ nodeCount, edgeCount }) {
 }
 
 // Checkpointer / publisher / store feature flags with a ✓/✗ marker.
-function Features({ checkpointer, checkpointerType, publisher, store }) {
+/**
+ *
+ */
+const Features = ({ checkpointer, checkpointerType, publisher, store }) => {
   const rows = [
     {
       icon: Database,
@@ -73,7 +80,10 @@ function Features({ checkpointer, checkpointerType, publisher, store }) {
   )
 }
 
-function Interrupts({ before, after }) {
+/**
+ *
+ */
+const Interrupts = ({ before, after }) => {
   if (!before.length && !after.length) return null
   return (
     <div className={styles.section}>
@@ -92,13 +102,16 @@ function Interrupts({ before, after }) {
   )
 }
 
-function StateIdentity({
+/**
+ *
+ */
+const StateIdentity = ({
   contextType,
   idGenerator,
   idType,
   stateType,
   stateFields,
-}) {
+}) => {
   const has =
     [contextType, idGenerator, idType, stateType].some(
       (v) => v && v !== "none"

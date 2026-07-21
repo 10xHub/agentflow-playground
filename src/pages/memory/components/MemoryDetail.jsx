@@ -7,18 +7,23 @@ import { deleteMemory } from "@/store/memorySlice"
 import { embBars } from "../data"
 import styles from "../memory.module.css"
 
-function MetaJson({ meta }) {
+/**
+ *
+ */
+const MetaJson = ({ meta }) => {
   const entries = Object.entries(meta)
   return (
     <div className={styles.metaJson}>
       {"{\n"}
-      {entries.map(([k, v], i) => (
+      {entries.map(([k, v], index) => (
         <span key={k}>
           {"  "}
           <span className={styles.key}>"{k}"</span>
           {": "}
-          <span className={styles.str}>{typeof v === "string" ? `"${v}"` : v}</span>
-          {i < entries.length - 1 ? ",\n" : "\n"}
+          <span className={styles.str}>
+            {typeof v === "string" ? `"${v}"` : v}
+          </span>
+          {index < entries.length - 1 ? ",\n" : "\n"}
         </span>
       ))}
       {"}"}
@@ -26,7 +31,17 @@ function MetaJson({ meta }) {
   )
 }
 
-export default function MemoryDetail({ mem, mode, strategy, metric, collection, query }) {
+/**
+ *
+ */
+export default function MemoryDetail({
+  mem,
+  mode,
+  strategy,
+  metric,
+  collection,
+  query,
+}) {
   const dispatch = useDispatch()
   const [delArmed, setDelArmed] = useState(false)
 
@@ -56,7 +71,10 @@ export default function MemoryDetail({ mem, mode, strategy, metric, collection, 
               <span className={`${styles.fd} ${styles[mem.type]}`} />
               {mem.type}
             </span>
-            <span className={styles.tbadge} style={{ textTransform: "none", letterSpacing: 0 }}>
+            <span
+              className={styles.tbadge}
+              style={{ textTransform: "none", letterSpacing: 0 }}
+            >
               {mem.cat}
             </span>
           </div>
@@ -100,7 +118,9 @@ export default function MemoryDetail({ mem, mode, strategy, metric, collection, 
             </div>
             <div className={styles.kv}>
               <span className={styles.k}>score</span>
-              <span className={`${styles.v} ${styles.ok}`}>{mem.score.toFixed(2)}</span>
+              <span className={`${styles.v} ${styles.ok}`}>
+                {mem.score.toFixed(2)}
+              </span>
             </div>
           </div>
         )}
@@ -118,7 +138,9 @@ export default function MemoryDetail({ mem, mode, strategy, metric, collection, 
             </div>
             <div className={styles.kv}>
               <span className={styles.k}>user_id</span>
-              <span className={styles.v}>{mem.meta?.user_id || "from token"}</span>
+              <span className={styles.v}>
+                {mem.meta?.user_id || "from token"}
+              </span>
             </div>
             <div className={styles.kv}>
               <span className={styles.k}>thread_id</span>
@@ -133,8 +155,11 @@ export default function MemoryDetail({ mem, mode, strategy, metric, collection, 
           <div className={styles.card}>
             <div className={styles.secH}>Vector</div>
             <div className={styles.emb}>
-              {bars.map((h, i) => (
-                <i key={i} style={{ height: `${h}%`, background: typeColor }} />
+              {bars.map((h, index) => (
+                <i
+                  key={index}
+                  style={{ height: `${h}%`, background: typeColor }}
+                />
               ))}
             </div>
             <div className={styles.embMeta}>1536 dims · cosine</div>

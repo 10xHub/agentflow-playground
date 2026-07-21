@@ -8,6 +8,9 @@ import GraphInfoPane from "./components/GraphInfoPane"
 import NodePane from "./components/NodePane"
 import styles from "./graph.module.css"
 
+/**
+ *
+ */
 export default function GraphPage() {
   const dispatch = useDispatch()
   const { info, nodes, edges, status, error } = useSelector((s) => s.graph)

@@ -72,11 +72,13 @@ const evalFetch = async (path) => {
   getAgentFlowClient()
   const base = (s.backendUrl || "").replace(/\/$/, "")
   const headers = { "Content-Type": "application/json" }
-  if (s.authMode === "bearer" && s.authToken) headers.Authorization = `Bearer ${s.authToken}`
-  else if (s.auth?.type === "basic")
+  if (s.authMode === "bearer" && s.authToken) {
+    headers.Authorization = `Bearer ${s.authToken}`
+  } else if (s.auth?.type === "basic") {
     headers.Authorization = `Basic ${btoa(`${s.auth.username}:${s.auth.password}`)}`
-  else if (s.authMode === "header" && Array.isArray(s.headers))
+  } else if (s.authMode === "header" && Array.isArray(s.headers)) {
     s.headers.forEach((h) => h?.name && (headers[h.name] = h.value))
+  }
 
   const res = await fetch(`${base}${path}`, { headers })
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
@@ -104,7 +106,9 @@ export const loadEvalRun = (runId) => async (dispatch) => {
   dispatch(selectRun(runId))
   dispatch(detailLoading())
   try {
-    const detail = await evalFetch(`/v1/evals/runs/${encodeURIComponent(runId)}`)
+    const detail = await evalFetch(
+      `/v1/evals/runs/${encodeURIComponent(runId)}`
+    )
     dispatch(detailLoaded(detail))
   } catch (e) {
     dispatch(detailFailed(e?.message || "Failed to load run detail"))

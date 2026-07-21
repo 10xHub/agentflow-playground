@@ -2,6 +2,11 @@ import { useCallback, useEffect } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import { useSearchParams } from "react-router-dom"
 
+import ct from "@constants"
+
+import EmptyChatUI from "../chat/component/empty"
+import MessageView from "../chat/component/full/MessageView"
+
 import {
   createThread,
   sendMessage as sendMessageThunk,
@@ -19,10 +24,6 @@ import {
   resetThreadSettings,
   setThreadId as setThreadSettingsId,
 } from "@/services/store/slices/thread-settings.slice"
-import ct from "@constants"
-
-import EmptyChatUI from "../chat/component/empty"
-import MessageView from "../chat/component/full/MessageView"
 
 const DashboardUI = () => {
   const dispatch = useDispatch()

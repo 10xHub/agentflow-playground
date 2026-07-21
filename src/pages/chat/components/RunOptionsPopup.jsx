@@ -15,28 +15,29 @@ export default function RunOptionsPopup({ focus, onClose }) {
   const dispatch = useDispatch()
   const runOptions = useSelector((s) => s.chat.runOptions)
   const threadId = useSelector((s) => s.chat.threadId)
-  const ref = useRef(null)
-  const stateRef = useRef(null)
-  const configRef = useRef(null)
+  const reference = useRef(null)
+  const stateReference = useRef(null)
+  const configReference = useRef(null)
 
   // Close on outside click or Escape, matching the thread picker's behaviour.
   useEffect(() => {
-    const onDoc = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) onClose()
+    const onDocument = (e) => {
+      if (reference.current && !reference.current.contains(e.target)) onClose()
     }
     const onKey = (e) => {
       if (e.key === "Escape") onClose()
     }
-    document.addEventListener("mousedown", onDoc)
+    document.addEventListener("mousedown", onDocument)
     document.addEventListener("keydown", onKey)
     return () => {
-      document.removeEventListener("mousedown", onDoc)
+      document.removeEventListener("mousedown", onDocument)
       document.removeEventListener("keydown", onKey)
     }
   }, [onClose])
 
   useEffect(() => {
-    const target = focus === "config" ? configRef.current : stateRef.current
+    const target =
+      focus === "config" ? configReference.current : stateReference.current
     target?.focus()
   }, [focus])
 
@@ -46,7 +47,7 @@ export default function RunOptionsPopup({ focus, onClose }) {
   const set = (patch) => dispatch(setRunOptions(patch))
 
   return (
-    <div className={styles.runPop} ref={ref}>
+    <div className={styles.runPop} ref={reference}>
       <div className={styles.runPopHead}>
         <span className={styles.runPopTitle}>Run options</span>
         <button
@@ -76,7 +77,7 @@ export default function RunOptionsPopup({ focus, onClose }) {
         </label>
         <textarea
           id="run-initial-state"
-          ref={stateRef}
+          ref={stateReference}
           className={stateError ? styles.runBad : ""}
           rows={4}
           spellCheck={false}
@@ -95,7 +96,7 @@ export default function RunOptionsPopup({ focus, onClose }) {
         </label>
         <textarea
           id="run-config"
-          ref={configRef}
+          ref={configReference}
           className={configError ? styles.runBad : ""}
           rows={4}
           spellCheck={false}

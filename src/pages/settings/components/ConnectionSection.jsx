@@ -13,7 +13,10 @@ import { useConnection } from "@/lib/connection/ConnectionContext"
 
 import styles from "../settings.module.css"
 
-function hostLabel(url) {
+/**
+ *
+ */
+const hostLabel = (url) => {
   try {
     return new URL(url).host
   } catch {
@@ -23,7 +26,10 @@ function hostLabel(url) {
 
 // The currently active connection: identity, live probe, capabilities, and the
 // re-verify / disconnect / edit actions. Deep add/edit routes to the Connect page.
-function ActiveConnectionCard({
+/**
+ *
+ */
+const ActiveConnectionCard = ({
   conn,
   status,
   error,
@@ -33,7 +39,7 @@ function ActiveConnectionCard({
   onReverify,
   onDisconnect,
   onEdit,
-}) {
+}) => {
   const connecting = status === "connecting"
   return (
     <div className={styles.activeConn}>
@@ -100,38 +106,42 @@ function ActiveConnectionCard({
   )
 }
 
-function SavedRow({ conn, active, connected, busy, onPick, onDelete }) {
-  return (
-    <div className={`${styles.savedRow} ${active ? styles.rowActive : ""}`}>
-      <button
-        className={styles.savedPick}
-        onClick={onPick}
-        disabled={busy}
-        type="button"
-      >
-        <span
-          className={`${styles.dot} ${active && connected ? styles.live : ""}`}
-        />
-        <span className={styles.srBody}>
-          <span className={styles.srName}>{conn.name}</span>
-          <span className={styles.srUrl}>{conn.backendUrl}</span>
-        </span>
-        <span className={styles.badge}>{conn.authMode || "none"}</span>
-        {active && <Check size={13} className={styles.srCheck} />}
-      </button>
-      <button
-        className={styles.rowDel}
-        onClick={onDelete}
-        title="Delete connection"
-        type="button"
-      >
-        <Trash2 size={13} />
-      </button>
-    </div>
-  )
-}
+/**
+ *
+ */
+const SavedRow = ({ conn, active, connected, busy, onPick, onDelete }) => (
+  <div className={`${styles.savedRow} ${active ? styles.rowActive : ""}`}>
+    <button
+      className={styles.savedPick}
+      onClick={onPick}
+      disabled={busy}
+      type="button"
+    >
+      <span
+        className={`${styles.dot} ${active && connected ? styles.live : ""}`}
+      />
+      <span className={styles.srBody}>
+        <span className={styles.srName}>{conn.name}</span>
+        <span className={styles.srUrl}>{conn.backendUrl}</span>
+      </span>
+      <span className={styles.badge}>{conn.authMode || "none"}</span>
+      {active && <Check size={13} className={styles.srCheck} />}
+    </button>
+    <button
+      className={styles.rowDel}
+      onClick={onDelete}
+      title="Delete connection"
+      type="button"
+    >
+      <Trash2 size={13} />
+    </button>
+  </div>
+)
 
 // Reads entirely from the connection context — no form duplication.
+/**
+ *
+ */
 export default function ConnectionSection() {
   const navigate = useNavigate()
   const {

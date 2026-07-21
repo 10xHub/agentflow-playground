@@ -10,6 +10,9 @@ const OPTIONS = [
   { key: "system", label: "System", icon: Monitor },
 ]
 
+/**
+ *
+ */
 export default function AppearanceSection() {
   const { mode, setMode } = useTheme()
 

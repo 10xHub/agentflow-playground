@@ -3,9 +3,10 @@ import { useState } from "react"
 
 import { formatJson } from "@/lib/rich-text"
 
+import styles from "../chat.module.css"
+
 import CodeBlock from "./CodeBlock"
 import RichText from "./RichText"
-import styles from "../chat.module.css"
 
 const TAG = {
   reasoning: { cls: styles.reason, label: "reasoning" },
@@ -14,7 +15,7 @@ const TAG = {
 }
 
 /** Tool args / results: highlighted JSON when it parses, rich text otherwise. */
-function ToolPayload({ code }) {
+const ToolPayload = ({ code }) => {
   const json = formatJson(code)
   if (json) return <CodeBlock lang="json" code={json} />
   return (

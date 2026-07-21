@@ -5,8 +5,9 @@ import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism"
 
 import { isPreviewableLang } from "@/lib/rich-text"
 
-import HtmlFrame from "./HtmlFrame"
 import styles from "../chat.module.css"
+
+import HtmlFrame from "./HtmlFrame"
 
 /** Fenced code. Renderable languages preview by default, with a source toggle. */
 export default function CodeBlock({ lang, code }) {

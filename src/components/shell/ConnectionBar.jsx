@@ -16,13 +16,16 @@ const DEFAULT_CAPS = [
   { name: "mcp", on: false },
 ]
 
-function hostLabel(url) {
+/**
+ *
+ */
+const hostLabel = (url) => {
   try {
     return new URL(url).host
   } catch {
     return url || "—"
   }
-}
+};
 
 /**
  * Global connection bar: brand + active connection pill + capability chips +
@@ -35,7 +38,11 @@ export default function ConnectionBar({ right = null }) {
   const { active, capabilities, isConnected } = useConnection()
 
   const connection = active
-    ? { name: active.name, url: hostLabel(active.backendUrl), live: isConnected }
+    ? {
+        name: active.name,
+        url: hostLabel(active.backendUrl),
+        live: isConnected,
+      }
     : { name: "Not connected", url: "—", live: false }
   const caps = capabilities || DEFAULT_CAPS
 
@@ -49,8 +56,14 @@ export default function ConnectionBar({ right = null }) {
       </div>
       <div className={styles.sep} />
 
-      <button className={styles.connPill} type="button" onClick={() => navigate("/")}>
-        <span className={`${styles.dot} ${connection.live ? styles.live : ""}`} />
+      <button
+        className={styles.connPill}
+        type="button"
+        onClick={() => navigate("/")}
+      >
+        <span
+          className={`${styles.dot} ${connection.live ? styles.live : ""}`}
+        />
         <span className={styles.connName}>{connection.name}</span>
         <span className={styles.connUrl}>{connection.url}</span>
         <ChevronDown size={12} className={styles.chev} />
@@ -58,7 +71,10 @@ export default function ConnectionBar({ right = null }) {
 
       <div className={styles.caps}>
         {caps.map((c) => (
-          <span key={c.name} className={`${styles.capchip} ${c.on ? "" : styles.off}`}>
+          <span
+            key={c.name}
+            className={`${styles.capchip} ${c.on ? "" : styles.off}`}
+          >
             <span className={styles.cd} />
             {c.name}
           </span>
@@ -69,7 +85,12 @@ export default function ConnectionBar({ right = null }) {
 
       <div className={styles.actions}>
         {right}
-        <button className={styles.iconbtn} type="button" onClick={toggle} title="Toggle theme">
+        <button
+          className={styles.iconbtn}
+          type="button"
+          onClick={toggle}
+          title="Toggle theme"
+        >
           {theme === "light" ? <Moon size={15} /> : <Sun size={15} />}
         </button>
         <button
@@ -85,16 +106,15 @@ export default function ConnectionBar({ right = null }) {
   )
 }
 
-/** A connection-bar action button styled to match the theme/settings buttons.
- *  Pages inject this into ConnectionBar's `right` slot (e.g. the inspector toggle). */
-export function BarButton({ armed = false, children, ...props }) {
-  return (
-    <button
+/**
+ * A connection-bar action button styled to match the theme/settings buttons.
+ *  Pages inject this into ConnectionBar's `right` slot (e.g. the inspector toggle).
+ */
+export const BarButton = ({ armed = false, children, ...properties }) => <button
       className={`${styles.iconbtn} ${armed ? styles.armed : ""}`}
       type="button"
-      {...props}
-    >
-      {children}
-    </button>
-  )
-}
+      {...properties}
+  >
+    {children}
+  </button>
+)

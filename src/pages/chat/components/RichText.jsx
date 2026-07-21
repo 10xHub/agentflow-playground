@@ -7,9 +7,10 @@ import remarkGfm from "remark-gfm"
 
 import { detectFormat } from "@/lib/rich-text"
 
+import styles from "../chat.module.css"
+
 import CodeBlock from "./CodeBlock"
 import HtmlFrame from "./HtmlFrame"
-import styles from "../chat.module.css"
 
 // Inline HTML is allowed through, but not the parts that would leak out of the
 // message and restyle or instrument the playground itself.
@@ -27,7 +28,7 @@ const HAST_PLUGINS = [rehypeRaw, [rehypeSanitize, SCHEMA]]
 // react-markdown v10 dropped the `inline` prop on `code`, so the fenced case is
 // owned by `pre` (only fences are wrapped in one) and `code` stays inline-only.
 const COMPONENTS = {
-  pre({ children }) {
+  pre: ({ children }) => {
     const child = Array.isArray(children) ? children[0] : children
     const inner = child?.props
     if (!inner) return <pre>{children}</pre>

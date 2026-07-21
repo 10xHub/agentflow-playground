@@ -7,7 +7,7 @@ const STRUCTURAL =
   /<(div|section|main|article|header|footer|nav|table|ul|ol|form|svg|style|script|h[1-6])[\s>]/gi
 
 /** @returns {"html" | "markdown"} */
-export function detectFormat(text) {
+export const detectFormat = (text) => {
   const t = (text || "").trim()
   if (!t) return "markdown"
   if (DOC_START.test(t)) return "html"
@@ -22,12 +22,11 @@ export function detectFormat(text) {
 }
 
 /** True for fenced-code languages we render as a live preview. */
-export function isPreviewableLang(lang) {
-  return lang === "html" || lang === "svg" || lang === "xhtml"
-}
+export const isPreviewableLang = (lang) =>
+  lang === "html" || lang === "svg" || lang === "xhtml"
 
 /** Pretty-print JSON when it parses; otherwise hand back the original string. */
-export function formatJson(text) {
+export const formatJson = (text) => {
   const t = (text || "").trim()
   if (!t.startsWith("{") && !t.startsWith("[")) return null
   try {

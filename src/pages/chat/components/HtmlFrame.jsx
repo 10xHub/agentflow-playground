@@ -18,11 +18,11 @@ const RESIZE_SCRIPT = `<script>
 
 /** Agent-authored HTML in a sandboxed frame: its CSS can't reach the playground. */
 export default function HtmlFrame({ html }) {
-  const ref = useRef(null)
+  const reference = useRef(null)
   const [height, setHeight] = useState(120)
 
   // Inherit the playground's palette so previews don't flash white in dark mode.
-  const srcDoc = useMemo(() => {
+  const sourceDocument = useMemo(() => {
     const cs =
       typeof window !== "undefined"
         ? getComputedStyle(document.documentElement)
@@ -37,7 +37,12 @@ font:13.5px/1.6 system-ui,sans-serif;}img,svg,video{max-width:100%;}</style>
 
   useEffect(() => {
     const onMessage = (e) => {
-      if (!e.data?.__af_frame || e.source !== ref.current?.contentWindow) return
+      if (
+        !e.data?.__af_frame ||
+        e.source !== reference.current?.contentWindow
+      ) {
+        return
+      }
       setHeight(Math.min(e.data.height || 120, MAX_HEIGHT))
     }
     window.addEventListener("message", onMessage)
@@ -46,11 +51,11 @@ font:13.5px/1.6 system-ui,sans-serif;}img,svg,video{max-width:100%;}</style>
 
   return (
     <iframe
-      ref={ref}
+      ref={reference}
       className={styles.htmlFrame}
       title="rendered output"
       sandbox="allow-scripts"
-      srcDoc={srcDoc}
+      srcDoc={sourceDocument}
       style={{ height }}
     />
   )

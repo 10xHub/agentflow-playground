@@ -6,7 +6,9 @@ const KEY = "agentflow.threads"
 const MAX_THREADS = 50
 
 export const loadThreads = () => {
-  if (typeof window === "undefined") return { order: [], byId: {}, activeId: null }
+  if (typeof window === "undefined") {
+    return { order: [], byId: {}, activeId: null }
+  }
   try {
     const raw = localStorage.getItem(KEY)
     if (raw) {

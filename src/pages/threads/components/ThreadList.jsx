@@ -18,8 +18,12 @@ const ago = (iso) => {
   return `${Math.floor(s / 86400)}d ago`
 }
 
-const shortId = (id) => (id?.length > 12 ? `${id.slice(0, 8)}…${id.slice(-3)}` : id)
+const shortId = (id) =>
+  id?.length > 12 ? `${id.slice(0, 8)}…${id.slice(-3)}` : id
 
+/**
+ *
+ */
 export default function ThreadList({ selectedId, onSelect }) {
   const dispatch = useDispatch()
   const { list, listStatus, listError } = useSelector((s) => s.threads)
@@ -64,10 +68,14 @@ export default function ThreadList({ selectedId, onSelect }) {
       </div>
 
       <div className={styles.rows}>
-        {listStatus === "error" && <div className={styles.listEmpty}>{listError}</div>}
+        {listStatus === "error" && (
+          <div className={styles.listEmpty}>{listError}</div>
+        )}
         {listStatus === "ready" && rows.length === 0 && (
           <div className={styles.listEmpty}>
-            {query ? "No threads match." : "No threads yet — start a chat to create one."}
+            {query
+              ? "No threads match."
+              : "No threads yet — start a chat to create one."}
           </div>
         )}
         {rows.map((t) => (
@@ -77,7 +85,9 @@ export default function ThreadList({ selectedId, onSelect }) {
             onClick={() => onSelect(t.thread_id)}
           >
             <div className={styles.rowTop}>
-              <span className={styles.rowId}>{t.thread_name || shortId(t.thread_id)}</span>
+              <span className={styles.rowId}>
+                {t.thread_name || shortId(t.thread_id)}
+              </span>
             </div>
             <div className={styles.rowMeta}>
               <span className={styles.u}>{t.user_id || "no user"}</span>

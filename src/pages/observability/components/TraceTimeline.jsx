@@ -9,6 +9,9 @@ const LEGEND = [
   { kind: "tool", label: "tool" },
 ]
 
+/**
+ *
+ */
 export default function TraceTimeline({ spans, ruler, selectedId, onSelect }) {
   return (
     <div>
@@ -19,8 +22,8 @@ export default function TraceTimeline({ spans, ruler, selectedId, onSelect }) {
       </div>
 
       <div className={styles.ruler}>
-        {ruler.map((r, i) => (
-          <span key={`${r}-${i}`}>{r}</span>
+        {ruler.map((r, index) => (
+          <span key={`${r}-${index}`}>{r}</span>
         ))}
       </div>
 

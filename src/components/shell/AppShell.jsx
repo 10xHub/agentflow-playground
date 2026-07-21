@@ -1,17 +1,24 @@
-import { createContext, useCallback, useContext, useMemo, useState } from "react"
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  useState,
+} from "react"
 import { Outlet } from "react-router-dom"
 
+import styles from "./AppShell.module.css"
 import ConnectionBar from "./ConnectionBar"
 import Sidebar from "./Sidebar"
-import styles from "./AppShell.module.css"
 
 // Lets a page inject content into the shared connection bar (e.g. Chat's
 // inspector toggle) without the shell knowing about page internals.
 const BarSlotContext = createContext(null)
 
-export function useConnectionBarSlot() {
-  return useContext(BarSlotContext)
-}
+/**
+ *
+ */
+export const useConnectionBarSlot = () => useContext(BarSlotContext)
 
 /**
  * Persistent chrome for every app route: connection bar + collapsible left rail.

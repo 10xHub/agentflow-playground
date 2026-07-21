@@ -20,20 +20,26 @@ const estCost = (usage) => {
 }
 
 // Depth of a span from the root, for the tree indent glyph.
-function indentFor(span, byId) {
+/**
+ *
+ */
+const indentFor = (span, byId) => {
   let depth = 0
-  let cur = span
+  let current = span
   const seen = new Set()
-  while (cur?.parent && byId[cur.parent] && !seen.has(cur.parent)) {
-    seen.add(cur.parent)
+  while (current?.parent && byId[current.parent] && !seen.has(current.parent)) {
+    seen.add(current.parent)
     depth += 1
-    cur = byId[cur.parent]
+    current = byId[current.parent]
   }
   if (depth <= 0) return ""
   return `${"  ".repeat(depth - 1)}└`
 }
 
-export function buildViewModel(run) {
+/**
+ *
+ */
+export const buildViewModel = (run) => {
   if (!run) {
     return { spans: [], events: [], ruler: [], stats: [], cost: null }
   }
@@ -86,8 +92,8 @@ export function buildViewModel(run) {
 
   // Ruler ticks across the window.
   const ticks = 4
-  const ruler = Array.from({ length: ticks + 1 }, (_, i) =>
-    fmtMs((total * i) / ticks)
+  const ruler = Array.from({ length: ticks + 1 }, (_, index) =>
+    fmtMs((total * index) / ticks)
   )
 
   const usage = run.usage || {}
@@ -105,12 +111,18 @@ export function buildViewModel(run) {
   return { spans, events, ruler, stats, cost }
 }
 
-function pct(part, whole) {
+/**
+ *
+ */
+const pct = (part, whole) => {
   if (!whole) return 0
   return Math.round((part / whole) * 100)
 }
 
-function buildCost(run, usage) {
+/**
+ *
+ */
+const buildCost = (run, usage) => {
   const total = usage.total_tokens || 0
   const cards = [
     { label: "total tokens", value: nf.format(total) },
@@ -176,7 +188,10 @@ function buildCost(run, usage) {
       const models = {}
       for (const s of run.spans || []) {
         if (s.kind === "llm" && s.model) {
-          models[s.model] = (models[s.model] || 0) + (s.input_tokens || 0) + (s.output_tokens || 0)
+          models[s.model] =
+            (models[s.model] || 0) +
+            (s.input_tokens || 0) +
+            (s.output_tokens || 0)
         }
       }
       const entries = Object.entries(models)

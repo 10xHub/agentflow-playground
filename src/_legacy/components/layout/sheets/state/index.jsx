@@ -13,10 +13,6 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet"
 import { useToast } from "@/components/ui/use-toast"
-import {
-  fetchThreadState,
-  updateThreadState,
-} from "@/services/store/slices/state.slice"
 import ct from "@constants/"
 
 import AddMessageSheet from "./add-message-sheet"
@@ -25,6 +21,11 @@ import ContextSummarySection from "./context-summary-section"
 import DynamicFieldsSection from "./dynamic-fields-section"
 import ExecutionMetadataSection from "./execution-metadata-section"
 import useFormData from "./useFormData"
+
+import {
+  fetchThreadState,
+  updateThreadState,
+} from "@/services/store/slices/state.slice"
 
 const NO_ACTIVE_THREAD_TITLE = "No Active Thread"
 const NO_ACTIVE_THREAD_DESC = "Please select or create a thread first"

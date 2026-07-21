@@ -1,24 +1,28 @@
 import styles from "../observability.module.css"
 
-function Table({ data }) {
-  return (
-    <div className={styles.tbl}>
-      <div className={`${styles.tblRow} ${styles.h}`}>
-        <span className={styles.c1}>{data.head[0]}</span>
-        <span className={styles.c2}>{data.head[1]}</span>
-        <span className={styles.c3}>{data.head[2]}</span>
-      </div>
-      {data.rows.map((r, i) => (
-        <div className={styles.tblRow} key={i}>
-          <span className={styles.c1}>{r[0]}</span>
-          <span className={styles.c2}>{r[1]}</span>
-          <span className={styles.c3}>{r[2]}</span>
-        </div>
-      ))}
+/**
+ *
+ */
+const Table = ({ data }) => (
+  <div className={styles.tbl}>
+    <div className={`${styles.tblRow} ${styles.h}`}>
+      <span className={styles.c1}>{data.head[0]}</span>
+      <span className={styles.c2}>{data.head[1]}</span>
+      <span className={styles.c3}>{data.head[2]}</span>
     </div>
-  )
-}
+    {data.rows.map((r, index) => (
+      <div className={styles.tblRow} key={index}>
+        <span className={styles.c1}>{r[0]}</span>
+        <span className={styles.c2}>{r[1]}</span>
+        <span className={styles.c3}>{r[2]}</span>
+      </div>
+    ))}
+  </div>
+)
 
+/**
+ *
+ */
 export default function CostPane({ cost }) {
   if (!cost) return null
   return (

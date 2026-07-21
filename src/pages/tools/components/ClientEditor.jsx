@@ -8,7 +8,7 @@ import {
   upsertClientTool,
 } from "@/store/toolsSlice"
 
-import { schemaFromParams } from "../normalize"
+import { schemaFromParams as schemaFromParameters } from "../normalize"
 import styles from "../tools.module.css"
 
 const LANGS = ["JavaScript", "TypeScript"]
@@ -26,17 +26,20 @@ const makeId = () => `ct_${Math.random().toString(36).slice(2, 10)}`
 
 // Editable detail for browser-owned (client) tools. Register persists to the
 // store + registers with the SDK and pushes to the server via setup().
+/**
+ *
+ */
 export default function ClientEditor({ tool }) {
   const dispatch = useDispatch()
 
   const [name, setName] = useState(tool.name || "")
   const [desc, setDesc] = useState(tool.desc || "")
   const [code, setCode] = useState(tool.code || DEFAULT_CODE)
-  const [params, setParams] = useState(
+  const [parameters_, setParameters] = useState(
     JSON.stringify(
       tool.parameters && Object.keys(tool.parameters.properties || {}).length
         ? tool.parameters
-        : schemaFromParams(tool.params || []),
+        : schemaFromParameters(tool.params || []),
       null,
       2
     )
@@ -45,18 +48,18 @@ export default function ClientEditor({ tool }) {
   const [lang, setLang] = useState("JavaScript")
   const [callMode, setCallMode] = useState(tool.callMode || "mock")
   const [busy, setBusy] = useState(false)
-  const [msg, setMsg] = useState(null)
+  const [message, setMessage] = useState(null)
 
   const persist = () => {
     let parameters
     try {
-      parameters = JSON.parse(params)
+      parameters = JSON.parse(parameters_)
     } catch {
-      setMsg({ type: "error", text: "Parameters must be valid JSON." })
+      setMessage({ type: "error", text: "Parameters must be valid JSON." })
       return null
     }
     if (!name.trim()) {
-      setMsg({ type: "error", text: "Tool name is required." })
+      setMessage({ type: "error", text: "Tool name is required." })
       return null
     }
     const record = {
@@ -77,12 +80,12 @@ export default function ClientEditor({ tool }) {
     const record = persist()
     if (!record) return
     setBusy(true)
-    setMsg(null)
+    setMessage(null)
     try {
       await dispatch(registerClientTools({ only: record.id }))
-      setMsg({ type: "ok", text: "Registered with the agent." })
+      setMessage({ type: "ok", text: "Registered with the agent." })
     } catch (e) {
-      setMsg({ type: "error", text: e?.message || "Registration failed." })
+      setMessage({ type: "error", text: e?.message || "Registration failed." })
     } finally {
       setBusy(false)
     }
@@ -191,8 +194,8 @@ export default function ClientEditor({ tool }) {
           className={styles.code}
           rows={4}
           spellCheck={false}
-          value={params}
-          onChange={(e) => setParams(e.target.value)}
+          value={parameters_}
+          onChange={(e) => setParameters(e.target.value)}
         />
       </div>
 
@@ -250,14 +253,15 @@ export default function ClientEditor({ tool }) {
           <Play size={14} strokeWidth={1.8} />
           Save draft
         </button>
-        {msg && (
+        {message && (
           <span
             className={styles.editorNote}
             style={{
-              color: msg.type === "error" ? "var(--danger)" : "var(--accent)",
+              color:
+                message.type === "error" ? "var(--danger)" : "var(--accent)",
             }}
           >
-            {msg.text}
+            {message.text}
           </span>
         )}
       </div>

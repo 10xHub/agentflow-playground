@@ -44,33 +44,34 @@ export const { obsLoading, obsLoaded, obsError, obsReset } =
 /**
  * Load the observability trace for a thread (latest run, or a specific run_id).
  */
-export const loadObservability =
-  (threadId, runId) => async (dispatch) => {
-    if (!threadId) {
-      dispatch(obsReset())
-      return
-    }
-    let client
-    try {
-      client = getAgentFlowClient()
-    } catch (e) {
-      dispatch(obsError(e?.message || "Not connected to a backend"))
-      return
-    }
-
-    dispatch(obsLoading())
-    try {
-      const res = await client.observability(threadId, runId)
-      const data = res?.data || res || {}
-      dispatch(obsLoaded(data))
-    } catch (e) {
-      // A thread with no runs yet returns 404 — treat as empty, not an error.
-      if (e?.status === 404 || /not found/i.test(e?.message || "")) {
-        dispatch(obsLoaded({ thread_id: threadId, run_count: 0, run_ids: [], run: null }))
-        return
-      }
-      dispatch(obsError(e?.message || "Failed to load observability"))
-    }
+export const loadObservability = (threadId, runId) => async (dispatch) => {
+  if (!threadId) {
+    dispatch(obsReset())
+    return
   }
+  let client
+  try {
+    client = getAgentFlowClient()
+  } catch (e) {
+    dispatch(obsError(e?.message || "Not connected to a backend"))
+    return
+  }
+
+  dispatch(obsLoading())
+  try {
+    const res = await client.observability(threadId, runId)
+    const data = res?.data || res || {}
+    dispatch(obsLoaded(data))
+  } catch (e) {
+    // A thread with no runs yet returns 404 — treat as empty, not an error.
+    if (e?.status === 404 || /not found/i.test(e?.message || "")) {
+      dispatch(
+        obsLoaded({ thread_id: threadId, run_count: 0, run_ids: [], run: null })
+      )
+      return
+    }
+    dispatch(obsError(e?.message || "Failed to load observability"))
+  }
+}
 
 export default observabilitySlice.reducer

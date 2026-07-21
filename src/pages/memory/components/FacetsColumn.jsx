@@ -3,6 +3,9 @@ import { Check, Pencil, RotateCcw } from "lucide-react"
 import { COLLECTIONS } from "../data"
 import styles from "../memory.module.css"
 
+/**
+ *
+ */
 export default function FacetsColumn({
   collection,
   onCollectionChange,
@@ -58,11 +61,12 @@ export default function FacetsColumn({
           </div>
 
           <div className={styles.scopeNote}>
-            <b>Token-scoped.</b> The store API pins <span className="mono">user_id</span> to the
-            connected token server-side; there is no cross-user list. Set{" "}
-            <span className="mono">collection</span> to inspect a non-default one — it's sent as{" "}
-            <span className="mono">config.collection</span> (no list-collections endpoint exists, so
-            type the name).
+            <b>Token-scoped.</b> The store API pins{" "}
+            <span className="mono">user_id</span> to the connected token
+            server-side; there is no cross-user list. Set{" "}
+            <span className="mono">collection</span> to inspect a non-default
+            one — it's sent as <span className="mono">config.collection</span>{" "}
+            (no list-collections endpoint exists, so type the name).
           </div>
         </div>
 

@@ -1,5 +1,3 @@
-import { createSlice, createAsyncThunk } from "@reduxjs/toolkit"
-
 import {
   listMemories as apiListMemories,
   searchMemories as apiSearchMemories,
@@ -8,6 +6,8 @@ import {
   deleteMemory as apiDeleteMemory,
   forgetMemories as apiForgetMemories,
 } from "@api/memory.api"
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit"
+
 import ct from "@constants/"
 
 const FAILED_TO_LOAD = "Failed to load memories"

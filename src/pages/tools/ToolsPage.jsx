@@ -24,6 +24,9 @@ const newClientTool = () => ({
   parameters: { type: "object", properties: {}, required: [] },
 })
 
+/**
+ *
+ */
 export default function ToolsPage() {
   const dispatch = useDispatch()
   const { serverNodes, clientTools, status, error } = useSelector(

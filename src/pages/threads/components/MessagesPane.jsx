@@ -13,10 +13,12 @@ const renderContent = (content) => {
     .map((b) => {
       if (b?.type === "text") return b.text
       if (b?.type === "reasoning") return `🧠 ${b.summary || b.details || ""}`
-      if (b?.type === "tool_call")
+      if (b?.type === "tool_call") {
         return `tool_call · ${b.name}(${JSON.stringify(b.args ?? {})})`
-      if (b?.type === "tool_result")
+      }
+      if (b?.type === "tool_result") {
         return `tool_result · ${JSON.stringify(b.output ?? b.content ?? {})}`
+      }
       return `[${b?.type || "block"}]`
     })
     .join("\n")
@@ -25,10 +27,15 @@ const renderContent = (content) => {
 const timeOf = (m) => {
   if (!m.timestamp) return ""
   const d = new Date(m.timestamp * 1000)
-  return Number.isNaN(d.getTime()) ? "" : d.toLocaleTimeString([], { hour12: false })
+  return Number.isNaN(d.getTime())
+    ? ""
+    : d.toLocaleTimeString([], { hour12: false })
 }
 
-function MessageRow({ threadId, msg, onDelete }) {
+/**
+ *
+ */
+const MessageRow = ({ threadId, msg, onDelete }) => {
   const roleClass = styles[msg.role] || ""
   const body = renderContent(msg.content)
   const isMono = /tool_call|tool_result|🧠/.test(body) || msg.role === "tool"
@@ -56,9 +63,14 @@ function MessageRow({ threadId, msg, onDelete }) {
   )
 }
 
+/**
+ *
+ */
 export default function MessagesPane() {
   const dispatch = useDispatch()
-  const { selectedId, detail, detailStatus, busy } = useSelector((s) => s.threads)
+  const { selectedId, detail, detailStatus, busy } = useSelector(
+    (s) => s.threads
+  )
   const messages = detail?.messages || []
 
   const onDelete = (threadId, messageId) => {
@@ -66,16 +78,20 @@ export default function MessagesPane() {
     dispatch(removeMessage(threadId, messageId))
   }
 
-  if (detailStatus === "loading") return <div className={styles.paneEmpty}>Loading messages…</div>
-  if (!messages.length) return <div className={styles.paneEmpty}>No messages in this thread.</div>
+  if (detailStatus === "loading") {
+    return <div className={styles.paneEmpty}>Loading messages…</div>
+  }
+  if (!messages.length) {
+    return <div className={styles.paneEmpty}>No messages in this thread.</div>
+  }
 
   return (
     <div className={busy ? styles.dim : ""}>
-      {messages.map((msg, i) => (
+      {messages.map((message, index) => (
         <MessageRow
-          key={msg.message_id || i}
+          key={message.message_id || index}
           threadId={selectedId}
-          msg={msg}
+          msg={message}
           onDelete={onDelete}
         />
       ))}

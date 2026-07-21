@@ -7,6 +7,9 @@ import { forgetVisible, searchMemories } from "@/store/memorySlice"
 import { DISTANCE_METRICS, RETRIEVAL_STRATEGIES } from "../data"
 import styles from "../memory.module.css"
 
+/**
+ *
+ */
 export default function MemoryList({
   mode,
   onSetMode,
@@ -48,7 +51,9 @@ export default function MemoryList({
   const shown = search
     ? list
     : browseFilter.trim()
-      ? list.filter((m) => m.content.toLowerCase().includes(browseFilter.toLowerCase()))
+      ? list.filter((m) =>
+          m.content.toLowerCase().includes(browseFilter.toLowerCase())
+        )
       : list
 
   const subLabel = search
@@ -59,10 +64,16 @@ export default function MemoryList({
     <section className={styles.list}>
       <div className={styles.listHead}>
         <div className={styles.modeseg}>
-          <button className={mode === "browse" ? styles.on : ""} onClick={() => onSetMode("browse")}>
+          <button
+            className={mode === "browse" ? styles.on : ""}
+            onClick={() => onSetMode("browse")}
+          >
             Browse loaded
           </button>
-          <button className={mode === "search" ? styles.on : ""} onClick={() => onSetMode("search")}>
+          <button
+            className={mode === "search" ? styles.on : ""}
+            onClick={() => onSetMode("search")}
+          >
             Search
           </button>
         </div>
@@ -122,17 +133,25 @@ export default function MemoryList({
           onClick={confirmForget}
           disabled={!shown.length}
         >
-          {forgetArmed ? <Check size={12} strokeWidth={1.8} /> : <Trash2 size={12} strokeWidth={1.7} />}
+          {forgetArmed ? (
+            <Check size={12} strokeWidth={1.8} />
+          ) : (
+            <Trash2 size={12} strokeWidth={1.7} />
+          )}
           {forgetArmed ? `Confirm · forget ${shown.length}?` : "Forget visible"}
         </button>
       </div>
 
       <div className={styles.rows}>
-        {status === "loading" && <div className={styles.memEmpty}>Loading memories…</div>}
+        {status === "loading" && (
+          <div className={styles.memEmpty}>Loading memories…</div>
+        )}
         {status === "error" && <div className={styles.memEmpty}>{error}</div>}
         {status === "ready" && shown.length === 0 && (
           <div className={styles.memEmpty}>
-            {search ? "No results — try another query." : "No memories in this collection."}
+            {search
+              ? "No results — try another query."
+              : "No memories in this collection."}
           </div>
         )}
         {shown.map((m) => (

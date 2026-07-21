@@ -1,7 +1,6 @@
 import PropTypes from "prop-types"
 import { useSelector } from "react-redux"
 
-import ReFlowComponent from "@/components/graph/react-flow-component"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Sheet,
@@ -11,6 +10,8 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet"
 import ct from "@constants"
+
+import ReFlowComponent from "@/components/graph/react-flow-component"
 
 /**
  * ViewGraphSheet component displays the network graph visualization.

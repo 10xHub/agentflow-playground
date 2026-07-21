@@ -8,9 +8,13 @@ import Drilldown from "./components/Drilldown"
 import RunList from "./components/RunList"
 import styles from "./evals.module.css"
 
+/**
+ *
+ */
 export default function EvalsPage() {
   const dispatch = useDispatch()
-  const { runs, selectedRunId, detail, detailStatus, detailError } = useSelector((s) => s.evals)
+  const { runs, selectedRunId, detail, detailStatus, detailError } =
+    useSelector((s) => s.evals)
 
   const [tab, setTab] = useState("cases")
   const [caseId, setCaseId] = useState(null)
@@ -37,7 +41,11 @@ export default function EvalsPage() {
 
   return (
     <div className={styles.page}>
-      <RunList runs={runs} selectedId={selectedRunId} onSelect={handleSelectRun} />
+      <RunList
+        runs={runs}
+        selectedId={selectedRunId}
+        onSelect={handleSelectRun}
+      />
       <Drilldown
         detail={detail}
         status={detailStatus}

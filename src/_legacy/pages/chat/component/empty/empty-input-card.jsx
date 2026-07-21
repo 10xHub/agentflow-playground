@@ -1,9 +1,10 @@
 import { Send, Paperclip, Image, FileText, X } from "lucide-react"
 import PropTypes from "prop-types"
 
-import { ShineBorder } from "@/components/magicui/shine-border"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+
+import { ShineBorder } from "@/components/magicui/shine-border"
 
 const FilePreview = ({ file, handleRemove }) => {
   const isImage = file.type.startsWith("image/")

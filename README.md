@@ -14,7 +14,7 @@ This playground is the React + Vite frontend for testing and interacting with an
 > versioned range** (e.g. `"^0.2.0"`) and remove this note. Until then, the `ws`
 > transport in the chat UI is marked *coming soon* and disabled.
 
-📖 **Docs:** https://10xhub.github.io/Agentflow/
+📖 **Docs:** https://agentflow.10xscale.ai/
 
 ## 🧩 The Agentflow Ecosystem
 
@@ -26,7 +26,7 @@ This playground is the React + Vite frontend for testing and interacting with an
 | **Playground** (this repo) | Visual React UI to test agents against a local server | `agentflow play` |
 
 - **GitHub:** https://github.com/10xHub/agentflow
-- **Docs:** https://10xhub.github.io/Agentflow/
+- **Docs:** https://agentflow.10xscale.ai/
 
 ## 🛠️ Features
 

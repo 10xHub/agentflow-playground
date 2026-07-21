@@ -3,7 +3,7 @@
 // something the client can take, and into a label for the composer chip.
 
 /** @returns {{ value: object|null, error: string|null }} */
-export function parseJsonObject(raw) {
+export const parseJsonObject = (raw) => {
   const t = (raw || "").trim()
   if (!t) return { value: null, error: null }
   let parsed
@@ -19,12 +19,13 @@ export function parseJsonObject(raw) {
 }
 
 /** @returns {{ value: number|null, error: string|null }} */
-export function parseRecursionLimit(raw) {
+export const parseRecursionLimit = (raw) => {
   const t = String(raw ?? "").trim()
   if (!t) return { value: null, error: null }
   const n = Number(t)
-  if (!Number.isInteger(n) || n < 1)
+  if (!Number.isInteger(n) || n < 1) {
     return { value: null, error: "must be a positive integer" }
+  }
   return { value: n, error: null }
 }
 
@@ -32,11 +33,11 @@ export function parseRecursionLimit(raw) {
  * Resolve the stored raw text into the options the client expects.
  * `threadId` binds the run to its thread unless config deliberately overrides it.
  */
-export function resolveRunOptions(runOptions, threadId) {
-  const opts = runOptions || {}
-  const initial = parseJsonObject(opts.initialState)
-  const config = parseJsonObject(opts.config)
-  const limit = parseRecursionLimit(opts.recursionLimit)
+export const resolveRunOptions = (runOptions, threadId) => {
+  const options = runOptions || {}
+  const initial = parseJsonObject(options.initialState)
+  const config = parseJsonObject(options.config)
+  const limit = parseRecursionLimit(options.recursionLimit)
 
   const errors = {}
   if (initial.error) errors.initialState = initial.error
@@ -56,28 +57,28 @@ export function resolveRunOptions(runOptions, threadId) {
 }
 
 /** Short label for the composer chip; null when nothing is overridden. */
-export function summariseRunOptions(runOptions) {
-  const opts = runOptions || {}
+export const summariseRunOptions = (runOptions) => {
+  const options = runOptions || {}
   const parts = []
-  const initial = parseJsonObject(opts.initialState)
-  const config = parseJsonObject(opts.config)
-  const limit = parseRecursionLimit(opts.recursionLimit)
+  const initial = parseJsonObject(options.initialState)
+  const config = parseJsonObject(options.config)
+  const limit = parseRecursionLimit(options.recursionLimit)
 
-  if (opts.initialState?.trim()) {
+  if (options.initialState?.trim()) {
     parts.push(
       initial.error
         ? "initial_state invalid"
         : `initial_state ${Object.keys(initial.value).length}`
     )
   }
-  if (opts.config?.trim()) {
+  if (options.config?.trim()) {
     parts.push(
       config.error
         ? "config invalid"
         : `config ${Object.keys(config.value).length}`
     )
   }
-  if (String(opts.recursionLimit ?? "").trim()) {
+  if (String(options.recursionLimit ?? "").trim()) {
     parts.push(limit.error ? "recursion invalid" : `recursion ${limit.value}`)
   }
   return parts.length ? parts.join(" · ") : null

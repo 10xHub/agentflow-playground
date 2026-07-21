@@ -1,11 +1,15 @@
 import { Info } from "lucide-react"
 
-import JsonSchema from "./JsonSchema"
-import ParamTable from "./ParamTable"
 import styles from "../tools.module.css"
+
+import JsonSchema from "./JsonSchema"
+import ParameterTable from "./ParamTable"
 
 // Read-only view for server / MCP tools — schema comes from all_tools() and
 // cannot be edited from the playground.
+/**
+ *
+ */
 export default function ReadonlyDetail({ tool }) {
   const isMcp = tool.kind === "mcp"
 
@@ -21,7 +25,7 @@ export default function ReadonlyDetail({ tool }) {
     </span>
   )
 
-  const ctx = isMcp ? (
+  const context = isMcp ? (
     <>
       <span className={styles.nb}>server {tool.server}</span>
       <span className={styles.nb}>transport {tool.transport}</span>
@@ -37,7 +41,7 @@ export default function ReadonlyDetail({ tool }) {
           <div className={styles.dName}>{tool.name}</div>
           <div className={styles.dBadges}>
             {kindBadge}
-            {ctx}
+            {context}
           </div>
         </div>
       </div>

@@ -18,6 +18,9 @@ const DEEP_LINKS = [
 const shortId = (id) =>
   !id ? "—" : id.length > 14 ? `${id.slice(0, 8)}…${id.slice(-4)}` : id
 
+/**
+ *
+ */
 export default function ObsHeader({ tab, onTab, threadId, stats, runCount }) {
   return (
     <div className={styles.obsHead}>

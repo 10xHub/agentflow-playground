@@ -5,10 +5,19 @@ const KEY = "agentflow.connections"
 
 // Seed shown on first run. Only `local` is a real reachable default (agentflow api/play).
 export const DEFAULT_CONNECTIONS = [
-  { id: "local", name: "Local dev", backendUrl: "http://localhost:8000", authMode: "none", authToken: "" },
+  {
+    id: "local",
+    name: "Local dev",
+    backendUrl: "http://localhost:8000",
+    authMode: "none",
+    authToken: "",
+  },
 ]
 
-export function listConnections() {
+/**
+ *
+ */
+export const listConnections = () => {
   if (typeof window === "undefined") return DEFAULT_CONNECTIONS
   try {
     const raw = localStorage.getItem(KEY)
@@ -22,27 +31,43 @@ export function listConnections() {
   return DEFAULT_CONNECTIONS
 }
 
-export function saveConnections(list) {
+/**
+ *
+ */
+export const saveConnections = (list) => {
   if (typeof window === "undefined") return
   localStorage.setItem(KEY, JSON.stringify(list))
 }
 
 /** Insert or update by id (matched on id, else on backendUrl). Returns the new list. */
-export function upsertConnection(conn) {
+export const upsertConnection = (conn) => {
   const list = listConnections()
-  const idx = list.findIndex((c) => c.id === conn.id || c.backendUrl === conn.backendUrl)
-  const next = idx >= 0 ? list.map((c, i) => (i === idx ? { ...c, ...conn } : c)) : [...list, conn]
+  const index = list.findIndex(
+    (c) => c.id === conn.id || c.backendUrl === conn.backendUrl
+  )
+  const next =
+    index >= 0
+      ? list.map((c, index_) => (index_ === index ? { ...c, ...conn } : c))
+      : [...list, conn]
   saveConnections(next)
   return next
 }
 
-export function removeConnection(id) {
+/**
+ *
+ */
+export const removeConnection = (id) => {
   const next = listConnections().filter((c) => c.id !== id)
   saveConnections(next)
   return next
 }
 
-export function newConnectionId() {
-  if (typeof crypto !== "undefined" && crypto.randomUUID) return `c_${crypto.randomUUID().slice(0, 8)}`
+/**
+ *
+ */
+export const newConnectionId = () => {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
+    return `c_${crypto.randomUUID().slice(0, 8)}`
+  }
   return `c_${Math.abs(Date.now()).toString(36)}`
 }

@@ -26,6 +26,9 @@ const ago = (iso) => {
   return `${Math.floor(s / 86400)}d ago`
 }
 
+/**
+ *
+ */
 export default function ThreadsPage() {
   const dispatch = useDispatch()
   const { list, selectedId, detail, busy } = useSelector((s) => s.threads)
@@ -56,7 +59,7 @@ export default function ThreadsPage() {
     setDelArmed(true)
   }
 
-  const msgCount = detail?.messages?.length ?? "—"
+  const messageCount = detail?.messages?.length ?? "—"
 
   return (
     <div className={styles.page}>
@@ -71,7 +74,9 @@ export default function ThreadsPage() {
           <>
             <div className={styles.dHead}>
               <div className={styles.dTop}>
-                <span className={styles.dId}>{thread?.thread_name || selectedId}</span>
+                <span className={styles.dId}>
+                  {thread?.thread_name || selectedId}
+                </span>
               </div>
               <div className={styles.dMeta}>
                 <span>
@@ -81,7 +86,7 @@ export default function ThreadsPage() {
                   <b>user</b> {thread?.user_id || "—"}
                 </span>
                 <span>
-                  <b>messages</b> {msgCount}
+                  <b>messages</b> {messageCount}
                 </span>
                 <span>
                   <b>updated</b> {ago(thread?.updated_at)}
@@ -138,7 +143,15 @@ export default function ThreadsPage() {
               {tab === "state" && <StatePane />}
               {tab === "raw" && (
                 <pre className={styles.rawState}>
-                  {JSON.stringify({ thread, state: detail?.state, messages: detail?.messages }, null, 2)}
+                  {JSON.stringify(
+                    {
+                      thread,
+                      state: detail?.state,
+                      messages: detail?.messages,
+                    },
+                    null,
+                    2
+                  )}
                 </pre>
               )}
             </div>

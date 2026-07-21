@@ -6,6 +6,9 @@ import styles from "../chat.module.css"
 // Shown on the Chat page when the connected graph is a realtime (live) agent. Turn-based
 // chat (invoke/stream/ws) is rejected for live graphs by the server, so rather than let the
 // composer surface a raw error, we explain the situation and route to the Live page.
+/**
+ *
+ */
 export default function RealtimeGate({ agentName }) {
   const navigate = useNavigate()
   const name = agentName || "This agent"
