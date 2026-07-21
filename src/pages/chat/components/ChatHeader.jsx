@@ -57,7 +57,9 @@ function ThreadPicker() {
       >
         <span className={`${styles.dot} ${threadId ? styles.live : ""}`} />
         <span className={styles.tLabel}>{active?.title || "New thread"}</span>
-        <span className={styles.tId}>{threadId ? threadId.slice(0, 8) : "unassigned"}</span>
+        <span className={styles.tId}>
+          {threadId ? threadId.slice(0, 8) : "unassigned"}
+        </span>
         <ChevronDown size={12} className={styles.chev} />
       </button>
 
@@ -87,10 +89,15 @@ function ThreadPicker() {
                     key={id}
                     className={`${styles.threadItem} ${id === activeKey ? styles.threadActive : ""}`}
                   >
-                    <button className={styles.threadItemMain} type="button" onClick={() => pick(id)}>
+                    <button
+                      className={styles.threadItemMain}
+                      type="button"
+                      onClick={() => pick(id)}
+                    >
                       <span className={styles.threadItemTitle}>{t.title}</span>
                       <span className={styles.threadItemId}>
-                        {id === "__draft__" ? "draft" : id.slice(0, 8)} · {t.messages.length} msg
+                        {id === "__draft__" ? "draft" : id.slice(0, 8)} ·{" "}
+                        {t.messages.length} msg
                       </span>
                     </button>
                     <button
@@ -151,15 +158,16 @@ export default function ChatHeader() {
       </select>
 
       <div className={styles.headRight}>
-        <button
-          className={`${styles.btnGhostSm} ${styles.danger}`}
-          type="button"
-          onClick={() => dispatch(stopGeneration())}
-          disabled={!generating}
-        >
-          <Square size={13} />
-          Stop
-        </button>
+        {generating ? (
+          <button
+            className={`${styles.btnGhostSm} ${styles.danger}`}
+            type="button"
+            onClick={() => dispatch(stopGeneration())}
+          >
+            <Square size={13} />
+            Stop
+          </button>
+        ) : null}
         <button
           className={styles.btnGhostSm}
           type="button"

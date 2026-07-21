@@ -1,6 +1,7 @@
 import { Message } from "@10xscale/agentflow-client"
 
 import { getAgentFlowClient } from "@/lib/agentflow-client"
+import { resolveRunOptions } from "@/lib/run-options"
 import { getCurrentSettings } from "@/lib/settings-utils"
 
 import {
@@ -79,7 +80,8 @@ const summarizeChunk = (chunk) => {
     if (text) return `delta: ${JSON.stringify(text.slice(0, 80))}`
     if (Array.isArray(message.content)) {
       const kinds = message.content.map((b) => b?.type).filter(Boolean)
-      if (kinds.length) return `${message.role || "message"}: ${kinds.join(", ")}`
+      if (kinds.length)
+        return `${message.role || "message"}: ${kinds.join(", ")}`
     }
     return `${message.role || "message"}`
   }
@@ -104,7 +106,12 @@ const emitContentBlocks = (dispatch, agentId, message) => {
         upsertBlock({
           id: agentId,
           key: `reasoning:${index}`,
-          block: { kind: "reasoning", summary: "Model reasoning", text, collapsed: true },
+          block: {
+            kind: "reasoning",
+            summary: "Model reasoning",
+            text,
+            collapsed: true,
+          },
         })
       )
     } else if (block?.type === "tool_call") {
@@ -158,7 +165,7 @@ const emitToolMessage = (dispatch, agentId, message) => {
 }
 
 // Build the { method, url, headers, body } snapshot the cURL pane renders from.
-const buildRequestSnapshot = (mode, messages, config, granularity) => {
+const buildRequestSnapshot = (mode, messages, run, granularity) => {
   const settings = getCurrentSettings()
   const base = (settings.backendUrl || "").replace(/\/$/, "")
   const path = mode === "invoke" ? "/v1/graph/invoke" : "/v1/graph/stream"
@@ -167,7 +174,10 @@ const buildRequestSnapshot = (mode, messages, config, granularity) => {
     headers.Authorization = "Bearer •••"
   } else if (settings.auth?.type === "basic") {
     headers.Authorization = "Basic •••"
-  } else if (settings.authMode === "header" && Array.isArray(settings.headers)) {
+  } else if (
+    settings.authMode === "header" &&
+    Array.isArray(settings.headers)
+  ) {
     settings.headers.forEach((h) => {
       if (h?.name) headers[h.name] = "•••"
     })
@@ -179,7 +189,9 @@ const buildRequestSnapshot = (mode, messages, config, granularity) => {
     headers,
     body: {
       messages: messages.map((m) => ({ role: m.role, content: m.content })),
-      config,
+      ...(run.initial_state ? { initial_state: run.initial_state } : {}),
+      config: run.config,
+      ...(run.recursion_limit ? { recursion_limit: run.recursion_limit } : {}),
       response_granularity: granularity,
     },
   }
@@ -187,12 +199,21 @@ const buildRequestSnapshot = (mode, messages, config, granularity) => {
 
 // Consume the async chunk stream (shared by "stream" and "ws" modes) and fan the
 // chunks out into messages + inspector logs. Returns whether any text was seen.
-const consumeStream = async (stream, { dispatch, getState, agentId, startedAt, signal }) => {
+const consumeStream = async (
+  stream,
+  { dispatch, getState, agentId, startedAt, signal }
+) => {
   let sawText = false
   for await (const chunk of stream) {
     if (signal?.aborted) break
 
-    dispatch(pushFrame({ dir: "in", label: `event: ${chunk?.event || "chunk"}`, time: since(startedAt) }))
+    dispatch(
+      pushFrame({
+        dir: "in",
+        label: `event: ${chunk?.event || "chunk"}`,
+        time: since(startedAt),
+      })
+    )
     dispatch(
       pushEvent({
         type: chunk?.event || "chunk",
@@ -228,13 +249,18 @@ const consumeStream = async (stream, { dispatch, getState, agentId, startedAt, s
     }
 
     emitContentBlocks(dispatch, agentId, message)
-    if (message.usages) dispatch(addUsage({ id: agentId, usage: message.usages }))
+    if (message.usages)
+      dispatch(addUsage({ id: agentId, usage: message.usages }))
 
     const text = textFromContent(message.content)
     if (text) {
       sawText = true
       dispatch(
-        setAgentText({ id: agentId, text, mode: message.delta ? "append" : "replace" })
+        setAgentText({
+          id: agentId,
+          text,
+          mode: message.delta ? "append" : "replace",
+        })
       )
     }
   }
@@ -279,7 +305,8 @@ export const stopGeneration = () => async (dispatch, getState) => {
   if (threadId) {
     try {
       const client = getAgentFlowClient()
-      if (typeof client.stopGraph === "function") await client.stopGraph(threadId)
+      if (typeof client.stopGraph === "function")
+        await client.stopGraph(threadId)
     } catch {
       /* best-effort server stop */
     }
@@ -321,11 +348,26 @@ export const sendMessage = (text) => async (dispatch, getState) => {
     return
   }
 
-  const { mode, granularity } = getState().chat
+  const { mode, granularity, runOptions } = getState().chat
   const startedAt = Date.now()
   const outgoing = [Message.text_message(trimmed, "user")]
   const threadId = getState().chat.threadId
-  const config = threadId ? { thread_id: threadId } : {}
+
+  // Per-run overrides from the composer popup. Refuse to send malformed JSON
+  // rather than silently dropping what the user typed.
+  const run = resolveRunOptions(runOptions, threadId)
+  if (!run.valid) {
+    const [field, message] = Object.entries(run.errors)[0]
+    dispatch(setError(`Run options — ${field}: ${message}`))
+    return
+  }
+  const { config } = run
+  const clientOptions = {
+    config,
+    response_granularity: granularity,
+    ...(run.initial_state ? { initial_state: run.initial_state } : {}),
+    ...(run.recursion_limit ? { recursion_limit: run.recursion_limit } : {}),
+  }
 
   dispatch(addUserMessage({ id: uid("user"), text: trimmed, time: nowTime() }))
   const agentId = uid("agent")
@@ -335,7 +377,7 @@ export const sendMessage = (text) => async (dispatch, getState) => {
   dispatch(
     beginRun({
       startedAt,
-      request: buildRequestSnapshot(mode, outgoing, config, granularity),
+      request: buildRequestSnapshot(mode, outgoing, run, granularity),
     })
   )
   dispatch(
@@ -353,13 +395,21 @@ export const sendMessage = (text) => async (dispatch, getState) => {
   try {
     if (mode === "invoke") {
       // Single request/response — no streaming.
-      const result = await client.invoke(outgoing, {
-        config,
-        response_granularity: granularity,
-      })
-      dispatch(pushFrame({ dir: "in", label: "200 invoke result", time: since(startedAt) }))
+      const result = await client.invoke(outgoing, clientOptions)
       dispatch(
-        pushEvent({ type: "result", node: "—", time: since(startedAt), detail: "invoke complete" })
+        pushFrame({
+          dir: "in",
+          label: "200 invoke result",
+          time: since(startedAt),
+        })
+      )
+      dispatch(
+        pushEvent({
+          type: "result",
+          node: "—",
+          time: since(startedAt),
+          detail: "invoke complete",
+        })
       )
 
       const resThreadId = result?.thread_id || result?.metadata?.thread_id
@@ -380,31 +430,75 @@ export const sendMessage = (text) => async (dispatch, getState) => {
         })
     } else if (mode === "ws") {
       if (typeof client.wsStream !== "function") {
-        throw new Error("This agentflow-client build does not support WebSocket streaming.")
+        throw new Error(
+          "This agentflow-client build does not support WebSocket streaming."
+        )
       }
-      const stream = client.wsStream(outgoing, { config, response_granularity: granularity })
-      sawText = await consumeStream(stream, { dispatch, getState, agentId, startedAt, signal })
+      const stream = client.wsStream(outgoing, clientOptions)
+      sawText = await consumeStream(stream, {
+        dispatch,
+        getState,
+        agentId,
+        startedAt,
+        signal,
+      })
     } else {
-      const stream = client.stream(outgoing, { config, response_granularity: granularity })
-      sawText = await consumeStream(stream, { dispatch, getState, agentId, startedAt, signal })
+      const stream = client.stream(outgoing, clientOptions)
+      sawText = await consumeStream(stream, {
+        dispatch,
+        getState,
+        agentId,
+        startedAt,
+        signal,
+      })
     }
 
     if (signal.aborted) {
-      dispatch(finishAgentTurn({ id: agentId, runMeta: { status: "stopped", path: mode } }))
+      dispatch(
+        finishAgentTurn({
+          id: agentId,
+          runMeta: { status: "stopped", path: mode },
+        })
+      )
     } else {
-      dispatch(finishAgentTurn({ id: agentId, runMeta: { status: "done", path: mode } }))
+      dispatch(
+        finishAgentTurn({
+          id: agentId,
+          runMeta: { status: "done", path: mode },
+        })
+      )
       if (!sawText) {
-        dispatch(setAgentText({ id: agentId, text: "(no text returned)", mode: "replace" }))
+        dispatch(
+          setAgentText({
+            id: agentId,
+            text: "(no text returned)",
+            mode: "replace",
+          })
+        )
       }
     }
   } catch (e) {
     if (signal.aborted) {
-      dispatch(finishAgentTurn({ id: agentId, runMeta: { status: "stopped", path: mode } }))
+      dispatch(
+        finishAgentTurn({
+          id: agentId,
+          runMeta: { status: "stopped", path: mode },
+        })
+      )
     } else {
-      dispatch(appendErrorAnswer({ id: agentId, text: `Error: ${e?.message || e}` }))
+      dispatch(
+        appendErrorAnswer({ id: agentId, text: `Error: ${e?.message || e}` })
+      )
       dispatch(finishAgentTurn({ id: agentId, runMeta: { status: "error" } }))
       dispatch(setError(e?.message || "Stream failed"))
-      dispatch(pushEvent({ type: "error", node: "—", time: since(startedAt), detail: String(e?.message || e) }))
+      dispatch(
+        pushEvent({
+          type: "error",
+          node: "—",
+          time: since(startedAt),
+          detail: String(e?.message || e),
+        })
+      )
     }
   } finally {
     activeAbort = null

@@ -3,15 +3,19 @@ import { useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
 
 import { useConnection } from "@/lib/connection/ConnectionContext"
+import { summariseRunOptions } from "@/lib/run-options"
 import { sendMessage, stopGeneration } from "@/store/chatThunks"
 
+import RunOptionsPopup from "./RunOptionsPopup"
 import styles from "../chat.module.css"
 
 export default function Composer() {
   const dispatch = useDispatch()
   const generating = useSelector((s) => s.chat.generating)
+  const runOptions = useSelector((s) => s.chat.runOptions)
   const { isConnected } = useConnection()
   const [text, setText] = useState("")
+  const [popup, setPopup] = useState(null) // null | "initialState" | "config"
 
   const canSend = text.trim().length > 0 && !generating && isConnected
 
@@ -29,14 +33,13 @@ export default function Composer() {
     }
   }
 
-  const hint = !isConnected
-    ? "not connected — open Connection first"
-    : generating
-      ? "streaming…"
-      : "initial_state · config overrides"
+  const summary = summariseRunOptions(runOptions)
 
   return (
     <div className={styles.composerWrap}>
+      {popup ? (
+        <RunOptionsPopup focus={popup} onClose={() => setPopup(null)} />
+      ) : null}
       <div className={styles.composer}>
         <textarea
           rows={1}
@@ -50,7 +53,36 @@ export default function Composer() {
           <button className={styles.attach} type="button" title="Attach file">
             <Paperclip size={17} />
           </button>
-          <span className={styles.composerHint}>{hint}</span>
+          {!isConnected ? (
+            <span className={styles.composerHint}>
+              not connected — open Connection first
+            </span>
+          ) : generating ? (
+            <span className={styles.composerHint}>streaming…</span>
+          ) : (
+            <span className={styles.composerHint}>
+              <button
+                type="button"
+                className={`${styles.hintChip} ${summary ? styles.hintOn : ""}`}
+                onClick={() => setPopup("initialState")}
+                title="Set initial_state for the next run"
+              >
+                initial_state
+              </button>
+              ·
+              <button
+                type="button"
+                className={`${styles.hintChip} ${summary ? styles.hintOn : ""}`}
+                onClick={() => setPopup("config")}
+                title="Override config / recursion_limit for the next run"
+              >
+                config overrides
+              </button>
+              {summary ? (
+                <span className={styles.hintSummary}>{summary}</span>
+              ) : null}
+            </span>
+          )}
           {generating ? (
             <button
               className={`${styles.send} ${styles.stop}`}
@@ -61,7 +93,12 @@ export default function Composer() {
               <Square size={13} />
             </button>
           ) : (
-            <button className={styles.send} type="button" onClick={submit} disabled={!canSend}>
+            <button
+              className={styles.send}
+              type="button"
+              onClick={submit}
+              disabled={!canSend}
+            >
               Send
               <SendHorizontal size={14} />
             </button>

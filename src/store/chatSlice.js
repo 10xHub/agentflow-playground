@@ -24,10 +24,15 @@ const persisted = loadThreads()
 const initialState = {
   // messages[]: user  -> { id, role:"user", who, time, text }
   //             agent -> { id, role:"agent", who, node, blocks:[], answer:[], streaming, runMeta }
-  messages: persisted.activeId ? persisted.byId[persisted.activeId]?.messages || [] : [],
+  messages: persisted.activeId
+    ? persisted.byId[persisted.activeId]?.messages || []
+    : [],
   generating: false,
   error: null,
-  threadId: persisted.activeId && persisted.activeId !== DRAFT_ID ? persisted.activeId : null,
+  threadId:
+    persisted.activeId && persisted.activeId !== DRAFT_ID
+      ? persisted.activeId
+      : null,
 
   // Thread cache (persisted).
   threads: { order: persisted.order || [], byId: persisted.byId || {} },
@@ -35,6 +40,14 @@ const initialState = {
   // Run configuration surfaced in the header, consumed by the thunk.
   mode: "stream", // "invoke" | "stream" | "ws"
   granularity: "low", // "full" | "partial" | "low"
+
+  // Per-run overrides edited in the composer popup. JSON is kept as raw text so
+  // a half-typed object survives a reopen; the thunk parses at send time.
+  runOptions: {
+    initialState: "", // -> initial_state
+    config: "", // merged over { thread_id }
+    recursionLimit: "", // blank = client default (25)
+  },
 
   // Live inspector data — reset at the start of each run.
   events: [], // { type, node, time, detail }
@@ -63,7 +76,10 @@ const syncActive = (state) => {
   const existing = state.threads.byId[key]
   state.threads.byId[key] = {
     id: key,
-    title: existing?.title && key !== DRAFT_ID ? existing.title : titleFor(state.messages),
+    title:
+      existing?.title && key !== DRAFT_ID
+        ? existing.title
+        : titleFor(state.messages),
     messages: state.messages,
     updatedAt: existing?.updatedAt || 0,
   }
@@ -90,7 +106,9 @@ const chatSlice = createSlice({
         const entry = state.threads.byId[prevKey]
         delete state.threads.byId[prevKey]
         state.threads.byId[newId] = { ...entry, id: newId }
-        state.threads.order = state.threads.order.map((id) => (id === prevKey ? newId : id))
+        state.threads.order = state.threads.order.map((id) =>
+          id === prevKey ? newId : id
+        )
       }
       syncActive(state)
     },
@@ -128,7 +146,11 @@ const chatSlice = createSlice({
       state.events = []
       state.frames = []
       state.lastRequest = null
-      saveThreads({ order: state.threads.order, byId: state.threads.byId, activeId: DRAFT_ID })
+      saveThreads({
+        order: state.threads.order,
+        byId: state.threads.byId,
+        activeId: DRAFT_ID,
+      })
     },
     // Load a cached thread into the active view.
     switchThread: (state, action) => {
@@ -142,7 +164,11 @@ const chatSlice = createSlice({
       state.events = []
       state.frames = []
       state.lastRequest = null
-      saveThreads({ order: state.threads.order, byId: state.threads.byId, activeId: id })
+      saveThreads({
+        order: state.threads.order,
+        byId: state.threads.byId,
+        activeId: id,
+      })
     },
     // Remove a thread from the cache; if it was active, fall back to a new draft.
     removeThread: (state, action) => {
@@ -159,6 +185,12 @@ const chatSlice = createSlice({
         byId: state.threads.byId,
         activeId: wasActive ? DRAFT_ID : state.threadId || DRAFT_ID,
       })
+    },
+    setRunOptions: (state, action) => {
+      state.runOptions = { ...state.runOptions, ...action.payload }
+    },
+    resetRunOptions: (state) => {
+      state.runOptions = { initialState: "", config: "", recursionLimit: "" }
     },
     addUserMessage: (state, action) => {
       const { id, text, time } = action.payload
@@ -233,7 +265,8 @@ const chatSlice = createSlice({
       }
       // Bump updatedAt and persist the completed turn.
       const key = state.threadId || DRAFT_ID
-      if (state.threads.byId[key]) state.threads.byId[key].updatedAt = m.runMeta?.finishedAt || 0
+      if (state.threads.byId[key])
+        state.threads.byId[key].updatedAt = m.runMeta?.finishedAt || 0
       syncActive(state)
     },
     appendErrorAnswer: (state, action) => {
@@ -256,7 +289,8 @@ const chatSlice = createSlice({
     },
     pushFrame: (state, action) => {
       state.frames.push(action.payload) // chronological
-      if (state.frames.length > MAX_LOG) state.frames.splice(0, state.frames.length - MAX_LOG)
+      if (state.frames.length > MAX_LOG)
+        state.frames.splice(0, state.frames.length - MAX_LOG)
     },
   },
 })
@@ -267,6 +301,8 @@ export const {
   setError,
   setMode,
   setGranularity,
+  setRunOptions,
+  resetRunOptions,
   setGraphInfo,
   clearChat,
   newThread,
