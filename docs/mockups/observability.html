@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Agentflow Playground — Observability</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Fira+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg:#0B0C0E; --surface:#131417; --surface-2:#17181C; --elevated:#1C1D22;
+    --border:#26272D; --border-strong:#33353D; --text:#ECEDEF; --text-secondary:#9A9EA7;
+    --text-muted:#63676F; --accent:#3ECF8E; --accent-weak:rgba(62,207,142,0.12);
+    --danger:#F26D6D; --danger-weak:rgba(242,109,109,0.1); --warn:#E5B567; --warn-weak:rgba(229,181,103,0.1);
+    --btn-bg:#F2F3F5; --btn-text:#0B0C0E; --focus-ring:rgba(236,237,239,0.10);
+    /* categorical viz colors (functional, not the status accent) */
+    --viz-node:#8FB8FF; --viz-llm:#E5B567; --viz-tool:#8B87F5; --viz-root:#63676F;
+    --sans:"Fira Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    --mono:"Fira Code",ui-monospace,"SF Mono",Menlo,monospace;
+  }
+  html[data-theme="light"] {
+    --bg:#FBFBFC; --surface:#FFFFFF; --surface-2:#F7F8F9; --elevated:#F1F2F4;
+    --border:#E6E7EA; --border-strong:#D6D8DD; --text:#16181D; --text-secondary:#5C616B;
+    --text-muted:#9297A1; --accent:#1BA674; --accent-weak:rgba(27,166,116,0.10);
+    --danger:#D64545; --danger-weak:rgba(214,69,69,0.08); --warn:#B4801E; --warn-weak:rgba(180,128,30,0.09);
+    --viz-node:#3F6FD1; --viz-llm:#B4801E; --viz-tool:#6257D6; --viz-root:#9297A1;
+    --btn-bg:#16181D; --btn-text:#FFFFFF; --focus-ring:rgba(22,24,29,0.08);
+  }
+  * { box-sizing:border-box; }
+  html,body { height:100%; }
+  body { margin:0; height:100vh; display:flex; flex-direction:column; overflow:hidden; background:var(--bg); color:var(--text); font-family:var(--sans); font-size:13px; line-height:1.5; -webkit-font-smoothing:antialiased; }
+  @media (prefers-reduced-motion:reduce){ *{animation:none!important;transition:none!important;} }
+  .mono { font-family:var(--mono); }
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:.4;} }
+  ::-webkit-scrollbar { width:10px; height:10px; }
+  ::-webkit-scrollbar-thumb { background:var(--elevated); border:3px solid transparent; background-clip:padding-box; border-radius:8px; }
+  ::-webkit-scrollbar-thumb:hover { background:var(--border-strong); background-clip:padding-box; }
+
+  /* ---- connection bar ---- */
+  .connbar { display:flex; align-items:center; gap:14px; height:48px; padding:0 14px 0 16px; border-bottom:1px solid var(--border); flex:none; background:var(--surface); }
+  .brand { display:flex; align-items:center; gap:9px; }
+  .mark { width:20px; height:20px; border:1.5px solid var(--text); border-radius:6px; position:relative; flex:none; }
+  .mark::after { content:""; position:absolute; inset:4px; border-radius:2px; border:1.5px solid var(--text-secondary); }
+  .wordmark { font-family:var(--mono); font-size:12.5px; font-weight:500; letter-spacing:-0.01em; }
+  .wordmark .dim { color:var(--text-muted); }
+  .sep { width:1px; height:22px; background:var(--border); }
+  .conn-pill { display:flex; align-items:center; gap:9px; height:30px; padding:0 10px; background:var(--elevated); border:1px solid var(--border); border-radius:8px; cursor:pointer; transition:border-color .15s; }
+  .conn-pill:hover { border-color:var(--border-strong); }
+  .dot { width:7px; height:7px; border-radius:50%; flex:none; }
+  .dot.live { background:var(--accent); box-shadow:0 0 0 3px var(--accent-weak); }
+  .conn-name { font-size:12.5px; font-weight:500; }
+  .conn-url { font-family:var(--mono); font-size:11px; color:var(--text-muted); }
+  .chev { color:var(--text-muted); }
+  .grow { flex:1; }
+  .cb-actions { display:flex; align-items:center; gap:4px; }
+  .iconbtn { height:30px; min-width:30px; padding:0 9px; display:flex; align-items:center; gap:7px; justify-content:center; background:transparent; border:1px solid transparent; border-radius:8px; color:var(--text-secondary); font-family:var(--sans); font-size:12px; cursor:pointer; transition:color .15s,border-color .15s,background .15s; }
+  .iconbtn:hover { color:var(--text); border-color:var(--border-strong); }
+  .iconbtn svg { stroke:currentColor; }
+
+  /* ---- shell ---- */
+  .shell { flex:1; display:grid; grid-template-columns:230px 1fr 340px; min-height:0; }
+
+  /* ---- sidebar ---- */
+  .side { border-right:1px solid var(--border); background:var(--surface); display:flex; flex-direction:column; min-height:0; }
+  .side-scroll { flex:1; overflow-y:auto; padding:14px 10px 8px; }
+  .navgroup { margin-bottom:16px; }
+  .navgroup-h { font-size:10.5px; letter-spacing:0.11em; text-transform:uppercase; color:var(--text-muted); font-weight:500; padding:0 8px; margin-bottom:6px; }
+  .navitem { display:flex; align-items:center; gap:10px; padding:7px 8px; border-radius:8px; color:var(--text-secondary); cursor:pointer; font-size:13px; font-weight:500; position:relative; transition:color .15s,background .15s; margin-bottom:1px; }
+  .navitem:hover { color:var(--text); background:var(--elevated); }
+  .navitem.active { color:var(--text); background:var(--elevated); }
+  .navitem.active::before { content:""; position:absolute; left:-10px; top:7px; bottom:7px; width:2px; border-radius:2px; background:var(--accent); }
+  .navitem svg { flex:none; stroke:currentColor; opacity:.85; }
+  .navitem .badge { margin-left:auto; font-family:var(--mono); font-size:10px; color:var(--text-muted); background:var(--surface-2); border:1px solid var(--border); padding:0 6px; border-radius:5px; }
+  .side-foot { border-top:1px solid var(--border); padding:8px 10px; }
+
+  /* ---- main ---- */
+  .main { display:flex; flex-direction:column; min-width:0; min-height:0; background:var(--bg); }
+  .obs-head { padding:12px 20px 0; border-bottom:1px solid var(--border); flex:none; }
+  .oh-top { display:flex; align-items:center; gap:10px; margin-bottom:13px; }
+  .oh-title { font-size:14px; font-weight:600; }
+  .scope { display:flex; align-items:center; gap:8px; height:30px; padding:0 11px; background:var(--surface); border:1px solid var(--border); border-radius:8px; cursor:pointer; font-family:var(--mono); font-size:11.5px; color:var(--text-secondary); }
+  .scope:hover { border-color:var(--border-strong); }
+  .scope b { color:var(--text); font-weight:500; }
+  .run-pick { display:flex; align-items:center; gap:7px; height:30px; padding:0 10px; background:var(--surface); border:1px solid var(--border); border-radius:8px; cursor:pointer; font-family:var(--mono); font-size:11px; color:var(--text-secondary); }
+  .run-pick:hover { border-color:var(--border-strong); }
+  .oh-links { margin-left:auto; display:flex; align-items:center; gap:6px; }
+  .dl { display:flex; align-items:center; gap:7px; height:30px; padding:0 11px; border:1px solid var(--border); border-radius:8px; background:transparent; color:var(--text-secondary); font-family:var(--sans); font-size:11.5px; font-weight:500; cursor:pointer; transition:color .15s,border-color .15s; }
+  .dl:hover { color:var(--text); border-color:var(--border-strong); }
+  .dl svg { stroke:currentColor; }
+  .dl.off { opacity:.45; cursor:default; }
+  .dl.off:hover { color:var(--text-secondary); border-color:var(--border); }
+
+  /* stat strip */
+  .stats { display:flex; gap:26px; padding:2px 2px 14px; }
+  .stat .sl { font-size:10.5px; letter-spacing:0.06em; text-transform:uppercase; color:var(--text-muted); }
+  .stat .sv { font-family:var(--mono); font-size:19px; font-weight:500; letter-spacing:-0.02em; margin-top:3px; }
+  .stat .sv.accent { color:var(--accent); }
+  .stat .sv small { font-size:11px; color:var(--text-muted); font-weight:400; }
+
+  .tabs { display:flex; gap:2px; }
+  .tab { border:none; background:transparent; color:var(--text-muted); font-family:var(--sans); font-size:12.5px; font-weight:500; padding:9px 12px; border-bottom:2px solid transparent; cursor:pointer; margin-bottom:-1px; transition:color .15s; }
+  .tab:hover { color:var(--text-secondary); }
+  .tab.on { color:var(--text); border-bottom-color:var(--accent); }
+
+  .body { flex:1; overflow-y:auto; padding:16px 20px 24px; }
+  .pane { display:none; } .pane.on { display:block; }
+  .src-note { display:flex; align-items:center; gap:8px; font-family:var(--mono); font-size:10.5px; color:var(--text-muted); margin-bottom:14px; }
+  .src-note svg { stroke:var(--text-muted); }
+
+  /* ---- trace waterfall ---- */
+  .ruler { display:flex; justify-content:space-between; padding:0 0 6px 168px; font-family:var(--mono); font-size:10px; color:var(--text-muted); border-bottom:1px solid var(--border); margin-bottom:8px; }
+  .span { display:flex; align-items:center; gap:0; height:30px; border-radius:7px; cursor:pointer; transition:background .12s; }
+  .span:hover { background:var(--surface-2); }
+  .span.sel { background:var(--elevated); }
+  .span-label { width:168px; flex:none; display:flex; align-items:center; gap:8px; font-family:var(--mono); font-size:11.5px; color:var(--text-secondary); padding-left:6px; white-space:nowrap; overflow:hidden; }
+  .span.sel .span-label { color:var(--text); }
+  .kind-dot { width:7px; height:7px; border-radius:2px; flex:none; }
+  .kind-dot.node { background:var(--viz-node); } .kind-dot.llm { background:var(--viz-llm); }
+  .kind-dot.tool { background:var(--viz-tool); } .kind-dot.root { background:var(--viz-root); }
+  .indent { display:inline-block; color:var(--text-muted); }
+  .span-track { position:relative; flex:1; height:100%; }
+  .span-bar { position:absolute; top:9px; height:12px; border-radius:4px; display:flex; align-items:center; }
+  .span-bar.node { background:rgba(143,184,255,0.55); } .span-bar.llm { background:rgba(229,181,103,0.55); }
+  .span-bar.tool { background:rgba(139,135,245,0.6); } .span-bar.root { background:rgba(99,103,111,0.4); }
+  .span-dur { font-family:var(--mono); font-size:10px; color:var(--text-secondary); margin-left:6px; white-space:nowrap; }
+  .legend { display:flex; gap:16px; margin-top:16px; padding-top:14px; border-top:1px dashed var(--border); font-family:var(--mono); font-size:10.5px; color:var(--text-muted); }
+  .legend span { display:flex; align-items:center; gap:6px; }
+
+  /* ---- events ---- */
+  .ev-controls { display:flex; align-items:center; gap:8px; margin-bottom:12px; }
+  .ev-search { display:flex; align-items:center; gap:8px; height:32px; padding:0 10px; background:var(--elevated); border:1px solid var(--border); border-radius:8px; flex:1; max-width:280px; }
+  .ev-search svg { stroke:var(--text-muted); } .ev-search input { border:none; background:transparent; outline:none; color:var(--text); font-family:var(--mono); font-size:12px; width:100%; }
+  .ev-search input::placeholder { color:var(--text-muted); }
+  .ev-chips { display:flex; gap:5px; }
+  .ec { font-family:var(--mono); font-size:10.5px; padding:5px 10px; border-radius:6px; border:1px solid var(--border); background:transparent; color:var(--text-secondary); cursor:pointer; }
+  .ec.on { color:var(--text); border-color:var(--border-strong); background:var(--elevated); }
+  .ev { display:flex; align-items:center; gap:10px; padding:9px 12px; border:1px solid var(--border); border-radius:8px; margin-bottom:6px; background:var(--surface); cursor:pointer; transition:border-color .12s; }
+  .ev:hover { border-color:var(--border-strong); }
+  .ev-t { font-family:var(--mono); font-size:10.5px; color:var(--text-muted); width:52px; flex:none; }
+  .ev-type { font-family:var(--mono); font-size:10px; padding:2px 8px; border-radius:5px; flex:none; }
+  .ev-type.message { color:var(--accent); background:var(--accent-weak); }
+  .ev-type.updates { color:var(--viz-node); background:rgba(143,184,255,0.1); }
+  .ev-type.state { color:var(--warn); background:var(--warn-weak); }
+  .ev-type.error { color:var(--danger); background:var(--danger-weak); }
+  .ev-node { font-family:var(--mono); font-size:11px; color:var(--text-secondary); flex:none; width:90px; }
+  .ev-sum { font-family:var(--mono); font-size:11px; color:var(--text-secondary); flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+  /* ---- cost ---- */
+  .cost-cards { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:18px; }
+  .cc { border:1px solid var(--border); border-radius:10px; background:var(--surface); padding:13px 14px; }
+  .cc .l { font-size:10.5px; letter-spacing:0.05em; text-transform:uppercase; color:var(--text-muted); }
+  .cc .v { font-family:var(--mono); font-size:20px; font-weight:500; margin-top:5px; letter-spacing:-0.02em; }
+  .cc .v.accent { color:var(--accent); }
+  .cc .v small { font-size:11px; color:var(--text-muted); }
+
+  .sec-h { font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-muted); font-weight:500; margin:0 0 12px; }
+  .cost-2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:18px; }
+  .bars { border:1px solid var(--border); border-radius:10px; background:var(--surface); padding:15px; }
+  .br { margin-bottom:11px; } .br:last-child{ margin-bottom:0; }
+  .br-top { display:flex; justify-content:space-between; font-family:var(--mono); font-size:11px; margin-bottom:5px; }
+  .br-top .bk { color:var(--text-secondary); } .br-top .bv { color:var(--text); }
+  .br-track { height:7px; border-radius:4px; background:var(--elevated); overflow:hidden; }
+  .br-fill { height:100%; border-radius:4px; background:var(--viz-node); }
+  .br-fill.amber { background:var(--viz-llm); } .br-fill.violet { background:var(--viz-tool); } .br-fill.muted { background:var(--border-strong); }
+
+  .tbl { border:1px solid var(--border); border-radius:10px; background:var(--surface); overflow:hidden; }
+  .tbl-row { display:flex; align-items:center; padding:10px 14px; border-bottom:1px solid var(--border); font-family:var(--mono); font-size:11.5px; }
+  .tbl-row:last-child { border-bottom:none; }
+  .tbl-row.h { color:var(--text-muted); font-size:10px; letter-spacing:0.05em; text-transform:uppercase; background:var(--surface-2); }
+  .tbl-row .c1 { flex:1; color:var(--text); } .tbl-row .c2,.tbl-row .c3 { width:74px; text-align:right; color:var(--text-secondary); }
+  .tbl-row.h .c1 { color:var(--text-muted); }
+
+  /* ---- right: span/event detail ---- */
+  .detail { border-left:1px solid var(--border); background:var(--surface); display:flex; flex-direction:column; min-height:0; }
+  .det-head { display:flex; align-items:center; gap:9px; padding:0 14px; height:42px; border-bottom:1px solid var(--border); flex:none; }
+  .det-title { font-size:12px; font-weight:600; }
+  .det-kind { margin-left:auto; font-family:var(--mono); font-size:10px; padding:2px 8px; border-radius:5px; border:1px solid var(--border); color:var(--text-secondary); }
+  .det-body { flex:1; overflow-y:auto; padding:14px; }
+  .det-name { font-family:var(--mono); font-size:13px; color:var(--text); margin-bottom:3px; }
+  .det-sub { font-family:var(--mono); font-size:11px; color:var(--text-muted); margin-bottom:16px; }
+  .attr-h { font-size:10.5px; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-muted); font-weight:500; margin:16px 0 9px; }
+  .attr { display:flex; align-items:baseline; justify-content:space-between; gap:12px; padding:6px 0; border-bottom:1px dashed var(--border); font-family:var(--mono); font-size:11px; }
+  .attr:last-child { border-bottom:none; }
+  .attr .ak { color:var(--text-muted); } .attr .av { color:var(--text); text-align:right; }
+  .attr .av.ok { color:var(--accent); }
+  .det-open { display:flex; align-items:center; justify-content:center; gap:8px; margin-top:16px; height:34px; border:1px solid var(--border); border-radius:8px; background:transparent; color:var(--text-secondary); font-family:var(--sans); font-size:12px; font-weight:500; cursor:pointer; width:100%; transition:color .15s,border-color .15s; }
+  .det-open:hover { color:var(--text); border-color:var(--border-strong); }
+  .det-open svg { stroke:currentColor; }
+</style>
+</head>
+<body>
+  <!-- CONNECTION BAR -->
+  <div class="connbar">
+    <div class="brand"><span class="mark"></span><span class="wordmark">agentflow<span class="dim">/playground</span></span></div>
+    <div class="sep"></div>
+    <div class="conn-pill">
+      <span class="dot live"></span><span class="conn-name">Local dev</span><span class="conn-url">localhost:8000</span>
+      <svg class="chev" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="grow"></div>
+    <div class="cb-actions">
+      <button class="iconbtn" onclick="toggleTheme()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><path d="M21 12.8A9 9 0 1111.2 3 7 7 0 0021 12.8z"/></svg></button>
+      <button class="iconbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.6 1.6 0 00-2.7.7 1.6 1.6 0 01-3.2 0 1.6 1.6 0 00-2.7-.7l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.6 1.6 0 00-.7-2.7 1.6 1.6 0 010-3.2 1.6 1.6 0 00.7-2.7l-.1-.1a2 2 0 112.8-2.8l.1.1a1.6 1.6 0 001.8.3H9a1.6 1.6 0 001-1.5 1.6 1.6 0 013.2 0 1.6 1.6 0 001 1.5 1.6 1.6 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.6 1.6 0 00-.3 1.8V9a1.6 1.6 0 001.5 1 1.6 1.6 0 010 3.2 1.6 1.6 0 00-1.5 1z"/></svg></button>
+    </div>
+  </div>
+
+  <!-- SHELL -->
+  <div class="shell">
+    <!-- SIDEBAR -->
+    <aside class="side">
+      <div class="side-scroll">
+        <div class="navgroup">
+          <div class="navgroup-h">Interact</div>
+          <div class="navitem"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>Chat</div>
+          <div class="navitem"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><path d="M12 2a3 3 0 00-3 3v6a3 3 0 006 0V5a3 3 0 00-3-3z"/><path d="M19 10v1a7 7 0 01-14 0v-1M12 18v4"/></svg>Live</div>
+        </div>
+        <div class="navgroup">
+          <div class="navgroup-h">Inspect</div>
+          <div class="navitem"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><path d="M3 5h18M3 12h18M3 19h18"/></svg>Thread Inspector <span class="badge">142</span></div>
+          <div class="navitem active"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><path d="M3 3v18h18"/><path d="M7 14l3-4 3 3 4-6"/></svg>Observability</div>
+          <div class="navitem"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><path d="M9 11l3 3 8-8"/><path d="M20 12v6a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h9"/></svg>Evals</div>
+          <div class="navitem"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg>Memory Inspector</div>
+        </div>
+        <div class="navgroup">
+          <div class="navgroup-h">Build</div>
+          <div class="navitem"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><circle cx="6" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><circle cx="18" cy="6" r="3"/><path d="M9 6h6M18 9v6"/></svg>Graph</div>
+          <div class="navitem"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><path d="M14.7 6.3a4 4 0 00-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 005.4-5.4l-2.6 2.6-2.4-2.4z"/></svg>Tools &amp; MCP</div>
+          <div class="navitem"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/><path d="M13 2v7h7"/></svg>Files</div>
+        </div>
+      </div>
+      <div class="side-foot">
+        <div class="navitem"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 00.3 1.8M4.6 9a1.6 1.6 0 00-.3-1.8"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>Settings</div>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main">
+      <div class="obs-head">
+        <div class="oh-top">
+          <span class="oh-title">Observability</span>
+          <div class="scope">scope <b>thread</b> · th_9f2a…c17
+            <svg class="chev" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="run-pick">run 3 / 5
+            <svg class="chev" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="oh-links">
+            <button class="dl"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg>Logfire</button>
+            <button class="dl"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg>LangSmith</button>
+            <button class="dl off" title="Not configured for this connection">Jaeger · off</button>
+          </div>
+        </div>
+
+        <div class="stats">
+          <div class="stat"><div class="sl">duration</div><div class="sv">2.42<small>s</small></div></div>
+          <div class="stat"><div class="sl">tokens</div><div class="sv">1,390</div></div>
+          <div class="stat"><div class="sl">est. cost</div><div class="sv accent">$0.0042</div></div>
+          <div class="stat"><div class="sl">iterations</div><div class="sv">2</div></div>
+          <div class="stat"><div class="sl">tool calls</div><div class="sv">1</div></div>
+          <div class="stat"><div class="sl">spans</div><div class="sv">7</div></div>
+        </div>
+
+        <div class="tabs">
+          <button class="tab on" onclick="oTab('trace',this)">Trace timeline</button>
+          <button class="tab" onclick="oTab('events',this)">Events</button>
+          <button class="tab" onclick="oTab('cost',this)">Cost &amp; tokens</button>
+        </div>
+      </div>
+
+      <div class="body">
+        <!-- TRACE -->
+        <div class="pane on" id="pane-trace">
+          <div class="src-note">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l2.5 1.5"/></svg>
+            Reconstructed from StreamChunk updates/state · graph → node → llm → tool · session.id = thread_id
+          </div>
+          <div class="ruler"><span>0ms</span><span>600ms</span><span>1.2s</span><span>1.8s</span><span>2.42s</span></div>
+
+          <div class="span" data-name="graph.react" data-kind="root" data-dur="2.42s" onclick="selSpan(this)">
+            <div class="span-label"><span class="kind-dot root"></span>graph.react</div>
+            <div class="span-track"><div class="span-bar root" style="left:0;width:100%"><span class="span-dur">2.42s</span></div></div>
+          </div>
+          <div class="span sel" data-name="node: agent" data-kind="node" data-dur="0.53s" onclick="selSpan(this)">
+            <div class="span-label"><span class="indent">└</span><span class="kind-dot node"></span>agent</div>
+            <div class="span-track"><div class="span-bar node" style="left:0;width:22%"><span class="span-dur">0.53s</span></div></div>
+          </div>
+          <div class="span" data-name="llm: gemini-2.0-flash" data-kind="llm" data-dur="0.44s" data-model="gemini-2.0-flash" data-in="1204" data-out="0" onclick="selSpan(this)">
+            <div class="span-label"><span class="indent">&nbsp;&nbsp;└</span><span class="kind-dot llm"></span>llm.generate</div>
+            <div class="span-track"><div class="span-bar llm" style="left:2%;width:18%"><span class="span-dur">0.44s</span></div></div>
+          </div>
+          <div class="span" data-name="node: tools" data-kind="node" data-dur="0.21s" onclick="selSpan(this)">
+            <div class="span-label"><span class="indent">└</span><span class="kind-dot node"></span>tools</div>
+            <div class="span-track"><div class="span-bar node" style="left:22%;width:10%"><span class="span-dur">0.21s</span></div></div>
+          </div>
+          <div class="span" data-name="tool: get_weather" data-kind="tool" data-dur="0.21s" onclick="selSpan(this)">
+            <div class="span-label"><span class="indent">&nbsp;&nbsp;└</span><span class="kind-dot tool"></span>get_weather</div>
+            <div class="span-track"><div class="span-bar tool" style="left:23%;width:9%"><span class="span-dur">0.21s</span></div></div>
+          </div>
+          <div class="span" data-name="node: agent" data-kind="node" data-dur="1.24s" onclick="selSpan(this)">
+            <div class="span-label"><span class="indent">└</span><span class="kind-dot node"></span>agent</div>
+            <div class="span-track"><div class="span-bar node" style="left:32%;width:68%"><span class="span-dur">1.24s</span></div></div>
+          </div>
+          <div class="span" data-name="llm: gemini-2.0-flash" data-kind="llm" data-dur="1.19s" data-model="gemini-2.0-flash" data-in="1372" data-out="186" onclick="selSpan(this)">
+            <div class="span-label"><span class="indent">&nbsp;&nbsp;└</span><span class="kind-dot llm"></span>llm.generate</div>
+            <div class="span-track"><div class="span-bar llm" style="left:33%;width:66%"><span class="span-dur">1.19s</span></div></div>
+          </div>
+
+          <div class="legend">
+            <span><span class="kind-dot root"></span>graph</span>
+            <span><span class="kind-dot node"></span>node</span>
+            <span><span class="kind-dot llm"></span>llm</span>
+            <span><span class="kind-dot tool"></span>tool</span>
+          </div>
+        </div>
+
+        <!-- EVENTS -->
+        <div class="pane" id="pane-events">
+          <div class="ev-controls">
+            <div class="ev-search"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><input placeholder="Search events…" spellcheck="false" /></div>
+            <div class="ev-chips">
+              <button class="ec on">all</button>
+              <button class="ec">message</button>
+              <button class="ec">updates</button>
+              <button class="ec">state</button>
+              <button class="ec">error</button>
+            </div>
+          </div>
+          <div class="ev" onclick="selEvent(this)"><span class="ev-t">+2.31s</span><span class="ev-type message">message</span><span class="ev-node">agent</span><span class="ev-sum">delta: "…an afternoon shower is likely"</span></div>
+          <div class="ev" onclick="selEvent(this)"><span class="ev-t">+1.98s</span><span class="ev-type state">state</span><span class="ev-node">execution_meta</span><span class="ev-sum">current_node: agent · step 4 · is_running: true</span></div>
+          <div class="ev" onclick="selEvent(this)"><span class="ev-t">+1.74s</span><span class="ev-type updates">updates</span><span class="ev-node">tools→agent</span><span class="ev-sum">tool_result get_weather · 214ms · 62% precip</span></div>
+          <div class="ev" onclick="selEvent(this)"><span class="ev-t">+0.51s</span><span class="ev-type updates">updates</span><span class="ev-node">agent→tools</span><span class="ev-sum">tool_call get_weather({location:"Dhaka, BD"})</span></div>
+          <div class="ev" onclick="selEvent(this)"><span class="ev-t">+0.44s</span><span class="ev-type state">state</span><span class="ev-node">execution_meta</span><span class="ev-sum">current_node: tools · step 2</span></div>
+          <div class="ev" onclick="selEvent(this)"><span class="ev-t">+0.12s</span><span class="ev-type message">message</span><span class="ev-node">agent</span><span class="ev-sum">reasoning start · 2 steps</span></div>
+          <div class="ev" onclick="selEvent(this)"><span class="ev-t">+0.00s</span><span class="ev-type updates">updates</span><span class="ev-node">graph</span><span class="ev-sum">run started · thread th_9f2a…c17</span></div>
+        </div>
+
+        <!-- COST -->
+        <div class="pane" id="pane-cost">
+          <div class="cost-cards">
+            <div class="cc"><div class="l">total tokens</div><div class="v">1,390</div></div>
+            <div class="cc"><div class="l">est. cost</div><div class="v accent">$0.0042</div></div>
+            <div class="cc"><div class="l">latency p50 / p95</div><div class="v">1.9<small>s</small> / 2.4<small>s</small></div></div>
+            <div class="cc"><div class="l">runs · iterations</div><div class="v">5 · 11</div></div>
+          </div>
+
+          <div class="cost-2">
+            <div>
+              <div class="sec-h">Token breakdown</div>
+              <div class="bars">
+                <div class="br"><div class="br-top"><span class="bk">prompt</span><span class="bv">1,204</span></div><div class="br-track"><div class="br-fill" style="width:86%"></div></div></div>
+                <div class="br"><div class="br-top"><span class="bk">completion</span><span class="bv">186</span></div><div class="br-track"><div class="br-fill amber" style="width:13%"></div></div></div>
+                <div class="br"><div class="br-top"><span class="bk">reasoning</span><span class="bv">92</span></div><div class="br-track"><div class="br-fill violet" style="width:7%"></div></div></div>
+                <div class="br"><div class="br-top"><span class="bk">cache_read</span><span class="bv">832</span></div><div class="br-track"><div class="br-fill muted" style="width:60%"></div></div></div>
+                <div class="br"><div class="br-top"><span class="bk">cache_create</span><span class="bv">0</span></div><div class="br-track"><div class="br-fill muted" style="width:0%"></div></div></div>
+                <div class="br"><div class="br-top"><span class="bk">image / audio</span><span class="bv">0</span></div><div class="br-track"><div class="br-fill muted" style="width:0%"></div></div></div>
+              </div>
+            </div>
+            <div>
+              <div class="sec-h">By model</div>
+              <div class="tbl">
+                <div class="tbl-row h"><span class="c1">model</span><span class="c2">tokens</span><span class="c3">cost</span></div>
+                <div class="tbl-row"><span class="c1">gemini-2.0-flash</span><span class="c2">1,390</span><span class="c3">$0.0042</span></div>
+              </div>
+              <div class="sec-h" style="margin-top:16px">By node</div>
+              <div class="tbl">
+                <div class="tbl-row h"><span class="c1">node</span><span class="c2">tokens</span><span class="c3">calls</span></div>
+                <div class="tbl-row"><span class="c1">agent</span><span class="c2">1,390</span><span class="c3">2</span></div>
+                <div class="tbl-row"><span class="c1">tools/get_weather</span><span class="c2">—</span><span class="c3">1</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- RIGHT DETAIL -->
+    <aside class="detail">
+      <div class="det-head">
+        <span class="det-title" id="detTitle">Span detail</span>
+        <span class="det-kind" id="detKind">llm</span>
+      </div>
+      <div class="det-body">
+        <div class="det-name" id="detName">llm.generate</div>
+        <div class="det-sub" id="detSub">node agent · 1.19s · status OK</div>
+
+        <div class="attr-h">GenAI semconv</div>
+        <div id="attrs">
+          <div class="attr"><span class="ak">gen_ai.system</span><span class="av">google.genai</span></div>
+          <div class="attr"><span class="ak">gen_ai.request.model</span><span class="av">gemini-2.0-flash</span></div>
+          <div class="attr"><span class="ak">gen_ai.usage.input_tokens</span><span class="av">1,372</span></div>
+          <div class="attr"><span class="ak">gen_ai.usage.output_tokens</span><span class="av">186</span></div>
+          <div class="attr"><span class="ak">gen_ai.response.finish</span><span class="av ok">stop</span></div>
+          <div class="attr"><span class="ak">duration</span><span class="av">1.19s</span></div>
+        </div>
+
+        <div class="attr-h">Context</div>
+        <div class="attr"><span class="ak">session.id</span><span class="av">th_9f2a…c17</span></div>
+        <div class="attr"><span class="ak">span.id</span><span class="av">7c1a…e0</span></div>
+        <div class="attr"><span class="ak">parent</span><span class="av">node: agent</span></div>
+
+        <button class="det-open"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg>Open this span in Logfire</button>
+      </div>
+    </aside>
+  </div>
+
+<script>
+  function toggleTheme(){ const h=document.documentElement,l=h.getAttribute('data-theme')==='light'; h.setAttribute('data-theme',l?'dark':'light'); }
+  function oTab(name,btn){
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on')); btn.classList.add('on');
+    document.querySelectorAll('.pane').forEach(p=>p.classList.remove('on')); document.getElementById('pane-'+name).classList.add('on');
+  }
+  function selSpan(el){
+    document.querySelectorAll('.span').forEach(s=>s.classList.remove('sel')); el.classList.add('sel');
+    const kind=el.dataset.kind;
+    document.getElementById('detTitle').textContent='Span detail';
+    document.getElementById('detKind').textContent=kind;
+    document.getElementById('detName').textContent=el.dataset.name.replace(/^\w+: /,'');
+    document.getElementById('detSub').textContent=el.dataset.dur+' · status OK';
+    if(el.dataset.model){
+      document.getElementById('attrs').innerHTML=
+        '<div class="attr"><span class="ak">gen_ai.system</span><span class="av">google.genai</span></div>'+
+        '<div class="attr"><span class="ak">gen_ai.request.model</span><span class="av">'+el.dataset.model+'</span></div>'+
+        '<div class="attr"><span class="ak">gen_ai.usage.input_tokens</span><span class="av">'+Number(el.dataset.in).toLocaleString()+'</span></div>'+
+        '<div class="attr"><span class="ak">gen_ai.usage.output_tokens</span><span class="av">'+Number(el.dataset.out).toLocaleString()+'</span></div>'+
+        '<div class="attr"><span class="ak">gen_ai.response.finish</span><span class="av ok">stop</span></div>'+
+        '<div class="attr"><span class="ak">duration</span><span class="av">'+el.dataset.dur+'</span></div>';
+    } else {
+      document.getElementById('attrs').innerHTML=
+        '<div class="attr"><span class="ak">span.kind</span><span class="av">'+kind+'</span></div>'+
+        '<div class="attr"><span class="ak">duration</span><span class="av">'+el.dataset.dur+'</span></div>'+
+        '<div class="attr"><span class="ak">status</span><span class="av ok">OK</span></div>';
+    }
+  }
+  function selEvent(el){
+    document.getElementById('detTitle').textContent='Event detail';
+    document.getElementById('detKind').textContent=el.querySelector('.ev-type').textContent;
+    document.getElementById('detName').textContent=el.querySelector('.ev-type').textContent+' · '+el.querySelector('.ev-node').textContent;
+    document.getElementById('detSub').textContent='offset '+el.querySelector('.ev-t').textContent;
+    document.getElementById('attrs').innerHTML=
+      '<div class="attr"><span class="ak">event</span><span class="av">'+el.querySelector('.ev-type').textContent+'</span></div>'+
+      '<div class="attr"><span class="ak">node</span><span class="av">'+el.querySelector('.ev-node').textContent+'</span></div>'+
+      '<div class="attr"><span class="ak">offset</span><span class="av">'+el.querySelector('.ev-t').textContent+'</span></div>'+
+      '<div class="attr" style="border:none"><span class="ak" style="display:block;margin-bottom:6px">payload</span></div>'+
+      '<div class="json" style="font-family:var(--mono);font-size:10.5px;color:var(--text-secondary);background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:10px;white-space:pre-wrap;line-height:1.6">'+el.querySelector('.ev-sum').textContent+'</div>';
+  }
+</script>
+</body>
+</html>

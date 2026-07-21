@@ -1,0 +1,513 @@
+/* Root fills the AppShell content region (flex row). Two columns: list + detail. */
+.page {
+  flex: 1;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* ---- tool list ---- */
+.list {
+  width: 300px;
+  flex: none;
+  border-right: 1px solid var(--border);
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.listHead {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.listHead h2 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+}
+.newbtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(62, 207, 142, 0.3);
+  background: var(--accent-weak);
+  color: var(--accent);
+  font-family: var(--sans);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.newbtn:hover {
+  border-color: var(--accent);
+}
+.listScroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 8px 14px;
+}
+.grpH {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 8px 6px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.grpH .gc {
+  margin-left: auto;
+  font-family: var(--mono);
+}
+.gd {
+  width: 6px;
+  height: 6px;
+  border-radius: 2px;
+}
+.gd.client {
+  background: var(--accent);
+}
+.gd.server {
+  background: var(--blue);
+}
+.gd.mcp {
+  background: var(--violet);
+}
+.trow {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 9px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.trow:hover {
+  background: var(--surface-2);
+}
+.trow.active {
+  background: var(--elevated);
+}
+.trow .tdot {
+  width: 6px;
+  height: 6px;
+  border-radius: 2px;
+  flex: none;
+}
+.trow .tn {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text);
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.trow .tp {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-muted);
+}
+.trow .rdot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex: none;
+}
+
+/* ---- detail ---- */
+.detail {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--bg);
+}
+.dBody {
+  flex: 1;
+  overflow-y: auto;
+  padding: 22px 24px 32px;
+}
+.dInner {
+  max-width: 720px;
+}
+.dTop {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+.dName {
+  font-family: var(--mono);
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.delBtn {
+  margin-left: auto;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
+}
+.delBtn:hover {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+.listMsg {
+  padding: 16px 10px;
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+.dBadges {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 9px;
+}
+.nb {
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.nb .tdot {
+  width: 6px;
+  height: 6px;
+  border-radius: 2px;
+}
+.nb.client {
+  color: var(--accent);
+  border-color: rgba(62, 207, 142, 0.3);
+}
+.nb.mcp {
+  color: var(--violet);
+  border-color: rgba(139, 135, 245, 0.3);
+}
+.nb.registered {
+  color: var(--accent);
+}
+.dDesc {
+  font-size: 13.5px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 16px 0 22px;
+}
+
+.secH {
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 500;
+  margin: 22px 0 10px;
+}
+.secH:first-of-type {
+  margin-top: 0;
+}
+
+/* params table */
+.ptable {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.prow {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.prow:last-child {
+  border-bottom: none;
+}
+.prow.h {
+  background: var(--surface-2);
+}
+.prow .pn {
+  width: 120px;
+  flex: none;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text);
+}
+.prow .pt {
+  width: 80px;
+  flex: none;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--blue);
+}
+.prow .prq {
+  width: 64px;
+  flex: none;
+  font-family: var(--mono);
+  font-size: 10px;
+}
+.prow .prq .req {
+  color: var(--warn);
+}
+.prow .prq .opt {
+  color: var(--text-muted);
+}
+.prow .pd {
+  flex: 1;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.prow.h .pn,
+.prow.h .pt,
+.prow.h .prq,
+.prow.h .pd {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.jsonbox {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  padding: 14px 16px;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+  white-space: pre;
+  overflow-x: auto;
+}
+.jsonbox .key {
+  color: var(--blue);
+}
+.jsonbox .str {
+  color: var(--accent);
+}
+.jsonbox .num {
+  color: var(--warn);
+}
+.note {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin-top: 20px;
+  padding: 11px 13px;
+  border: 1px dashed var(--border);
+  border-radius: 9px;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+.note svg {
+  stroke: var(--text-muted);
+  flex: none;
+  margin-top: 1px;
+}
+.note b {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* client tool editor */
+.fld {
+  margin-bottom: 16px;
+}
+.fld > label {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 7px;
+}
+.fld > label .hint {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+.inp {
+  width: 100%;
+  height: 38px;
+  padding: 0 12px;
+  background: var(--elevated);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 12.5px;
+  outline: none;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+.inp:focus {
+  border-color: var(--text-secondary);
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+.code {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.65;
+  padding: 13px 15px;
+  outline: none;
+  resize: vertical;
+  tab-size: 2;
+  transition: border-color 0.15s;
+}
+.code:focus {
+  border-color: var(--border-strong);
+}
+.langTabs {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 8px;
+}
+.langTabs button {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 4px 9px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.langTabs button.on {
+  background: var(--elevated);
+  color: var(--text);
+}
+.codeHead {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.codeHead .rh {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.codeHead .rh .d {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.modeSeg {
+  display: inline-flex;
+  background: var(--elevated);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 2px;
+}
+.modeSeg button {
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.modeSeg button.on {
+  background: var(--surface);
+  color: var(--text);
+}
+.whenLabel {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.editorActions {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 8px;
+}
+.regBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 8px;
+  background: var(--btn-bg);
+  color: var(--btn-text);
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+.regBtn:hover {
+  filter: brightness(1.06);
+}
+.testBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--sans);
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
+}
+.testBtn:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+.editorNote {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--text-muted);
+}
+.mockNote {
+  margin-top: 7px;
+  margin-left: 0;
+}

@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Agentflow Playground — Graph</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Fira+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg:#0B0C0E; --surface:#131417; --surface-2:#17181C; --elevated:#1C1D22;
+    --border:#26272D; --border-strong:#33353D; --text:#ECEDEF; --text-secondary:#9A9EA7;
+    --text-muted:#63676F; --accent:#3ECF8E; --accent-weak:rgba(62,207,142,0.12);
+    --danger:#F26D6D; --warn:#E5B567; --blue:#8FB8FF; --violet:#8B87F5;
+    --btn-bg:#F2F3F5; --btn-text:#0B0C0E; --focus-ring:rgba(236,237,239,0.10);
+    --sans:"Fira Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    --mono:"Fira Code",ui-monospace,"SF Mono",Menlo,monospace;
+  }
+  html[data-theme="light"] {
+    --bg:#FBFBFC; --surface:#FFFFFF; --surface-2:#F7F8F9; --elevated:#F1F2F4;
+    --border:#E6E7EA; --border-strong:#D6D8DD; --text:#16181D; --text-secondary:#5C616B;
+    --text-muted:#9297A1; --accent:#1BA674; --accent-weak:rgba(27,166,116,0.10);
+    --blue:#3F6FD1; --violet:#6257D6; --btn-bg:#16181D; --btn-text:#FFFFFF; --focus-ring:rgba(22,24,29,0.08);
+  }
+  * { box-sizing:border-box; }
+  html,body { height:100%; }
+  body { margin:0; height:100vh; display:flex; flex-direction:column; overflow:hidden; background:var(--bg); color:var(--text); font-family:var(--sans); font-size:13px; line-height:1.5; -webkit-font-smoothing:antialiased; }
+  @media (prefers-reduced-motion:reduce){ *{animation:none!important;transition:none!important;} }
+  .mono { font-family:var(--mono); }
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:.4;} }
+  @keyframes ring { 0%{transform:scale(1);opacity:.5;} 100%{transform:scale(1.35);opacity:0;} }
+  ::-webkit-scrollbar { width:10px; height:10px; }
+  ::-webkit-scrollbar-thumb { background:var(--elevated); border:3px solid transparent; background-clip:padding-box; border-radius:8px; }
+  ::-webkit-scrollbar-thumb:hover { background:var(--border-strong); background-clip:padding-box; }
+
+  /* ---- connection bar ---- */
+  .connbar { display:flex; align-items:center; gap:14px; height:48px; padding:0 14px 0 16px; border-bottom:1px solid var(--border); flex:none; background:var(--surface); }
+  .brand { display:flex; align-items:center; gap:9px; }
+  .mark { width:20px; height:20px; border:1.5px solid var(--text); border-radius:6px; position:relative; flex:none; }
+  .mark::after { content:""; position:absolute; inset:4px; border-radius:2px; border:1.5px solid var(--text-secondary); }
+  .wordmark { font-family:var(--mono); font-size:12.5px; font-weight:500; letter-spacing:-0.01em; }
+  .wordmark .dim { color:var(--text-muted); }
+  .sep { width:1px; height:22px; background:var(--border); }
+  .conn-pill { display:flex; align-items:center; gap:9px; height:30px; padding:0 10px; background:var(--elevated); border:1px solid var(--border); border-radius:8px; cursor:pointer; transition:border-color .15s; }
+  .conn-pill:hover { border-color:var(--border-strong); }
+  .dot { width:7px; height:7px; border-radius:50%; flex:none; } .dot.live { background:var(--accent); box-shadow:0 0 0 3px var(--accent-weak); }
+  .conn-name { font-size:12.5px; font-weight:500; } .conn-url { font-family:var(--mono); font-size:11px; color:var(--text-muted); }
+  .chev { color:var(--text-muted); }
+  .grow { flex:1; }
+  .cb-actions { display:flex; align-items:center; gap:4px; }
+  .iconbtn { height:30px; min-width:30px; padding:0 9px; display:flex; align-items:center; gap:7px; justify-content:center; background:transparent; border:1px solid transparent; border-radius:8px; color:var(--text-secondary); font-family:var(--sans); font-size:12px; cursor:pointer; transition:color .15s,border-color .15s,background .15s; }
+  .iconbtn:hover { color:var(--text); border-color:var(--border-strong); }
+  .iconbtn.armed { color:var(--text); border-color:var(--border-strong); background:var(--elevated); }
+  .iconbtn svg { stroke:currentColor; }
+
+  /* ---- shell ---- */
+  .shell { flex:1; display:grid; grid-template-columns:230px 1fr 340px; min-height:0; }
+
+  /* ---- sidebar ---- */
+  .side { border-right:1px solid var(--border); background:var(--surface); display:flex; flex-direction:column; min-height:0; }
+  .side-scroll { flex:1; overflow-y:auto; padding:14px 10px 8px; }
+  .navgroup { margin-bottom:16px; }
+  .navgroup-h { font-size:10.5px; letter-spacing:0.11em; text-transform:uppercase; color:var(--text-muted); font-weight:500; padding:0 8px; margin-bottom:6px; }
+  .navitem { display:flex; align-items:center; gap:10px; padding:7px 8px; border-radius:8px; color:var(--text-secondary); cursor:pointer; font-size:13px; font-weight:500; position:relative; transition:color .15s,background .15s; margin-bottom:1px; }
+  .navitem:hover { color:var(--text); background:var(--elevated); }
+  .navitem.active { color:var(--text); background:var(--elevated); }
+  .navitem.active::before { content:""; position:absolute; left:-10px; top:7px; bottom:7px; width:2px; border-radius:2px; background:var(--accent); }
+  .navitem svg { flex:none; stroke:currentColor; opacity:.85; }
+  .navitem .badge { margin-left:auto; font-family:var(--mono); font-size:10px; color:var(--text-muted); background:var(--surface-2); border:1px solid var(--border); padding:0 6px; border-radius:5px; }
+  .side-foot { border-top:1px solid var(--border); padding:8px 10px; }
+
+  /* ---- canvas ---- */
+  .main { display:flex; flex-direction:column; min-width:0; min-height:0; background:var(--bg); }
+  .g-head { display:flex; align-items:center; gap:12px; padding:11px 18px; border-bottom:1px solid var(--border); flex:none; }
+  .g-title { font-size:14px; font-weight:600; display:flex; align-items:center; gap:8px; }
+  .g-title .sub { color:var(--text-muted); font-weight:400; font-family:var(--mono); font-size:11.5px; }
+  .g-right { margin-left:auto; display:flex; align-items:center; gap:10px; }
+  .live-toggle { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-secondary); cursor:pointer; }
+  .switch { position:relative; width:36px; height:20px; flex:none; }
+  .switch input { opacity:0; width:0; height:0; }
+  .slider { position:absolute; inset:0; cursor:pointer; background:var(--elevated); border:1px solid var(--border); border-radius:999px; transition:.18s; }
+  .slider::before { content:""; position:absolute; height:12px; width:12px; left:3px; top:3px; background:var(--text-muted); border-radius:50%; transition:.18s; }
+  .switch input:checked + .slider { background:var(--accent-weak); border-color:var(--accent); }
+  .switch input:checked + .slider::before { transform:translateX(16px); background:var(--accent); }
+
+  .canvas-wrap { flex:1; overflow:auto; display:flex; align-items:center; justify-content:center; padding:24px;
+    background-image:radial-gradient(var(--border) 1px, transparent 1px); background-size:22px 22px; }
+  .canvas { position:relative; width:640px; height:380px; flex:none; }
+  .canvas svg { position:absolute; inset:0; width:100%; height:100%; overflow:visible; }
+  #gedges .edge { stroke:var(--border-strong); stroke-width:1.5; fill:none; }
+  #gedges .cond { stroke:var(--text-muted); stroke-width:1.5; fill:none; stroke-dasharray:4 4; }
+  #gedges marker path { fill:none; stroke:var(--text-muted); stroke-width:1.4; }
+  .elabel { fill:var(--text-secondary); font-family:var(--mono); font-size:10px; }
+
+  .gnode { position:absolute; background:var(--surface); border:1px solid var(--border-strong); border-radius:10px; padding:9px 13px; cursor:pointer; transition:border-color .15s, box-shadow .15s; z-index:2; }
+  .gnode:hover { border-color:var(--text-secondary); }
+  .gnode.sel { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-weak); }
+  .gnode .gn-name { font-size:13px; font-weight:600; }
+  .gnode .gn-sub { font-family:var(--mono); font-size:10px; color:var(--text-muted); margin-top:2px; display:flex; align-items:center; gap:6px; }
+  .gnode .kdot { width:6px; height:6px; border-radius:2px; }
+  .kdot.agent { background:var(--accent); } .kdot.tool { background:var(--violet); }
+  .gnode .gn-badge { margin-top:6px; font-family:var(--mono); font-size:9.5px; color:var(--text-secondary); border:1px solid var(--border); border-radius:5px; padding:1px 6px; display:inline-block; }
+  .gnode.sentinel { padding:6px 12px; background:var(--elevated); border-radius:999px; }
+  .gnode.sentinel .gn-name { font-family:var(--mono); font-size:11px; font-weight:500; color:var(--text-secondary); letter-spacing:0.04em; }
+  .gnode.current { border-color:var(--accent); }
+  .gnode.current::after { content:""; position:absolute; inset:-1px; border-radius:inherit; border:1.5px solid var(--accent); animation:ring 1.4s ease-out infinite; pointer-events:none; }
+  .gnode .runtag { position:absolute; top:-9px; right:10px; font-family:var(--mono); font-size:9px; color:var(--accent); background:var(--bg); padding:0 5px; display:none; }
+  .gnode.current .runtag { display:block; }
+
+  .legend { position:absolute; left:0; bottom:-2px; display:flex; gap:14px; font-family:var(--mono); font-size:10px; color:var(--text-muted); }
+  .legend span { display:flex; align-items:center; gap:6px; }
+  .legend .ln { width:14px; height:0; border-top:1.5px solid var(--border-strong); }
+  .legend .ln.cond { border-top-style:dashed; border-color:var(--text-muted); }
+
+  /* ---- right panel ---- */
+  .panel { border-left:1px solid var(--border); background:var(--surface); display:flex; flex-direction:column; min-height:0; }
+  .p-tabs { display:flex; gap:2px; padding:8px 10px; border-bottom:1px solid var(--border); flex:none; }
+  .p-tabs button { border:none; background:transparent; color:var(--text-muted); font-family:var(--sans); font-size:12px; font-weight:500; padding:6px 11px; border-radius:7px; cursor:pointer; transition:color .15s,background .15s; }
+  .p-tabs button.on { color:var(--text); background:var(--elevated); }
+  .p-body { flex:1; overflow-y:auto; padding:16px 15px; }
+  .pane { display:none; } .pane.on { display:block; }
+
+  .n-name { font-family:var(--mono); font-size:15px; font-weight:600; margin-bottom:8px; }
+  .n-badges { display:flex; gap:7px; margin-bottom:14px; }
+  .nb { font-family:var(--mono); font-size:10px; padding:2px 8px; border-radius:5px; border:1px solid var(--border); color:var(--text-secondary); display:flex; align-items:center; gap:6px; }
+  .nb .kdot { width:6px; height:6px; border-radius:2px; }
+  .n-desc { font-size:12.5px; color:var(--text-secondary); line-height:1.55; margin-bottom:18px; }
+
+  .sec-h { font-size:10.5px; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-muted); font-weight:500; margin:0 0 9px; }
+  .edge-row { display:flex; align-items:center; gap:8px; padding:7px 10px; border:1px solid var(--border); border-radius:8px; background:var(--surface-2); margin-bottom:6px; font-family:var(--mono); font-size:11.5px; }
+  .edge-row .arw { color:var(--text-muted); } .edge-row .nn { color:var(--text); }
+  .edge-row .cnd { margin-left:auto; font-size:10px; color:var(--text-muted); border:1px solid var(--border); border-radius:5px; padding:1px 6px; }
+  .edge-row.in .arw { color:var(--blue); }
+
+  .tool-card { border:1px solid var(--border); border-radius:9px; background:var(--surface-2); padding:10px 12px; margin-bottom:7px; }
+  .tc-top { display:flex; align-items:center; gap:8px; }
+  .tc-name { font-family:var(--mono); font-size:12px; color:var(--text); font-weight:500; }
+  .tc-conn { margin-left:auto; display:flex; align-items:center; gap:5px; font-family:var(--mono); font-size:9.5px; color:var(--accent); }
+  .tc-conn .d { width:6px; height:6px; border-radius:50%; background:var(--accent); }
+  .tc-src { font-family:var(--mono); font-size:9px; padding:1px 6px; border-radius:4px; border:1px solid var(--border); color:var(--text-secondary); }
+  .tc-src.remote { color:var(--warn); border-color:rgba(229,181,103,0.3); } .tc-src.mcp { color:var(--violet); border-color:rgba(139,135,245,0.3); }
+  .tc-desc { font-size:11.5px; color:var(--text-secondary); margin-top:5px; line-height:1.5; }
+  .tc-params { font-family:var(--mono); font-size:10.5px; color:var(--text-muted); margin-top:5px; }
+  .tc-params b { color:var(--text-secondary); font-weight:500; }
+  .mcp-head { display:flex; align-items:center; gap:8px; font-family:var(--mono); font-size:11px; color:var(--violet); margin:14px 0 8px; }
+  .mcp-head .d { width:6px; height:6px; border-radius:2px; background:var(--violet); }
+
+  /* graph info tab */
+  .kv { display:flex; align-items:center; justify-content:space-between; padding:7px 0; border-bottom:1px dashed var(--border); font-family:var(--mono); font-size:11.5px; gap:10px; }
+  .kv:last-child { border-bottom:none; }
+  .kv .k { color:var(--text-secondary); } .kv .v { color:var(--text); text-align:right; } .kv .v.ok { color:var(--accent); } .kv .v.muted { color:var(--text-muted); }
+  .chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:2px; }
+  .chip { font-family:var(--mono); font-size:10.5px; padding:3px 8px; border-radius:6px; border:1px solid var(--border); background:var(--elevated); color:var(--text-secondary); }
+  .schema { border:1px solid var(--border); border-radius:9px; background:var(--surface-2); padding:12px 14px; font-family:var(--mono); font-size:11px; line-height:1.7; color:var(--text-secondary); white-space:pre; overflow-x:auto; }
+  .schema .key { color:var(--blue); } .schema .str { color:var(--accent); }
+  .p-open { display:flex; align-items:center; justify-content:center; gap:8px; margin-top:10px; height:32px; border:1px solid var(--border); border-radius:8px; background:transparent; color:var(--text-secondary); font-family:var(--sans); font-size:12px; font-weight:500; cursor:pointer; width:100%; transition:color .15s,border-color .15s; }
+  .p-open:hover { color:var(--text); border-color:var(--border-strong); } .p-open svg { stroke:currentColor; }
+  .p-h2 { font-size:10.5px; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-muted); font-weight:500; margin:20px 0 9px; }
+</style>
+</head>
+<body>
+  <!-- CONNECTION BAR -->
+  <div class="connbar">
+    <div class="brand"><span class="mark"></span><span class="wordmark">agentflow<span class="dim">/playground</span></span></div>
+    <div class="sep"></div>
+    <div class="conn-pill">
+      <span class="dot live"></span><span class="conn-name">Local dev</span><span class="conn-url">localhost:8000</span>
+      <svg class="chev" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="grow"></div>
+    <div class="cb-actions">
+      <button class="iconbtn" onclick="toggleTheme()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><path d="M21 12.8A9 9 0 1111.2 3 7 7 0 0021 12.8z"/></svg></button>
+      <button class="iconbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.6 1.6 0 00-2.7.7 1.6 1.6 0 01-3.2 0 1.6 1.6 0 00-2.7-.7l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.6 1.6 0 00-.7-2.7 1.6 1.6 0 010-3.2 1.6 1.6 0 00.7-2.7l-.1-.1a2 2 0 112.8-2.8l.1.1a1.6 1.6 0 001.8.3H9a1.6 1.6 0 001-1.5 1.6 1.6 0 013.2 0 1.6 1.6 0 001 1.5 1.6 1.6 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.6 1.6 0 00-.3 1.8V9a1.6 1.6 0 001.5 1 1.6 1.6 0 010 3.2 1.6 1.6 0 00-1.5 1z"/></svg></button>
+    </div>
+  </div>
+
+  <!-- SHELL -->
+  <div class="shell">
+    <!-- SIDEBAR -->
+    <aside class="side">
+      <div class="side-scroll">
+        <div class="navgroup">
+          <div class="navgroup-h">Interact</div>
+          <div class="navitem"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>Chat</div>
+          <div class="navitem"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><path d="M12 2a3 3 0 00-3 3v6a3 3 0 006 0V5a3 3 0 00-3-3z"/><path d="M19 10v1a7 7 0 01-14 0v-1M12 18v4"/></svg>Live</div>
+        </div>
+        <div class="navgroup">
+          <div class="navgroup-h">Inspect</div>
+          <div class="navitem"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><path d="M3 5h18M3 12h18M3 19h18"/></svg>Thread Inspector <span class="badge">142</span></div>
+          <div class="navitem"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><path d="M3 3v18h18"/><path d="M7 14l3-4 3 3 4-6"/></svg>Observability</div>
+          <div class="navitem"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><path d="M9 11l3 3 8-8"/><path d="M20 12v6a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h9"/></svg>Evals</div>
+          <div class="navitem"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg>Memory Inspector</div>
+        </div>
+        <div class="navgroup">
+          <div class="navgroup-h">Build</div>
+          <div class="navitem active"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><circle cx="6" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><circle cx="18" cy="6" r="3"/><path d="M9 6h6M18 9v6"/></svg>Graph</div>
+          <div class="navitem"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><path d="M14.7 6.3a4 4 0 00-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 005.4-5.4l-2.6 2.6-2.4-2.4z"/></svg>Tools &amp; MCP</div>
+          <div class="navitem"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/><path d="M13 2v7h7"/></svg>Files</div>
+        </div>
+      </div>
+      <div class="side-foot">
+        <div class="navitem"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 00.3 1.8M4.6 9a1.6 1.6 0 00-.3-1.8"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>Settings</div>
+      </div>
+    </aside>
+
+    <!-- CANVAS -->
+    <main class="main">
+      <div class="g-head">
+        <div class="g-title">Graph <span class="sub">graph.react:app · 4 nodes · 4 edges</span></div>
+        <div class="g-right">
+          <label class="live-toggle">Highlight live run
+            <span class="switch"><input type="checkbox" id="liveChk" onchange="toggleLive()" checked /><span class="slider"></span></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="canvas-wrap">
+        <div class="canvas">
+          <svg id="gedges" viewBox="0 0 640 380">
+            <defs><marker id="arrow" markerWidth="9" markerHeight="9" refX="6.5" refY="3" orient="auto"><path d="M0 0 L6 3 L0 6"/></marker></defs>
+            <!-- START -> agent -->
+            <path class="edge" d="M124 90 L196 168" marker-end="url(#arrow)"/>
+            <!-- agent -> tools (conditional, up arc) -->
+            <path class="cond" d="M312 178 Q360 148 408 178" marker-end="url(#arrow)"/>
+            <text class="elabel" x="360" y="142" text-anchor="middle">tool_calls</text>
+            <!-- tools -> agent (down arc) -->
+            <path class="edge" d="M408 202 Q360 232 312 202" marker-end="url(#arrow)"/>
+            <text class="elabel" x="360" y="248" text-anchor="middle">tool_result</text>
+            <!-- agent -> END (conditional) -->
+            <path class="cond" d="M250 218 L250 300" marker-end="url(#arrow)"/>
+            <text class="elabel" x="262" y="264" text-anchor="start">final</text>
+          </svg>
+
+          <div class="gnode sentinel" style="left:63px; top:59px;" onclick="selNode('START',this)"><div class="gn-name">START</div></div>
+          <div class="gnode current" style="left:190px; top:164px;" onclick="selNode('agent',this)">
+            <span class="runtag">● running · step 3</span>
+            <div class="gn-name">agent</div>
+            <div class="gn-sub"><span class="kdot agent"></span>agent · reasoning</div>
+          </div>
+          <div class="gnode" style="left:410px; top:164px;" onclick="selNode('tools',this)">
+            <div class="gn-name">tools</div>
+            <div class="gn-sub"><span class="kdot tool"></span>tool node</div>
+            <span class="gn-badge">3 tools · 1 mcp</span>
+          </div>
+          <div class="gnode sentinel" style="left:218px; top:304px;" onclick="selNode('END',this)"><div class="gn-name">END</div></div>
+
+          <div class="legend">
+            <span><span class="ln"></span>edge</span>
+            <span><span class="ln cond"></span>conditional</span>
+            <span><span class="kdot agent" style="width:8px;height:8px"></span>agent</span>
+            <span><span class="kdot tool" style="width:8px;height:8px"></span>tool node</span>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- RIGHT PANEL -->
+    <aside class="panel">
+      <div class="p-tabs">
+        <button class="on" id="tabNode" onclick="pTab('node',this)">Node</button>
+        <button id="tabGraph" onclick="pTab('graph',this)">Graph info</button>
+      </div>
+      <div class="p-body">
+        <!-- NODE -->
+        <div class="pane on" id="pane-node"></div>
+
+        <!-- GRAPH INFO -->
+        <div class="pane" id="pane-graph">
+          <div class="sec-h">GET /v1/graph · info</div>
+          <div class="kv"><span class="k">node_count</span><span class="v">4</span></div>
+          <div class="kv"><span class="k">edge_count</span><span class="v">4</span></div>
+          <div class="kv"><span class="k">checkpointer</span><span class="v ok">true</span></div>
+          <div class="kv"><span class="k">checkpointer_type</span><span class="v">PostgresCheckpointer</span></div>
+          <div class="kv"><span class="k">publisher</span><span class="v ok">true</span></div>
+          <div class="kv"><span class="k">store</span><span class="v ok">true</span></div>
+          <div class="kv"><span class="k">interrupt_before</span><span class="v muted">none</span></div>
+          <div class="kv"><span class="k">interrupt_after</span><span class="v muted">none</span></div>
+          <div class="kv"><span class="k">context_type</span><span class="v">DefaultContextManager</span></div>
+          <div class="kv"><span class="k">id_generator</span><span class="v">SnowflakeIDGenerator</span></div>
+          <div class="kv"><span class="k">id_type</span><span class="v">int</span></div>
+          <div class="kv"><span class="k">state_type</span><span class="v">AgentState</span></div>
+
+          <div class="p-h2">state_fields</div>
+          <div class="chips">
+            <span class="chip">context</span>
+            <span class="chip">context_summary</span>
+            <span class="chip">execution_meta</span>
+          </div>
+
+          <div class="p-h2">GET /v1/graph:StateSchema</div>
+          <div class="schema">{
+  <span class="key">"title"</span>: <span class="str">"AgentState"</span>,
+  <span class="key">"type"</span>: <span class="str">"object"</span>,
+  <span class="key">"properties"</span>: {
+    <span class="key">"context"</span>: { <span class="key">"type"</span>: <span class="str">"array"</span> },
+    <span class="key">"context_summary"</span>: { <span class="key">"type"</span>: <span class="str">"string"</span> },
+    <span class="key">"execution_meta"</span>: { <span class="key">"$ref"</span>: <span class="str">"#/$defs/ExecMeta"</span> }
+  }
+}</div>
+          <button class="p-open"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke-width="1.7"><path d="M15 3h6v6M10 14L21 3M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/></svg>Open full state schema</button>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+<script>
+  function toggleTheme(){ const h=document.documentElement,l=h.getAttribute('data-theme')==='light'; h.setAttribute('data-theme',l?'dark':'light'); }
+  function pTab(name,btn){
+    document.querySelectorAll('.p-tabs button').forEach(b=>b.classList.remove('on')); btn.classList.add('on');
+    document.querySelectorAll('.pane').forEach(p=>p.classList.remove('on')); document.getElementById('pane-'+name).classList.add('on');
+  }
+  function toggleLive(){
+    const on=document.getElementById('liveChk').checked;
+    const agent=[...document.querySelectorAll('.gnode')].find(n=>n.querySelector('.gn-name')?.textContent==='agent');
+    if(on){ agent.classList.add('current'); } else { agent.classList.remove('current'); }
+  }
+
+  // node data — graph nodes {id,name} cross-referenced with the tool registry (by node_name) and info
+  const NODES={
+    START:{ id:'n_0e11', kind:'sentinel', desc:'Graph entry point. Execution begins here and routes to the first node.',
+      inn:[], out:[{to:'agent'}] },
+    agent:{ id:'n_7c1a', kind:'agent', desc:'Reasoning node. Calls the LLM, then a conditional edge routes to tools when the model emits tool_calls, or to END when it returns a final answer.',
+      inn:['START','tools'], out:[{to:'tools',cond:'has tool_calls'},{to:'END',cond:'final answer'}], interrupt:false },
+    tools:{ id:'n_3f22', kind:'tool', desc:'Tool node. Executes the model\'s tool_calls in parallel and feeds tool_result messages back to the agent.',
+      inn:['agent'], out:[{to:'agent'}], interrupt:false,
+      tools:[
+        {name:'get_weather', src:'local', desc:'Current weather for a location.', params:'location:str, units:str'},
+        {name:'get_report', src:'local', desc:'Fetch a quarterly report by period.', params:'quarter:str'},
+        {name:'send_email', src:'remote', desc:'Client-side tool attached via POST /v1/graph/setup.', params:'to:str, subject:str, body:str'}
+      ],
+      mcp:[{server:'filesystem', tools:['fs.read','fs.write']}] },
+    END:{ id:'n_9d40', kind:'sentinel', desc:'Graph exit point. The final state is returned to the caller.',
+      inn:['agent'], out:[] }
+  };
+  const KDOT={agent:'agent',tool:'tool'};
+
+  function selNode(name,el){
+    document.querySelectorAll('.gnode').forEach(n=>n.classList.remove('sel')); if(el) el.classList.add('sel');
+    const n=NODES[name];
+    let h='';
+    h+=`<div class="n-name">${name}</div>`;
+    h+=`<div class="n-badges"><span class="nb">${n.kind==='sentinel'?'sentinel':(n.kind+' node')}${n.kind!=='sentinel'?`<span class="kdot ${n.kind}"></span>`:''}</span><span class="nb">id ${n.id}</span>${n.interrupt?'<span class="nb">interrupt</span>':''}</div>`;
+    h+=`<div class="n-desc">${n.desc}</div>`;
+
+    h+=`<div class="sec-h">Connections</div>`;
+    if(!n.inn.length && !n.out.length) h+=`<div class="n-desc" style="margin:0">No edges.</div>`;
+    n.inn.forEach(s=>{ h+=`<div class="edge-row in"><span class="arw">←</span><span class="nn">${s}</span><span class="cnd">in</span></div>`; });
+    n.out.forEach(o=>{ h+=`<div class="edge-row"><span class="arw">→</span><span class="nn">${o.to}</span>${o.cond?`<span class="cnd">${o.cond}</span>`:'<span class="cnd">out</span>'}</div>`; });
+
+    if(n.tools){
+      h+=`<div class="sec-h" style="margin-top:18px">Tools &amp; skills · ${n.tools.length} connected</div>`;
+      n.tools.forEach(t=>{
+        h+=`<div class="tool-card"><div class="tc-top"><span class="tc-name">${t.name}</span><span class="tc-src ${t.src}">${t.src}</span><span class="tc-conn"><span class="d"></span>connected</span></div>
+          <div class="tc-desc">${t.desc}</div><div class="tc-params"><b>params</b> ${t.params}</div></div>`;
+      });
+      n.mcp.forEach(m=>{
+        h+=`<div class="mcp-head"><span class="d"></span>MCP · ${m.server}</div>`;
+        m.tools.forEach(mt=>{ h+=`<div class="tool-card"><div class="tc-top"><span class="tc-name">${mt}</span><span class="tc-src mcp">mcp</span><span class="tc-conn"><span class="d"></span>connected</span></div></div>`; });
+      });
+    }
+    if(n.kind==='agent'){
+      h+=`<div class="sec-h" style="margin-top:18px">Routes to</div>
+        <div class="tool-card"><div class="tc-desc">Conditional edge selects <span class="mono" style="color:var(--text)">tools</span> when the model returns tool_calls, otherwise <span class="mono" style="color:var(--text)">END</span>. Live routing is highlighted on the canvas during a run.</div></div>`;
+    }
+    document.getElementById('pane-node').innerHTML=h;
+    pTab('node', document.getElementById('tabNode'));
+  }
+
+  selNode('tools', [...document.querySelectorAll('.gnode')].find(n=>n.querySelector('.gn-name').textContent==='tools'));
+</script>
+</body>
+</html>

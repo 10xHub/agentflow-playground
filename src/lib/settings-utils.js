@@ -11,9 +11,27 @@ export const DEFAULT_SETTINGS = Object.freeze({
   authToken: "",
   auth: null,
   credentials: "",
+  headers: Object.freeze([]),
 })
 
 const readString = (value) => (typeof value === "string" ? value.trim() : "")
+
+export const normalizeCustomHeaders = (headers) => {
+  if (!Array.isArray(headers)) {
+    return []
+  }
+
+  return headers.reduce((accumulator, header) => {
+    const name = readString(header?.name)
+    const value = readString(header?.value)
+
+    if (name && value) {
+      accumulator.push({ name, value })
+    }
+
+    return accumulator
+  }, [])
+}
 
 const normalizeHeaderAuth = (auth) => {
   const name = readString(auth?.name)
@@ -110,6 +128,7 @@ export const normalizeSettings = (settings = {}) => {
     credentials: VALID_CREDENTIALS.includes(settings.credentials)
       ? settings.credentials
       : "",
+    headers: normalizeCustomHeaders(settings.headers),
   }
 }
 

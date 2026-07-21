@@ -156,6 +156,72 @@ describe("agentflow-client", () => {
     })
   })
 
+  it("passes custom headers to the client as an object", () => {
+    localStorage.setItem(
+      SETTINGS_STORAGE_KEY,
+      JSON.stringify({
+        backendUrl: "https://example.com/",
+        authMode: "none",
+        headers: [
+          { name: "X-Tenant-Id", value: "acme" },
+          { name: "X-Trace", value: "123" },
+        ],
+      })
+    )
+
+    getAgentFlowClient()
+
+    expect(AgentFlowClientMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        headers: {
+          "X-Tenant-Id": "acme",
+          "X-Trace": "123",
+        },
+      })
+    )
+  })
+
+  it("omits headers when no custom headers are configured", () => {
+    localStorage.setItem(
+      SETTINGS_STORAGE_KEY,
+      JSON.stringify({
+        backendUrl: "https://example.com/",
+        authMode: "none",
+      })
+    )
+
+    getAgentFlowClient()
+
+    expect(AgentFlowClientMock).toHaveBeenCalledWith(
+      expect.not.objectContaining({ headers: expect.anything() })
+    )
+  })
+
+  it("sends custom headers alongside a custom auth header", () => {
+    localStorage.setItem(
+      SETTINGS_STORAGE_KEY,
+      JSON.stringify({
+        backendUrl: "https://example.com/",
+        authMode: "header",
+        auth: {
+          type: "header",
+          name: "X-API-Key",
+          value: "secret-key",
+        },
+        headers: [{ name: "X-Tenant-Id", value: "acme" }],
+      })
+    )
+
+    getAgentFlowClient()
+
+    expect(AgentFlowClientMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        auth: { type: "header", name: "X-API-Key", value: "secret-key", prefix: null },
+        headers: { "X-Tenant-Id": "acme" },
+      })
+    )
+  })
+
   it("throws when the backend URL is not configured", () => {
     expect(() => getAgentFlowClient()).toThrow("Backend URL is not set")
   })

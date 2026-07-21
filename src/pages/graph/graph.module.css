@@ -1,0 +1,507 @@
+/* Ported verbatim from docs/mockups/graph.html. Reuses global tokens; --blue and
+   --violet are categorical colors from the mockup (not global tokens). */
+.main {
+  --blue: #8fb8ff;
+  --violet: #8b87f5;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+  background: var(--bg);
+}
+html[data-theme="light"] .main {
+  --blue: #3f6fd1;
+  --violet: #6257d6;
+}
+
+@keyframes graphRing {
+  0% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+}
+
+/* ---- head ---- */
+.gHead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 18px;
+  border-bottom: 1px solid var(--border);
+  flex: none;
+}
+.gTitle {
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.gTitle .sub {
+  color: var(--text-muted);
+  font-weight: 400;
+  font-family: var(--mono);
+  font-size: 11.5px;
+}
+.gRight {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.liveToggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.switch {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  flex: none;
+}
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.slider {
+  position: absolute;
+  inset: 0;
+  cursor: pointer;
+  background: var(--elevated);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  transition: 0.18s;
+}
+.slider::before {
+  content: "";
+  position: absolute;
+  height: 12px;
+  width: 12px;
+  left: 3px;
+  top: 3px;
+  background: var(--text-muted);
+  border-radius: 50%;
+  transition: 0.18s;
+}
+.switch input:checked + .slider {
+  background: var(--accent-weak);
+  border-color: var(--accent);
+}
+.switch input:checked + .slider::before {
+  transform: translateX(16px);
+  background: var(--accent);
+}
+
+/* ---- canvas ---- */
+.canvasWrap {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  min-height: 0;
+  padding: 0;
+  background-image: radial-gradient(var(--border) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+.canvasEmpty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+/* reaflow auto-layout canvas fills the wrap; nodes render via foreignObject. */
+.reaflow {
+  width: 100% !important;
+  height: 100% !important;
+}
+.reaflowEdge {
+  stroke: var(--border-strong);
+  stroke-width: 1.5;
+  fill: none;
+}
+.reaflow :global(.edge) {
+  stroke: var(--border-strong);
+}
+.canvas {
+  position: relative;
+  width: 640px;
+  height: 380px;
+  flex: none;
+}
+.canvas svg.edges {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.canvas svg.edges .edge {
+  stroke: var(--border-strong);
+  stroke-width: 1.5;
+  fill: none;
+}
+.canvas svg.edges .cond {
+  stroke: var(--text-muted);
+  stroke-width: 1.5;
+  fill: none;
+  stroke-dasharray: 4 4;
+}
+.canvas svg.edges marker path {
+  fill: none;
+  stroke: var(--text-muted);
+  stroke-width: 1.4;
+}
+.elabel {
+  fill: var(--text-secondary);
+  font-family: var(--mono);
+  font-size: 10px;
+}
+
+/* reaflow node card (rendered inside a foreignObject) */
+.rfNode {
+  fill: transparent;
+  stroke: transparent;
+}
+.rfCard {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+  text-align: left;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 14px;
+  cursor: pointer;
+  position: relative;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s,
+    transform 0.15s;
+}
+.rfCard:hover {
+  border-color: var(--text-secondary);
+  transform: translateY(-1px);
+}
+.rfCardSel {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-weak);
+}
+.rfCardActive {
+  border-color: var(--accent);
+}
+.rfCardActive::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  border: 1.5px solid var(--accent);
+  animation: graphRing 1.4s ease-out infinite;
+  pointer-events: none;
+}
+.rfRun {
+  position: absolute;
+  top: -9px;
+  right: 12px;
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--accent);
+  background: var(--bg);
+  padding: 0 5px;
+}
+.rfAvatar {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 15px;
+}
+.rfText {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.rfName {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rfType {
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--text-muted);
+  margin-top: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.kdot {
+  width: 6px;
+  height: 6px;
+  border-radius: 2px;
+}
+.kdot.agent {
+  background: var(--accent);
+}
+.kdot.tool {
+  background: var(--violet);
+}
+
+/* ---- right panel ---- */
+.panel {
+  width: 340px;
+  flex: none;
+  border-left: 1px solid var(--border);
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.pBody {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ---- cards (Node Details / Graph Info) ---- */
+.card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+.cardHead {
+  padding: 14px 15px 10px;
+}
+.cardTitle {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cardDesc {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  margin-top: 3px;
+  line-height: 1.5;
+}
+.cardBody {
+  padding: 0 15px 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Node Details */
+.fieldLabel {
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin: 0;
+}
+.nodeHeading {
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 4px 0 0;
+}
+.infoTile {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  padding: 11px 12px;
+}
+.tileValue {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  margin: 7px 0 0;
+}
+.tileMono {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin: 7px 0 0;
+  word-break: break-all;
+}
+.pills {
+  list-style: none;
+  margin: 9px 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.pill {
+  border: 1px solid var(--border);
+  background: var(--elevated);
+  color: var(--text-secondary);
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 12px;
+}
+.emptyTile {
+  border: 1px dashed var(--border-strong);
+  border-radius: 10px;
+  background: var(--surface);
+  padding: 16px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+/* Graph Info */
+.statGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.statCell {
+  text-align: center;
+}
+.statTop {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+.statNum {
+  font-size: 22px;
+  font-weight: 700;
+}
+.statLabel {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.statBlue {
+  color: var(--blue);
+}
+.statGreen {
+  color: var(--accent);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+.sectionTitle {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin: 0;
+}
+.featureRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.featureLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.featureLabel {
+  font-size: 13px;
+  color: var(--text);
+}
+.featureType {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.okText {
+  color: var(--accent);
+}
+.mutedText {
+  color: var(--text-muted);
+}
+.kvLine {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+.kvKey {
+  font-weight: 600;
+  color: var(--text);
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.chip {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--elevated);
+  color: var(--text-secondary);
+}
+.schemaToggle {
+  align-self: flex-start;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
+}
+.schemaToggle:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+.schema {
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
+  padding: 12px 14px;
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  white-space: pre;
+  overflow: auto;
+  max-height: 320px;
+  margin: 0;
+}

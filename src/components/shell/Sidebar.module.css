@@ -1,0 +1,126 @@
+.side {
+  width: 230px;
+  flex: none;
+  border-right: 1px solid var(--border);
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.side.collapsed {
+  width: 60px;
+}
+
+.scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 10px 8px;
+}
+.side.collapsed .scroll {
+  padding: 14px 10px 8px;
+}
+
+.group {
+  margin-bottom: 16px;
+}
+.side.collapsed .group {
+  margin-bottom: 10px;
+}
+.groupH {
+  font-size: 10.5px;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 500;
+  padding: 0 8px;
+  margin-bottom: 6px;
+}
+.side.collapsed .groupH {
+  display: none;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 8px;
+  border-radius: 8px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  position: relative;
+  transition:
+    color 0.15s,
+    background 0.15s;
+  margin-bottom: 1px;
+  text-decoration: none;
+  background: transparent;
+  border: none;
+  width: 100%;
+  font-family: var(--sans);
+  text-align: left;
+}
+.item:hover {
+  color: var(--text);
+  background: var(--elevated);
+}
+.item.active {
+  color: var(--text);
+  background: var(--elevated);
+}
+.item.active::before {
+  content: "";
+  position: absolute;
+  left: -10px;
+  top: 7px;
+  bottom: 7px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+.ic {
+  flex: none;
+  opacity: 0.85;
+}
+.badge {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  padding: 0 6px;
+  border-radius: 5px;
+}
+.item.disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.item.disabled:hover {
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.side.collapsed .item {
+  justify-content: center;
+  gap: 0;
+  padding: 9px 0;
+}
+.side.collapsed .label {
+  display: none;
+}
+.side.collapsed .badge {
+  display: none;
+}
+
+.foot {
+  border-top: 1px solid var(--border);
+  padding: 8px 10px;
+}
+.chevIcon {
+  transition: transform 0.16s ease-out;
+}
+.side.collapsed .chevIcon {
+  transform: rotate(180deg);
+}

@@ -36,6 +36,7 @@ describe("settings-utils", () => {
       authToken: "",
       auth: null,
       credentials: "",
+      headers: [],
     })
   })
 
@@ -55,6 +56,7 @@ describe("settings-utils", () => {
       authToken: "",
       auth: null,
       credentials: "",
+      headers: [],
     })
   })
 
@@ -84,6 +86,7 @@ describe("settings-utils", () => {
         prefix: "Token",
       },
       credentials: "include",
+      headers: [],
     })
     expect(localStorage.getItem("authToken")).toBeNull()
   })
@@ -102,6 +105,7 @@ describe("settings-utils", () => {
         token: "legacy-token",
       },
       credentials: "",
+      headers: [],
     })
   })
 
@@ -120,8 +124,40 @@ describe("settings-utils", () => {
       authToken: "",
       auth: null,
       credentials: "",
+      headers: [],
     })
     expect(consoleErrorSpy).toHaveBeenCalledTimes(2)
+  })
+
+  it("defaults custom headers to an empty array", () => {
+    expect(getCurrentSettings().headers).toEqual([])
+  })
+
+  it("normalizes and persists custom headers, dropping incomplete rows", () => {
+    const saved = saveCurrentSettings({
+      backendUrl: "https://example.com",
+      authMode: "none",
+      headers: [
+        { name: " X-Tenant-Id ", value: " acme " },
+        { name: "", value: "ignored" },
+        { name: "X-Skip", value: "" },
+        { name: " X-Trace ", value: " 123 " },
+      ],
+    })
+
+    expect(saved.headers).toEqual([
+      { name: "X-Tenant-Id", value: "acme" },
+      { name: "X-Trace", value: "123" },
+    ])
+  })
+
+  it("ignores a non-array headers value", () => {
+    const saved = saveCurrentSettings({
+      backendUrl: "https://example.com",
+      headers: "X-API-Key: secret",
+    })
+
+    expect(saved.headers).toEqual([])
   })
 
   it("clears saved settings and legacy keys", () => {

@@ -1,0 +1,52 @@
+{
+  "info": {
+    "node_count": 4,
+    "edge_count": 4,
+    "checkpointer": true,
+    "checkpointer_type": "InMemoryCheckpointer",
+    "publisher": false,
+    "store": false,
+    "interrupt_before": ["MAIN", "TOOL"],
+    "interrupt_after": []
+  },
+  "nodes": [
+    {
+      "id": "7e8d68b0-2764-4dac-898c-dee6d496b815",
+      "name": "__start__"
+    },
+    {
+      "id": "94b37a28-2a53-4c8b-9895-7596a7bdbcb6",
+      "name": "__end__"
+    },
+    {
+      "id": "e44e8faa-34f3-4d5e-b4f4-569a78353f28",
+      "name": "MAIN"
+    },
+    {
+      "id": "ef8a9982-f287-417a-8ee1-9dc3cab645a4",
+      "name": "TOOL"
+    }
+  ],
+  "edges": [
+    {
+      "id": "2214b6b2-b194-46d9-be1a-4e6f0cec20f8",
+      "source": "MAIN",
+      "target": "TOOL"
+    },
+    {
+      "id": "d9e290ca-9867-4019-b4f4-c5ad422caab9",
+      "source": "MAIN",
+      "target": "__end__"
+    },
+    {
+      "id": "1d2e2b2b-4bad-4009-82ab-aa3e30cbda06",
+      "source": "TOOL",
+      "target": "MAIN"
+    },
+    {
+      "id": "001b6761-5c81-4fcb-a7cf-7934fe49f412",
+      "source": "__start__",
+      "target": "MAIN"
+    }
+  ]
+}

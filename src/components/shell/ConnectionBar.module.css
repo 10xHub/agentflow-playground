@@ -1,0 +1,161 @@
+.connbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: 48px;
+  padding: 0 14px 0 16px;
+  border-bottom: 1px solid var(--border);
+  flex: none;
+  background: var(--surface);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.mark {
+  width: 20px;
+  height: 20px;
+  border: 1.5px solid var(--text);
+  border-radius: 6px;
+  position: relative;
+  flex: none;
+}
+.mark::after {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border-radius: 2px;
+  border: 1.5px solid var(--text-secondary);
+}
+.wordmark {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+.dim {
+  color: var(--text-muted);
+}
+.sep {
+  width: 1px;
+  height: 22px;
+  background: var(--border);
+}
+
+.connPill {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  height: 30px;
+  padding: 0 10px;
+  background: var(--elevated);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+  color: var(--text);
+  font-family: var(--sans);
+}
+.connPill:hover {
+  border-color: var(--border-strong);
+}
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex: none;
+  background: var(--text-muted);
+}
+.dot.live {
+  background: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-weak);
+}
+.connName {
+  font-size: 12.5px;
+  font-weight: 500;
+}
+.connUrl {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.chev {
+  color: var(--text-muted);
+}
+
+.caps {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.capchip {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--text-secondary);
+  padding: 3px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.capchip .cd {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.capchip.off {
+  color: var(--text-muted);
+  opacity: 0.55;
+}
+.capchip.off .cd {
+  background: var(--text-muted);
+}
+
+.grow {
+  flex: 1;
+}
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.iconbtn {
+  height: 30px;
+  min-width: 30px;
+  padding: 0 9px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-family: var(--sans);
+  font-size: 12px;
+  cursor: pointer;
+  transition:
+    color 0.15s,
+    border-color 0.15s,
+    background 0.15s;
+}
+.iconbtn:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+.iconbtn.armed {
+  color: var(--text);
+  border-color: var(--border-strong);
+  background: var(--elevated);
+}
+
+/* Hide capability chips on narrow viewports to keep the bar single-line. */
+@media (max-width: 1100px) {
+  .caps {
+    display: none;
+  }
+}

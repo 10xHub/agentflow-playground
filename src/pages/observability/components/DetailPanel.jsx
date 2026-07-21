@@ -1,0 +1,98 @@
+import styles from "../observability.module.css"
+
+const nf = new Intl.NumberFormat("en-US")
+
+// Build attr rows for the current selection (a span or an event).
+/**
+ *
+ */
+const attributesFor = (sel) => {
+  if (!sel) return []
+  if (sel.selType === "event") {
+    return [
+      { k: "event", v: sel.type },
+      { k: "node", v: sel.node },
+      { k: "offset", v: sel.time },
+    ]
+  }
+  // span
+  if (sel.model !== undefined && sel.kind === "llm") {
+    return [
+      { k: "gen_ai.request.model", v: sel.model || "—" },
+      { k: "gen_ai.usage.input_tokens", v: nf.format(sel.in || 0) },
+      { k: "gen_ai.usage.output_tokens", v: nf.format(sel.out || 0) },
+      { k: "duration", v: sel.dur },
+    ]
+  }
+  return [
+    { k: "span.kind", v: sel.kind },
+    { k: "duration", v: sel.dur },
+    { k: "status", v: "OK", ok: true },
+  ]
+}
+
+/**
+ *
+ */
+export default function DetailPanel({ sel }) {
+  const isEvent = sel?.selType === "event"
+
+  const title = isEvent ? "Event detail" : "Span detail"
+  const kind = isEvent ? sel.type : (sel?.kind ?? "—")
+  const name = isEvent
+    ? `${sel.type} · ${sel.node}`
+    : (sel?.name ?? "").replace(/^\w+: /, "")
+  const sub = isEvent ? `offset ${sel.time}` : `${sel?.dur ?? ""} · status OK`
+
+  const attributes = attributesFor(sel)
+
+  return (
+    <aside className={styles.detail}>
+      <div className={styles.detHead}>
+        <span className={styles.detTitle}>{title}</span>
+        <span className={styles.detKind}>{kind}</span>
+      </div>
+      <div className={styles.detBody}>
+        <div className={styles.detName}>{name}</div>
+        <div className={styles.detSub}>{sub}</div>
+
+        <div className={styles.attrH}>
+          {isEvent ? "Attributes" : "GenAI semconv"}
+        </div>
+        <div>
+          {attributes.map((a) => (
+            <div className={styles.attr} key={a.k}>
+              <span className={styles.ak}>{a.k}</span>
+              <span className={`${styles.av} ${a.ok ? styles.ok : ""}`}>
+                {a.v}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {isEvent ? (
+          <>
+            <div className={styles.attrH}>Payload</div>
+            <div className={styles.jsonBox}>{sel.summary}</div>
+          </>
+        ) : (
+          <>
+            <div className={styles.attrH}>Context</div>
+            <div className={styles.attr}>
+              <span className={styles.ak}>span.id</span>
+              <span className={styles.av}>{sel?.spanId ?? "—"}</span>
+            </div>
+            <div className={styles.attr}>
+              <span className={styles.ak}>parent</span>
+              <span className={styles.av}>{sel?.parent ?? "—"}</span>
+            </div>
+            <div className={styles.attr}>
+              <span className={styles.ak}>kind</span>
+              <span className={styles.av}>{sel?.kind ?? "—"}</span>
+            </div>
+          </>
+        )}
+      </div>
+    </aside>
+  )
+}
