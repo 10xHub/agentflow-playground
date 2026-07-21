@@ -110,10 +110,11 @@ export default function ConnectionBar({ right = null }) {
  * A connection-bar action button styled to match the theme/settings buttons.
  *  Pages inject this into ConnectionBar's `right` slot (e.g. the inspector toggle).
  */
-export const BarButton = ({ armed = false, children, ...properties }) => <button
-      className={`${styles.iconbtn} ${armed ? styles.armed : ""}`}
-      type="button"
-      {...properties}
+export const BarButton = ({ armed = false, children, ...properties }) => (
+  <button
+    className={`${styles.iconbtn} ${armed ? styles.armed : ""}`}
+    type="button"
+    {...properties}
   >
     {children}
   </button>

@@ -2,6 +2,7 @@ import { AlertTriangle, Check, RefreshCw, Trash2 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
 
+import { track } from "@/lib/analytics"
 import { loadThread, loadThreadList, removeThread } from "@/store/threadsSlice"
 
 import MessagesPane from "./components/MessagesPane"
@@ -53,6 +54,7 @@ export default function ThreadsPage() {
     if (!selectedId) return
     if (delArmed) {
       dispatch(removeThread(selectedId))
+      track("thread_deleted", { source: "threads_page" })
       setDelArmed(false)
       return
     }

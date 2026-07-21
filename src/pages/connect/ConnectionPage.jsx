@@ -2,6 +2,7 @@ import { AlertTriangle, Clock, Eye, EyeOff, Plus, Trash2 } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { useNavigate, useSearchParams } from "react-router-dom"
 
+import { track } from "@/lib/analytics"
 import { useConnection } from "@/lib/connection/ConnectionContext"
 import { newConnectionId } from "@/lib/connection/connections-store"
 import { useTheme } from "@/lib/use-theme"
@@ -88,6 +89,13 @@ export default function ConnectionPage() {
       authHeaders: source.headers,
     }
     const res = await connect(conn, { remember })
+    if (res.ok) {
+      // The backend URL is deliberately not sent — it can be a private host.
+      track("connection_established", {
+        auth_mode: source.authMode || "none",
+        remembered: Boolean(remember),
+      })
+    }
     if (res.ok && auto) navigate("/chat")
     return res
   }

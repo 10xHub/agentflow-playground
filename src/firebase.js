@@ -1,10 +1,5 @@
-// Import the functions you need from the SDKs you need
-
-import { getAnalytics } from "firebase/analytics"
+import { initializeAnalytics, isSupported } from "firebase/analytics"
 import { initializeApp } from "firebase/app"
-
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
 
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
@@ -28,8 +23,33 @@ const firebaseConfig = {
   measurementId: VITE_FIREBASE_MEASUREMENT_ID,
 }
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig)
-const analytics = VITE_FIREBASE_MEASUREMENT_ID ? getAnalytics(app) : null
+// Analytics is production-only: dev servers (ours and every contributor's)
+// must not pollute the numbers. It is also opt-in by config — a clone with no
+// .env initializes nothing and makes no network calls.
+const enabled = Boolean(
+  import.meta.env.PROD && VITE_FIREBASE_API_KEY && VITE_FIREBASE_MEASUREMENT_ID
+)
 
-export { analytics, app, firebaseConfig }
+const app = enabled ? initializeApp(firebaseConfig) : null
+
+let analyticsPromise = null
+
+// Memoized. Resolves to null (never rejects) when disabled or when the browser
+// lacks Analytics support — private mode, no IndexedDB, the test environment.
+const getAnalyticsInstance = () => {
+  analyticsPromise ??= (async () => {
+    if (!app) return null
+    try {
+      if (!(await isSupported())) return null
+      // send_page_view: false — the SPA logs its own page_view on every route
+      // change (see lib/use-analytics-page-views.js). Leaving gtag's automatic
+      // one on would count every view twice.
+      return initializeAnalytics(app, { config: { send_page_view: false } })
+    } catch {
+      return null
+    }
+  })()
+  return analyticsPromise
+}
+
+export { app, firebaseConfig, getAnalyticsInstance }

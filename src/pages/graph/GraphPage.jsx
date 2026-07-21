@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
 
+import { track } from "@/lib/analytics"
 import { loadGraph } from "@/store/graphSlice"
 
 import GraphCanvas from "./components/GraphCanvas"
@@ -28,6 +29,17 @@ export default function GraphPage() {
   useEffect(() => {
     dispatch(loadGraph())
   }, [dispatch])
+
+  // Fires once per successful graph load, not on every render.
+  const loggedReference = useRef(false)
+  useEffect(() => {
+    if (status !== "ready" || loggedReference.current) return
+    loggedReference.current = true
+    track("graph_loaded", {
+      node_count: info?.node_count ?? nodes.length,
+      edge_count: info?.edge_count ?? edges.length,
+    })
+  }, [status, info, nodes.length, edges.length])
 
   const selectedNode = useMemo(
     () => nodes.find((n) => n.id === selectedId) || null,

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
 
+import { track } from "@/lib/analytics"
 import { loadEvalRun, loadEvalRuns } from "@/store/evalsSlice"
 
 import CaseDetail from "./components/CaseDetail"
@@ -36,6 +37,8 @@ export default function EvalsPage() {
 
   const handleSelectRun = (id) => {
     dispatch(loadEvalRun(id))
+    // The run id is not sent.
+    track("eval_run_viewed")
     setTab("cases")
   }
 

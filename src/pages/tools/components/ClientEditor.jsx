@@ -2,6 +2,7 @@ import { Check, Play, Trash2 } from "lucide-react"
 import { useState } from "react"
 import { useDispatch } from "react-redux"
 
+import { track } from "@/lib/analytics"
 import {
   registerClientTools,
   removeClientTool,
@@ -83,6 +84,8 @@ export default function ClientEditor({ tool }) {
     setMessage(null)
     try {
       await dispatch(registerClientTools({ only: record.id }))
+      // Only successful registrations count. Tool name and code are never sent.
+      track("client_tool_registered")
       setMessage({ type: "ok", text: "Registered with the agent." })
     } catch (e) {
       setMessage({ type: "error", text: e?.message || "Registration failed." })

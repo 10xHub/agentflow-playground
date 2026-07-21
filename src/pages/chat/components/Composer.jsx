@@ -2,6 +2,7 @@ import { Paperclip, SendHorizontal, Square } from "lucide-react"
 import { useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
 
+import { track } from "@/lib/analytics"
 import { useConnection } from "@/lib/connection/ConnectionContext"
 import { summariseRunOptions } from "@/lib/run-options"
 import { sendMessage, stopGeneration } from "@/store/chatThunks"
@@ -21,11 +22,14 @@ export default function Composer() {
   const [text, setText] = useState("")
   const [popup, setPopup] = useState(null) // null | "initialState" | "config"
 
+  const summary = summariseRunOptions(runOptions)
   const canSend = text.trim().length > 0 && !generating && isConnected
 
   const submit = () => {
     if (!canSend) return
     dispatch(sendMessage(text))
+    // Message text is never sent to analytics.
+    track("chat_message_sent", { has_run_options: Boolean(summary) })
     setText("")
   }
 
@@ -36,8 +40,6 @@ export default function Composer() {
       submit()
     }
   }
-
-  const summary = summariseRunOptions(runOptions)
 
   return (
     <div className={styles.composerWrap}>
