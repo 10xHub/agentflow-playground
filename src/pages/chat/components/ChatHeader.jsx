@@ -2,6 +2,7 @@ import { ChevronDown, Plus, RotateCcw, Square, Trash2 } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
 
+import { track } from "@/lib/analytics"
 import {
   newThread,
   removeThread,
@@ -75,6 +76,7 @@ const ThreadPicker = () => {
             type="button"
             onClick={() => {
               dispatch(newThread())
+              track("thread_created")
               setOpen(false)
             }}
             disabled={generating}
@@ -109,7 +111,10 @@ const ThreadPicker = () => {
                       className={styles.threadDel}
                       type="button"
                       title="Remove from cache"
-                      onClick={() => dispatch(removeThread(id))}
+                      onClick={() => {
+                        dispatch(removeThread(id))
+                        track("thread_deleted", { source: "chat_header" })
+                      }}
                     >
                       <Trash2 size={13} />
                     </button>

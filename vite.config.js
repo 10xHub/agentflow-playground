@@ -58,6 +58,7 @@ export default defineConfig({
       reportOnFailure: true,
       include: [
         "src/lib/agentflow-client.js",
+        "src/lib/analytics.js",
         "src/lib/devtools.js",
         "src/lib/menu-list.js",
         "src/lib/messageContent.js",

@@ -2,6 +2,7 @@ import { AlertTriangle, Mic, Radio, Square } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 
 import { getAgentFlowClient } from "@/lib/agentflow-client"
+import { track } from "@/lib/analytics"
 import { createMicCapture, createPcmPlayer } from "@/lib/realtime-audio"
 
 import styles from "../live.module.css"
@@ -37,6 +38,7 @@ export default function LiveSession() {
   const openReference = useRef({ user: null, agent: null })
   const idReference = useRef(0)
   const scrollReference = useRef(null)
+  const startedAtReference = useRef(null)
 
   useEffect(() => {
     scrollReference.current?.scrollTo({
@@ -124,12 +126,26 @@ export default function LiveSession() {
       teardown()
       setStatus((s) => (s === "error" ? s : "ended"))
     })
+
+    // After the early returns above, so failed opens are not counted as starts.
+    startedAtReference.current = Date.now()
+    track("live_session_started")
   }
 
   const stop = () => {
     sessionReference.current?.close()
     teardown()
     setStatus("ended")
+    // Guarded so no `ended` fires without a matching `started`. Transcripts and
+    // audio are never sent.
+    if (startedAtReference.current) {
+      track("live_session_ended", {
+        duration_seconds: Math.round(
+          (Date.now() - startedAtReference.current) / 1000
+        ),
+      })
+      startedAtReference.current = null
+    }
   }
 
   // Push-to-talk: tap to open the mic (activity_start + stream PCM), tap again to

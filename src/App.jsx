@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom"
 
 import AppShell from "@/components/shell/AppShell"
 import { ConnectionProvider } from "@/lib/connection/ConnectionContext"
+import AnalyticsTracker from "@/lib/use-analytics-page-views"
 import ChatPage from "@/pages/chat/ChatPage"
 import ConnectionPage from "@/pages/connect/ConnectionPage"
 import EvalsPage from "@/pages/evals/EvalsPage"
@@ -24,6 +25,7 @@ export default function App() {
     <Provider store={store}>
       <BrowserRouter>
         <ConnectionProvider>
+          <AnalyticsTracker />
           <Routes>
             <Route path="/" element={<ConnectionPage />} />
             <Route element={<AppShell />}>
