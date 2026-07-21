@@ -1,9 +1,19 @@
+import PropTypes from "prop-types"
+
 import styles from "../evals.module.css"
+
+// Enter/Space activate the row the same way a click does.
+const activateOnKey = (event, activate) => {
+  if (event.key === "Enter" || event.key === " ") {
+    event.preventDefault()
+    activate()
+  }
+}
 
 /**
  *
  */
-export default function RunList({ runs, selectedId, onSelect }) {
+const RunList = ({ runs, selectedId = null, onSelect }) => {
   return (
     <section className={styles.runs}>
       <div className={styles.runsHead}>
@@ -20,7 +30,10 @@ export default function RunList({ runs, selectedId, onSelect }) {
           <div
             key={r.id}
             className={`${styles.rrow} ${r.id === selectedId ? styles.active : ""}`}
+            role="button"
+            tabIndex={0}
             onClick={() => onSelect(r.id)}
+            onKeyDown={(e) => activateOnKey(e, () => onSelect(r.id))}
           >
             <div className={styles.rrowTop}>
               <span className={styles.rrowName}>{r.name}</span>
@@ -42,3 +55,21 @@ export default function RunList({ runs, selectedId, onSelect }) {
     </section>
   )
 }
+
+RunList.propTypes = {
+  runs: PropTypes.arrayOf(
+    PropTypes.shape({
+      id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+      name: PropTypes.string,
+      status: PropTypes.string,
+      rate: PropTypes.number,
+      run: PropTypes.string,
+      cases: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+      ago: PropTypes.string,
+    })
+  ).isRequired,
+  selectedId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  onSelect: PropTypes.func.isRequired,
+}
+
+export default RunList

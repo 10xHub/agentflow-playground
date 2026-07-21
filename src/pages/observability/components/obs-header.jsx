@@ -1,4 +1,5 @@
 import { ChevronDown, ExternalLink } from "lucide-react"
+import PropTypes from "prop-types"
 
 import styles from "../observability.module.css"
 
@@ -21,7 +22,13 @@ const shortId = (id) =>
 /**
  *
  */
-export default function ObsHeader({ tab, onTab, threadId, stats, runCount }) {
+const ObsHeader = ({
+  tab,
+  onTab,
+  threadId = null,
+  stats = null,
+  runCount = null,
+}) => {
   return (
     <div className={styles.obsHead}>
       <div className={styles.ohTop}>
@@ -78,3 +85,20 @@ export default function ObsHeader({ tab, onTab, threadId, stats, runCount }) {
     </div>
   )
 }
+
+ObsHeader.propTypes = {
+  tab: PropTypes.string.isRequired,
+  onTab: PropTypes.func.isRequired,
+  threadId: PropTypes.string,
+  stats: PropTypes.arrayOf(
+    PropTypes.shape({
+      label: PropTypes.string.isRequired,
+      value: PropTypes.node,
+      small: PropTypes.node,
+      accent: PropTypes.bool,
+    })
+  ),
+  runCount: PropTypes.number,
+}
+
+export default ObsHeader

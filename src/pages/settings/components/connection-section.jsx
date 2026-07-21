@@ -6,10 +6,11 @@ import {
   Trash2,
   Unplug,
 } from "lucide-react"
+import PropTypes from "prop-types"
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 
-import { useConnection } from "@/lib/connection/ConnectionContext"
+import { useConnection } from "@/lib/connection/connection-context"
 
 import styles from "../settings.module.css"
 
@@ -24,6 +25,128 @@ const hostLabel = (url) => {
   }
 }
 
+const connShape = PropTypes.shape({
+  id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  name: PropTypes.string,
+  backendUrl: PropTypes.string,
+  authMode: PropTypes.string,
+})
+
+const probeShape = PropTypes.shape({
+  latencyMs: PropTypes.number,
+  nodes: PropTypes.number,
+  edges: PropTypes.number,
+})
+
+const capabilitiesShape = PropTypes.arrayOf(
+  PropTypes.shape({
+    name: PropTypes.string.isRequired,
+    detail: PropTypes.string,
+    on: PropTypes.bool,
+  })
+)
+
+/**
+ *
+ */
+const ProbeMeta = ({ probe = null, isConnected = false }) => {
+  if (!isConnected || !probe) return null
+  return (
+    <div className={styles.acMeta}>
+      pong · {probe.latencyMs}ms
+      {probe.nodes != null && ` · ${probe.nodes} nodes · ${probe.edges} edges`}
+    </div>
+  )
+}
+
+ProbeMeta.propTypes = {
+  probe: probeShape,
+  isConnected: PropTypes.bool,
+}
+
+/**
+ *
+ */
+const CapabilityChips = ({ capabilities = null }) => {
+  if (!capabilities) return null
+  return (
+    <div className={styles.caps}>
+      {capabilities.map((c) => (
+        <span
+          key={c.name}
+          title={c.detail}
+          className={`${styles.cap} ${c.on ? "" : styles.capOff}`}
+        >
+          {c.name}
+        </span>
+      ))}
+    </div>
+  )
+}
+
+CapabilityChips.propTypes = {
+  capabilities: capabilitiesShape,
+}
+
+/**
+ *
+ */
+const ConnectionError = ({ status = null, error = null }) => {
+  if (status !== "error" || !error) return null
+  return (
+    <div className={styles.err}>
+      <AlertTriangle size={13} /> {error}
+    </div>
+  )
+}
+
+ConnectionError.propTypes = {
+  status: PropTypes.string,
+  error: PropTypes.string,
+}
+
+/**
+ *
+ */
+const ActiveConnectionActions = ({
+  connecting = false,
+  isConnected = false,
+  onReverify,
+  onDisconnect,
+  onEdit,
+}) => (
+  <div className={styles.acActions}>
+    <button
+      className={styles.btn}
+      onClick={onReverify}
+      disabled={connecting}
+      type="button"
+    >
+      <RefreshCw size={13} /> {connecting ? "Verifying…" : "Re-verify"}
+    </button>
+    {isConnected && (
+      <button className={styles.btn} onClick={onDisconnect} type="button">
+        <Unplug size={13} /> Disconnect
+      </button>
+    )}
+    <button
+      className={`${styles.btn} ${styles.btnPrimary}`}
+      onClick={onEdit}
+      type="button"
+    >
+      <Plus size={13} /> Add / edit connection
+    </button>
+  </div>
+)
+
+ActiveConnectionActions.propTypes = {
+  connecting: PropTypes.bool,
+  isConnected: PropTypes.bool,
+  onReverify: PropTypes.func.isRequired,
+  onDisconnect: PropTypes.func.isRequired,
+  onEdit: PropTypes.func.isRequired,
+}
+
 // The currently active connection: identity, live probe, capabilities, and the
 // re-verify / disconnect / edit actions. Deep add/edit routes to the Connect page.
 /**
@@ -31,85 +154,62 @@ const hostLabel = (url) => {
  */
 const ActiveConnectionCard = ({
   conn,
-  status,
-  error,
-  capabilities,
-  probe,
-  isConnected,
+  status = null,
+  error = null,
+  capabilities = null,
+  probe = null,
+  isConnected = false,
   onReverify,
   onDisconnect,
   onEdit,
-}) => {
-  const connecting = status === "connecting"
-  return (
-    <div className={styles.activeConn}>
-      <div className={styles.acTop}>
-        <span className={`${styles.dot} ${isConnected ? styles.live : ""}`} />
-        <span className={styles.acName}>
-          {conn.name || hostLabel(conn.backendUrl)}
-        </span>
-        <span className={styles.badge}>{conn.authMode || "none"}</span>
-      </div>
-      <div className={styles.acUrl}>{conn.backendUrl}</div>
-
-      {isConnected && probe && (
-        <div className={styles.acMeta}>
-          pong · {probe.latencyMs}ms
-          {probe.nodes != null &&
-            ` · ${probe.nodes} nodes · ${probe.edges} edges`}
-        </div>
-      )}
-
-      {capabilities && (
-        <div className={styles.caps}>
-          {capabilities.map((c) => (
-            <span
-              key={c.name}
-              title={c.detail}
-              className={`${styles.cap} ${c.on ? "" : styles.capOff}`}
-            >
-              {c.name}
-            </span>
-          ))}
-        </div>
-      )}
-
-      {status === "error" && error && (
-        <div className={styles.err}>
-          <AlertTriangle size={13} /> {error}
-        </div>
-      )}
-
-      <div className={styles.acActions}>
-        <button
-          className={styles.btn}
-          onClick={onReverify}
-          disabled={connecting}
-          type="button"
-        >
-          <RefreshCw size={13} /> {connecting ? "Verifying…" : "Re-verify"}
-        </button>
-        {isConnected && (
-          <button className={styles.btn} onClick={onDisconnect} type="button">
-            <Unplug size={13} /> Disconnect
-          </button>
-        )}
-        <button
-          className={`${styles.btn} ${styles.btnPrimary}`}
-          onClick={onEdit}
-          type="button"
-        >
-          <Plus size={13} /> Add / edit connection
-        </button>
-      </div>
+}) => (
+  <div className={styles.activeConn}>
+    <div className={styles.acTop}>
+      <span className={`${styles.dot} ${isConnected ? styles.live : ""}`} />
+      <span className={styles.acName}>
+        {conn.name || hostLabel(conn.backendUrl)}
+      </span>
+      <span className={styles.badge}>{conn.authMode || "none"}</span>
     </div>
-  )
+    <div className={styles.acUrl}>{conn.backendUrl}</div>
+
+    <ProbeMeta probe={probe} isConnected={isConnected} />
+    <CapabilityChips capabilities={capabilities} />
+    <ConnectionError status={status} error={error} />
+
+    <ActiveConnectionActions
+      connecting={status === "connecting"}
+      isConnected={isConnected}
+      onReverify={onReverify}
+      onDisconnect={onDisconnect}
+      onEdit={onEdit}
+    />
+  </div>
+)
+
+ActiveConnectionCard.propTypes = {
+  conn: connShape.isRequired,
+  status: PropTypes.string,
+  error: PropTypes.string,
+  capabilities: capabilitiesShape,
+  probe: probeShape,
+  isConnected: PropTypes.bool,
+  onReverify: PropTypes.func.isRequired,
+  onDisconnect: PropTypes.func.isRequired,
+  onEdit: PropTypes.func.isRequired,
 }
 
 /**
  *
  */
-const SavedRow = ({ conn, active, connected, busy, onPick, onDelete }) => (
+const SavedRow = ({
+  conn,
+  active = false,
+  connected = false,
+  busy = false,
+  onPick,
+  onDelete,
+}) => (
   <div className={`${styles.savedRow} ${active ? styles.rowActive : ""}`}>
     <button
       className={styles.savedPick}
@@ -138,11 +238,20 @@ const SavedRow = ({ conn, active, connected, busy, onPick, onDelete }) => (
   </div>
 )
 
+SavedRow.propTypes = {
+  conn: connShape.isRequired,
+  active: PropTypes.bool,
+  connected: PropTypes.bool,
+  busy: PropTypes.bool,
+  onPick: PropTypes.func.isRequired,
+  onDelete: PropTypes.func.isRequired,
+}
+
 // Reads entirely from the connection context — no form duplication.
 /**
  *
  */
-export default function ConnectionSection() {
+const ConnectionSection = () => {
   const navigate = useNavigate()
   const {
     status,
@@ -225,3 +334,5 @@ export default function ConnectionSection() {
     </section>
   )
 }
+
+export default ConnectionSection

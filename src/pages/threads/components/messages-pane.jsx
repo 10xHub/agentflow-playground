@@ -1,27 +1,30 @@
 import { Trash2 } from "lucide-react"
+import PropTypes from "prop-types"
 import { useDispatch, useSelector } from "react-redux"
 
-import { removeMessage } from "@/store/threadsSlice"
+import { removeMessage } from "@/store/threads-slice"
 
 import styles from "../threads.module.css"
+
+// Per-block-type renderers; unknown types fall back to a `[type]` placeholder.
+const BLOCK_RENDERERS = {
+  text: (b) => b.text,
+  reasoning: (b) => `🧠 ${b.summary || b.details || ""}`,
+  tool_call: (b) => `tool_call · ${b.name}(${JSON.stringify(b.args ?? {})})`,
+  tool_result: (b) =>
+    `tool_result · ${JSON.stringify(b.output ?? b.content ?? {})}`,
+}
+
+const renderBlock = (b) => {
+  const render = BLOCK_RENDERERS[b?.type]
+  return render ? render(b) : `[${b?.type || "block"}]`
+}
 
 // Flatten a message's content blocks into a readable summary.
 const renderContent = (content) => {
   if (typeof content === "string") return content
   if (!Array.isArray(content)) return ""
-  return content
-    .map((b) => {
-      if (b?.type === "text") return b.text
-      if (b?.type === "reasoning") return `🧠 ${b.summary || b.details || ""}`
-      if (b?.type === "tool_call") {
-        return `tool_call · ${b.name}(${JSON.stringify(b.args ?? {})})`
-      }
-      if (b?.type === "tool_result") {
-        return `tool_result · ${JSON.stringify(b.output ?? b.content ?? {})}`
-      }
-      return `[${b?.type || "block"}]`
-    })
-    .join("\n")
+  return content.map((b) => renderBlock(b)).join("\n")
 }
 
 const timeOf = (m) => {
@@ -35,7 +38,7 @@ const timeOf = (m) => {
 /**
  *
  */
-const MessageRow = ({ threadId, msg, onDelete }) => {
+const MessageRow = ({ threadId = null, msg, onDelete }) => {
   const roleClass = styles[msg.role] || ""
   const body = renderContent(msg.content)
   const isMono = /tool_call|tool_result|🧠/.test(body) || msg.role === "tool"
@@ -63,10 +66,21 @@ const MessageRow = ({ threadId, msg, onDelete }) => {
   )
 }
 
+MessageRow.propTypes = {
+  threadId: PropTypes.string,
+  msg: PropTypes.shape({
+    role: PropTypes.string,
+    content: PropTypes.oneOfType([PropTypes.string, PropTypes.array]),
+    message_id: PropTypes.string,
+    timestamp: PropTypes.number,
+  }).isRequired,
+  onDelete: PropTypes.func.isRequired,
+}
+
 /**
  *
  */
-export default function MessagesPane() {
+const MessagesPane = () => {
   const dispatch = useDispatch()
   const { selectedId, detail, detailStatus, busy } = useSelector(
     (s) => s.threads
@@ -98,3 +112,5 @@ export default function MessagesPane() {
     </div>
   )
 }
+
+export default MessagesPane

@@ -1,4 +1,5 @@
 import { ChevronsLeft, Settings } from "lucide-react"
+import PropTypes from "prop-types"
 import { useSelector } from "react-redux"
 import { NavLink } from "react-router-dom"
 
@@ -10,7 +11,7 @@ import styles from "./Sidebar.module.css"
  * Grouped left rail (Interact / Inspect / Build) + footer (Settings, Collapse).
  * Collapsed mode is icon-only with tooltips; state is owned by AppShell.
  */
-export default function Sidebar({ collapsed, onToggleCollapse }) {
+const Sidebar = ({ collapsed, onToggleCollapse }) => {
   // Live local count for the Thread Inspector badge; empty until the list loads.
   const threadCount = useSelector((s) => s.threads.list.length)
 
@@ -72,3 +73,10 @@ export default function Sidebar({ collapsed, onToggleCollapse }) {
     </aside>
   )
 }
+
+Sidebar.propTypes = {
+  collapsed: PropTypes.bool.isRequired,
+  onToggleCollapse: PropTypes.func.isRequired,
+}
+
+export default Sidebar

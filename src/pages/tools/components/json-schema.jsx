@@ -1,16 +1,30 @@
+import PropTypes from "prop-types"
 import { Fragment } from "react"
 
 import styles from "../tools.module.css"
+
+const K = ({ children = null }) => (
+  <span className={styles.key}>{children}</span>
+)
+
+K.propTypes = {
+  children: PropTypes.node,
+}
+
+const S = ({ children = null }) => (
+  <span className={styles.str}>{children}</span>
+)
+
+S.propTypes = {
+  children: PropTypes.node,
+}
 
 // Syntax-highlighted `{ type:"function", function:{…} }` schema, mirroring the
 // mockup's tokenized <span class=key/str> output. Purely presentational.
 /**
  *
  */
-export default function JsonSchema({ tool }) {
-  const K = ({ children }) => <span className={styles.key}>{children}</span>
-  const S = ({ children }) => <span className={styles.str}>{children}</span>
-
+const JsonSchema = ({ tool }) => {
   const desc =
     tool.desc.slice(0, 80).replace(/"/g, '\\"') +
     (tool.desc.length > 80 ? "…" : "")
@@ -19,42 +33,42 @@ export default function JsonSchema({ tool }) {
   return (
     <div className={styles.jsonbox}>
       {`{\n  `}
-      <K>"type"</K>
+      <K>&quot;type&quot;</K>
       {": "}
-      <S>"function"</S>
+      <S>&quot;function&quot;</S>
       {`,\n  `}
-      <K>"function"</K>
+      <K>&quot;function&quot;</K>
       {`: {\n    `}
-      <K>"name"</K>
+      <K>&quot;name&quot;</K>
       {": "}
-      <S>"{tool.name}"</S>
+      <S>&quot;{tool.name}&quot;</S>
       {`,\n    `}
-      <K>"description"</K>
+      <K>&quot;description&quot;</K>
       {": "}
-      <S>"{desc}"</S>
+      <S>&quot;{desc}&quot;</S>
       {`,\n    `}
-      <K>"parameters"</K>
+      <K>&quot;parameters&quot;</K>
       {`: {\n      `}
-      <K>"type"</K>
+      <K>&quot;type&quot;</K>
       {": "}
-      <S>"object"</S>
+      <S>&quot;object&quot;</S>
       {`,\n      `}
-      <K>"properties"</K>
+      <K>&quot;properties&quot;</K>
       {`: {\n`}
       {tool.params.map((p, index) => (
         <Fragment key={p.n}>
           {"      "}
-          <K>"{p.n}"</K>
+          <K>&quot;{p.n}&quot;</K>
           {": { "}
-          <K>"type"</K>
+          <K>&quot;type&quot;</K>
           {": "}
-          <S>"{p.t}"</S>
+          <S>&quot;{p.t}&quot;</S>
           {p.d && (
             <>
               {", "}
-              <K>"description"</K>
+              <K>&quot;description&quot;</K>
               {": "}
-              <S>"{p.d}"</S>
+              <S>&quot;{p.d}&quot;</S>
             </>
           )}
           {" }"}
@@ -62,10 +76,10 @@ export default function JsonSchema({ tool }) {
         </Fragment>
       ))}
       {`      },\n      `}
-      <K>"required"</K>: [
+      <K>&quot;required&quot;</K>: [
       {required.map((p, index) => (
         <Fragment key={p.n}>
-          <S>"{p.n}"</S>
+          <S>&quot;{p.n}&quot;</S>
           {index < required.length - 1 ? ", " : ""}
         </Fragment>
       ))}
@@ -73,3 +87,20 @@ export default function JsonSchema({ tool }) {
     </div>
   )
 }
+
+JsonSchema.propTypes = {
+  tool: PropTypes.shape({
+    name: PropTypes.string,
+    desc: PropTypes.string.isRequired,
+    params: PropTypes.arrayOf(
+      PropTypes.shape({
+        n: PropTypes.string.isRequired,
+        t: PropTypes.string,
+        r: PropTypes.bool,
+        d: PropTypes.string,
+      })
+    ).isRequired,
+  }).isRequired,
+}
+
+export default JsonSchema

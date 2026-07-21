@@ -102,6 +102,8 @@ export const {
 
 const unwrap = (res) => res?.data || res || {}
 
+const NOT_CONNECTED = "Not connected"
+
 // The store service raises HTTP 503 "Store is not configured" when no `store`
 // is wired in agentflow.json. The client surfaces that as an AgentFlowError with
 // statusCode 503; match on it (with a message fallback) to branch to the
@@ -127,7 +129,7 @@ export const browseMemories = () => async (dispatch, getState) => {
   try {
     client = getAgentFlowClient()
   } catch (e) {
-    dispatch(failed(e?.message || "Not connected"))
+    dispatch(failed(e?.message || NOT_CONNECTED))
     return
   }
   dispatch(loading())
@@ -147,7 +149,7 @@ export const searchMemories = (query) => async (dispatch, getState) => {
   try {
     client = getAgentFlowClient()
   } catch (e) {
-    dispatch(failed(e?.message || "Not connected"))
+    dispatch(failed(e?.message || NOT_CONNECTED))
     return
   }
   const { strategy, metric } = getState().memory

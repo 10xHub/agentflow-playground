@@ -2,17 +2,17 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
 
 import { track } from "@/lib/analytics"
-import { loadGraph } from "@/store/graphSlice"
+import { loadGraph } from "@/store/graph-slice"
 
-import GraphCanvas from "./components/GraphCanvas"
-import GraphInfoPane from "./components/GraphInfoPane"
-import NodePane from "./components/NodePane"
+import GraphCanvas from "./components/graph-canvas"
+import GraphInfoPane from "./components/graph-info-pane"
+import NodePane from "./components/node-pane"
 import styles from "./graph.module.css"
 
 /**
  *
  */
-export default function GraphPage() {
+const GraphPage = () => {
   const dispatch = useDispatch()
   const { info, nodes, edges, status, error } = useSelector((s) => s.graph)
   // The node currently executing in the active chat run (for live highlight).
@@ -97,3 +97,5 @@ export default function GraphPage() {
     </>
   )
 }
+
+export default GraphPage

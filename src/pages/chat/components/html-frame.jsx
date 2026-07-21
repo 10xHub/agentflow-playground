@@ -1,8 +1,12 @@
+import PropTypes from "prop-types"
 import { useEffect, useMemo, useRef, useState } from "react"
 
 import styles from "../chat.module.css"
 
 const MAX_HEIGHT = 520
+
+// Split so the literal "</scr"+"ipt>" can never terminate an enclosing script tag.
+const SCRIPT_CLOSE = `</${"script"}>`
 
 // Reports document height back to the parent so the frame can size to content.
 const RESIZE_SCRIPT = `<script>
@@ -14,10 +18,10 @@ const RESIZE_SCRIPT = `<script>
   new ResizeObserver(send).observe(document.documentElement)
   send()
 })()
-<\/script>`
+${SCRIPT_CLOSE}`
 
 /** Agent-authored HTML in a sandboxed frame: its CSS can't reach the playground. */
-export default function HtmlFrame({ html }) {
+const HtmlFrame = ({ html = "" }) => {
   const reference = useRef(null)
   const [height, setHeight] = useState(120)
 
@@ -60,3 +64,9 @@ font:13.5px/1.6 system-ui,sans-serif;}img,svg,video{max-width:100%;}</style>
     />
   )
 }
+
+HtmlFrame.propTypes = {
+  html: PropTypes.string,
+}
+
+export default HtmlFrame

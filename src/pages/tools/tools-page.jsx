@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
 
-import { loadTools } from "@/store/toolsSlice"
+import { loadTools } from "@/store/tools-slice"
 
-import ClientEditor from "./components/ClientEditor"
-import ReadonlyDetail from "./components/ReadonlyDetail"
-import ToolList from "./components/ToolList"
+import ClientEditor from "./components/client-editor"
+import ReadonlyDetail from "./components/readonly-detail"
+import ToolList from "./components/tool-list"
 import { clientToolVM, serverToolVM } from "./normalize"
 import styles from "./tools.module.css"
 
@@ -24,10 +24,23 @@ const newClientTool = () => ({
   parameters: { type: "object", properties: {}, required: [] },
 })
 
+// Key of the tool to fall back to when nothing has been picked yet.
+const firstToolKey = (serverVMs, clientVMs) => {
+  const first = serverVMs[0] || clientVMs[0]
+  return first ? first.key : null
+}
+
+// Placeholder text for the detail pane when no tool is selectable.
+const emptyDetailMessage = (status, error) => {
+  if (status === "loading") return "Loading tools…"
+  if (status === "error") return error || "Failed to load tools."
+  return "No tools. Connect to a backend or add a client tool."
+}
+
 /**
  *
  */
-export default function ToolsPage() {
+const ToolsPage = () => {
   const dispatch = useDispatch()
   const { serverNodes, clientTools, status, error } = useSelector(
     (s) => s.tools
@@ -53,12 +66,9 @@ export default function ToolsPage() {
   }, [serverNodes, clientTools])
 
   // Default-select the first available tool once data arrives.
-  useEffect(() => {
-    if (!selectedKey && !isNew) {
-      const first = serverVMs[0] || clientVMs[0]
-      if (first) setSelectedKey(first.key)
-    }
-  }, [serverVMs, clientVMs, selectedKey, isNew])
+  const activeKey = isNew
+    ? null
+    : selectedKey || firstToolKey(serverVMs, clientVMs)
 
   const handleSelect = (key) => {
     setIsNew(false)
@@ -69,8 +79,8 @@ export default function ToolsPage() {
     setSelectedKey(null)
   }
 
-  const tool = isNew ? newClientTool() : byKey[selectedKey]
-  const detailKey = isNew ? "__new__" : selectedKey
+  const tool = isNew ? newClientTool() : byKey[activeKey]
+  const detailKey = isNew ? "__new__" : activeKey
 
   return (
     <div className={styles.page}>
@@ -78,7 +88,7 @@ export default function ToolsPage() {
         serverNodes={serverNodes}
         serverVMs={serverVMs}
         clientVMs={clientVMs}
-        selectedKey={selectedKey}
+        selectedKey={activeKey}
         isNew={isNew}
         status={status}
         error={error}
@@ -90,11 +100,7 @@ export default function ToolsPage() {
           <div className={styles.dInner}>
             {!tool ? (
               <div className={styles.dDesc}>
-                {status === "loading"
-                  ? "Loading tools…"
-                  : status === "error"
-                    ? error || "Failed to load tools."
-                    : "No tools. Connect to a backend or add a client tool."}
+                {emptyDetailMessage(status, error)}
               </div>
             ) : tool.kind === "client" ? (
               <ClientEditor key={detailKey} tool={tool} />
@@ -107,3 +113,5 @@ export default function ToolsPage() {
     </div>
   )
 }
+
+export default ToolsPage

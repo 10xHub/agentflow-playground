@@ -1,3 +1,4 @@
+import PropTypes from "prop-types"
 import { useMemo } from "react"
 import { Canvas, Edge, Node } from "reaflow"
 
@@ -39,7 +40,7 @@ export const typeLabel = (name = "") => {
   return "Agent node"
 }
 
-const nodeColor = (name = "", index) => {
+const nodeColor = (name = "", index = 0) => {
   if (isStart(name)) return "#22c55e"
   if (isEnd(name)) return "#ef4444"
   if (name.toLowerCase().includes("tool")) return "#a855f7"
@@ -52,14 +53,14 @@ const nodeColor = (name = "", index) => {
  * legacy view: colored node avatars, type labels, selection highlight, and the
  * live-run ring on the node currently executing in the active chat stream.
  */
-export default function GraphCanvas({
+const GraphCanvas = ({
   nodes,
   edges,
-  selected,
+  selected = null,
   onSelect,
   live,
-  activeNode,
-}) {
+  activeNode = null,
+}) => {
   const isMobile = useIsMobile()
 
   // Map node name -> stable uuid so edges (which reference names) resolve to ids.
@@ -183,3 +184,26 @@ export default function GraphCanvas({
     </div>
   )
 }
+
+GraphCanvas.propTypes = {
+  nodes: PropTypes.arrayOf(
+    PropTypes.shape({
+      id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+      name: PropTypes.string,
+    })
+  ).isRequired,
+  edges: PropTypes.arrayOf(
+    PropTypes.shape({
+      id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+      source: PropTypes.string,
+      target: PropTypes.string,
+    })
+  ).isRequired,
+  selected: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  onSelect: PropTypes.func.isRequired,
+  live: PropTypes.bool.isRequired,
+  // Name of the node currently executing in the active run.
+  activeNode: PropTypes.string,
+}
+
+export default GraphCanvas

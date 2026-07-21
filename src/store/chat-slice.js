@@ -1,6 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit"
 
-import { loadThreads, saveThreads } from "./threadsCache"
+import { loadThreads, saveThreads } from "./threads-cache"
 
 // UI-shaped chat state. Messages are stored in the exact shape the existing
 // <Message>/<ContentBlock> components render, so streaming updates flow straight
@@ -18,6 +18,8 @@ import { loadThreads, saveThreads } from "./threadsCache"
 const MAX_LOG = 200 // cap event/frame logs so long runs don't grow unbounded
 
 export const DRAFT_ID = "__draft__" // active-but-unassigned thread key
+
+const UNTITLED_THREAD = "New thread" // fallback title before a first user message
 
 const persisted = loadThreads()
 
@@ -63,8 +65,8 @@ const findAgent = (state, id) =>
 // Derive a short title from the first user message.
 const titleFor = (messages) => {
   const first = messages.find((m) => m.role === "user")
-  const t = (first?.text || "New thread").trim()
-  return t.length > 42 ? `${t.slice(0, 42)}…` : t || "New thread"
+  const t = (first?.text || UNTITLED_THREAD).trim()
+  return t.length > 42 ? `${t.slice(0, 42)}…` : t || UNTITLED_THREAD
 }
 
 // Write the active thread's messages into the cache under its current key

@@ -1,14 +1,15 @@
 import { Copy, RefreshCw, Save, X } from "lucide-react"
+import PropTypes from "prop-types"
 import { useEffect, useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
 
-import { loadGraphInfo } from "@/store/chatThunks"
+import { loadGraphInfo } from "@/store/chat-thunks"
 import {
   FIXED_FIELDS,
   fetchThreadState,
   saveThreadState,
   setField,
-} from "@/store/stateSlice"
+} from "@/store/state-slice"
 
 import styles from "../chat.module.css"
 
@@ -23,6 +24,10 @@ const TAB_LABEL = {
 
 const empty = (text) => <div className={styles.inspEmpty}>{text}</div>
 
+// Log rows (events / frames / graph nodes) arrive without ids, so their key is
+// their position paired with the content that identifies them.
+const logKey = (index, ...parts) => [index, ...parts].join("|")
+
 /**
  *
  */
@@ -34,7 +39,7 @@ const EventsPane = () => {
   return (
     <>
       {events.map((e, index) => (
-        <div className={styles.ev} key={index}>
+        <div className={styles.ev} key={logKey(index, e.type, e.time)}>
           <div className={styles.evH}>
             <span className={`${styles.evType} ${styles[e.type] || ""}`}>
               {e.type}
@@ -48,6 +53,24 @@ const EventsPane = () => {
     </>
   )
 }
+
+// The server names the graph pieces inconsistently across versions, so read the
+// shape once and expose a single normalised view of it.
+const readGraph = (info) => {
+  const nodes = info.nodes || info.node_list || []
+  const edges = info.edges || info.edge_list || []
+  return {
+    nodes,
+    edges,
+    nodeCount: (info.node_count ?? nodes.length) || 0,
+    edgeCount: (info.edge_count ?? edges.length) || 0,
+  }
+}
+
+// A node is either a bare string or an object with varying key names.
+const nodeName = (n, index) =>
+  typeof n === "string" ? n : n?.name || n?.id || `node ${index}`
+const nodeMeta = (n) => (typeof n === "string" ? "" : n?.type || n?.kind || "")
 
 /**
  *
@@ -63,30 +86,26 @@ const GraphPane = () => {
 
   if (!graphInfo) return empty("Loading graph structure…")
 
-  const nodes = graphInfo.nodes || graphInfo.node_list || []
-  const edges = graphInfo.edges || graphInfo.edge_list || []
+  const { nodes, nodeCount, edgeCount } = readGraph(graphInfo)
 
   return (
     <>
       <div className={styles.trajHead}>
         <span>Graph structure</span>
         <span className={styles.tjThread}>
-          {(graphInfo.node_count ?? nodes.length) || 0} nodes ·{" "}
-          {(graphInfo.edge_count ?? edges.length) || 0} edges
+          {nodeCount} nodes · {edgeCount} edges
         </span>
       </div>
       {nodes.length ? (
         <div className={styles.traj}>
           {nodes.map((n, index) => {
-            const name =
-              typeof n === "string" ? n : n?.name || n?.id || `node ${index}`
-            const meta = typeof n === "string" ? "" : n?.type || n?.kind || ""
+            const name = nodeName(n, index)
             return (
-              <div key={index} className={styles.tstep}>
+              <div key={logKey(index, name)} className={styles.tstep}>
                 <span className={styles.tdot} />
                 <div className={styles.tinfo}>
                   <span className={styles.tname}>{name}</span>
-                  <span className={styles.tmeta}>{meta}</span>
+                  <span className={styles.tmeta}>{nodeMeta(n)}</span>
                 </div>
               </div>
             )
@@ -112,7 +131,7 @@ const FramesPane = () => {
   return (
     <>
       {frames.map((f, index) => (
-        <div className={styles.frame} key={index}>
+        <div className={styles.frame} key={logKey(index, f.dir, f.time)}>
           <div className={styles.fh}>
             <span className={`${styles.fdir} ${styles[f.dir]}`}>
               {f.dir === "out" ? "▲ send" : "▼ recv"}
@@ -196,36 +215,44 @@ const asText = (v) => {
   }
 }
 
+const toolResultText = (b) => {
+  const tag = b.is_error || b.status === "failed" ? "⚠ tool error" : "↳ result"
+  return `${tag}: ${asText(b.output ?? b.content)}`
+}
+
+// Media-ish blocks carry no readable text; they show as a bare type marker.
+const MEDIA_TYPES = new Set(["image", "audio", "video", "document"])
+
+const BLOCK_TEXT = {
+  text: (b) => b.text || "",
+  tool_call: (b) => `🛠 ${b.name}(${asText(b.args ?? {})})`,
+  remote_tool_call: (b) => `🛠 ${b.name}(${asText(b.args ?? {})})`,
+  tool_result: toolResultText,
+  reasoning: (b) =>
+    `💭 ${b.summary || (b.details || []).join(" ") || "reasoning"}`,
+  error: (b) => `⚠ ${b.message || "error"}`,
+  data: (b) => `[data ${b.mime_type || ""}]`,
+}
+
 // Render one content block to a readable line. Assistant/tool turns often carry
 // NO text block — just tool_call / tool_result / reasoning — so a text-only
 // extractor shows them as empty. This handles every block type the core emits.
 const blockToText = (b) => {
   if (typeof b === "string") return b
-  switch (b?.type) {
-    case "text":
-      return b.text || ""
-    case "tool_call":
-    case "remote_tool_call":
-      return `🛠 ${b.name}(${asText(b.args ?? {})})`
-    case "tool_result": {
-      const tag =
-        b.is_error || b.status === "failed" ? "⚠ tool error" : "↳ result"
-      return `${tag}: ${asText(b.output ?? b.content)}`
-    }
-    case "reasoning":
-      return `💭 ${b.summary || (b.details || []).join(" ") || "reasoning"}`
-    case "error":
-      return `⚠ ${b.message || "error"}`
-    case "image":
-    case "audio":
-    case "video":
-    case "document":
-      return `[${b.type}]`
-    case "data":
-      return `[data ${b.mime_type || ""}]`
-    default:
-      return b?.type ? `[${b.type}]` : asText(b)
-  }
+  const render = BLOCK_TEXT[b?.type]
+  if (render) return render(b)
+  if (MEDIA_TYPES.has(b?.type)) return `[${b.type}]`
+  return b?.type ? `[${b.type}]` : asText(b)
+}
+
+// Some providers nest the call under `function`, others put it on the entry.
+const callTarget = (tc) => tc?.function || tc
+
+const toolCallLine = (tc) => {
+  const target = callTarget(tc)
+  const name = target?.name || tc?.name || "tool"
+  const arguments_ = target?.arguments ?? tc?.args ?? {}
+  return `🛠 ${name}(${asText(arguments_)})`
 }
 
 // Message content is a plain string or a list of typed blocks. Join every block
@@ -245,12 +272,7 @@ const messageText = (message) => {
   }
   // Some assistant turns carry tool calls on a sibling field, not in content.
   if (Array.isArray(message?.tools_calls)) {
-    message.tools_calls.forEach((tc) => {
-      const function_ = tc?.function || tc
-      lines.push(
-        `🛠 ${function_?.name || tc?.name || "tool"}(${asText(function_?.arguments ?? tc?.args ?? {})})`
-      )
-    })
+    message.tools_calls.forEach((tc) => lines.push(toolCallLine(tc)))
   }
   return lines.join("\n")
 }
@@ -259,13 +281,24 @@ const messageText = (message) => {
 const toEditable = (v) =>
   typeof v === "string" ? v : JSON.stringify(v, null, 2)
 
+// The declared type of a dynamic field; the schema may omit or array-wrap it.
+const fieldType = (info, structured) => {
+  const declared = Array.isArray(info?.type) ? info.type[0] : info?.type
+  return declared || (structured ? "json" : "string")
+}
+
 // A dynamic field: JSON is parsed back to a value; anything else stays a string.
 // The parent remounts this (via a key that includes the sync nonce) whenever a
 // fresh load replaces the state, so `raw` re-seeds from `value` without an effect.
 /**
  *
  */
-const DynamicField = ({ fieldKey, info, value, onChange }) => {
+const DynamicField = ({
+  fieldKey,
+  info = null,
+  value = undefined,
+  onChange,
+}) => {
   const [raw, setRaw] = useState(() => toEditable(value))
   const [invalid, setInvalid] = useState(false)
 
@@ -290,8 +323,7 @@ const DynamicField = ({ fieldKey, info, value, onChange }) => {
       <div className={styles.stFieldHead}>
         <span className={styles.stFieldKey}>{info?.title || fieldKey}</span>
         <span className={styles.stFieldType}>
-          {(Array.isArray(info?.type) ? info.type[0] : info?.type) ||
-            (structured ? "json" : "string")}
+          {fieldType(info, structured)}
         </span>
         {info?.description && (
           <span className={styles.stFieldDesc}>{info.description}</span>
@@ -309,6 +341,20 @@ const DynamicField = ({ fieldKey, info, value, onChange }) => {
       )}
     </div>
   )
+}
+
+DynamicField.propTypes = {
+  fieldKey: PropTypes.string.isRequired,
+  info: PropTypes.shape({
+    title: PropTypes.string,
+    description: PropTypes.string,
+    type: PropTypes.oneOfType([
+      PropTypes.string,
+      PropTypes.arrayOf(PropTypes.string),
+    ]),
+  }),
+  value: PropTypes.any,
+  onChange: PropTypes.func.isRequired,
 }
 
 // Diagnostic view of execution_meta — the "what is the run doing / why is it
@@ -392,6 +438,209 @@ const ExecutionMeta = ({ meta }) => {
   )
 }
 
+ExecutionMeta.propTypes = {
+  meta: PropTypes.shape({
+    status: PropTypes.string,
+    current_node: PropTypes.string,
+    step: PropTypes.number,
+    thread_id: PropTypes.string,
+    stop_current_execution: PropTypes.bool,
+    interrupted_node: PropTypes.string,
+    interrupt_reason: PropTypes.string,
+    interrupt_data: PropTypes.any,
+    internal_data: PropTypes.shape({ error: PropTypes.any }),
+  }).isRequired,
+}
+
+// Sync / Save controls for the current thread's state snapshot.
+/**
+ *
+ */
+const StateActions = ({
+  threadId,
+  loading,
+  saving,
+  canSave,
+  onSync,
+  onSave,
+}) => (
+  <div className={styles.stActions}>
+    <span className={styles.stThread}>thread {threadId}</span>
+    <button
+      className={styles.stBtn}
+      type="button"
+      onClick={onSync}
+      disabled={loading}
+    >
+      <RefreshCw size={12} className={loading ? styles.spin : ""} /> Sync
+    </button>
+    <button
+      className={`${styles.stBtn} ${styles.primary}`}
+      type="button"
+      onClick={onSave}
+      disabled={saving || !canSave}
+    >
+      <Save size={12} /> {saving ? "Saving…" : "Save"}
+    </button>
+  </div>
+)
+
+StateActions.propTypes = {
+  threadId: PropTypes.string.isRequired,
+  loading: PropTypes.bool.isRequired,
+  saving: PropTypes.bool.isRequired,
+  canSave: PropTypes.bool.isRequired,
+  onSync: PropTypes.func.isRequired,
+  onSave: PropTypes.func.isRequired,
+}
+
+// One context entry, flattened to readable text.
+/**
+ *
+ */
+const ContextMessage = ({ message }) => {
+  const text = messageText(message)
+  return (
+    <div className={styles.stMsg}>
+      <div className={styles.stMsgHead}>
+        <span className={`${styles.stRole} ${styles[message.role] || ""}`}>
+          {message.role || "message"}
+        </span>
+      </div>
+      <textarea
+        className={styles.stArea}
+        value={text || "(empty)"}
+        rows={Math.min(6, Math.max(2, text.split("\n").length))}
+        readOnly
+        spellCheck={false}
+      />
+    </div>
+  )
+}
+
+ContextMessage.propTypes = {
+  message: PropTypes.shape({
+    role: PropTypes.string,
+  }).isRequired,
+}
+
+// Context messages — read-only. The state `context` field uses an
+// append-reducer server-side, so it can't be replaced via Save; editing/adding
+// messages belongs to the Thread Inspector. Here we just show the short-term
+// memory the run is working with.
+/**
+ *
+ */
+const ContextCard = ({ context }) => (
+  <div className={styles.stCard}>
+    <div className={styles.stCardHead}>
+      <span className={styles.stCardTitle}>
+        Context <span className={styles.stCardCount}>({context.length})</span>
+      </span>
+    </div>
+    <p className={styles.stCardDesc}>
+      Short-term conversation memory (read-only).
+    </p>
+    {context.length === 0 && (
+      <div className={styles.inspEmpty}>No messages.</div>
+    )}
+    {context.map((m, index) => (
+      <ContextMessage key={m.message_id || index} message={m} />
+    ))}
+  </div>
+)
+
+ContextCard.propTypes = {
+  context: PropTypes.arrayOf(PropTypes.shape({ message_id: PropTypes.string }))
+    .isRequired,
+}
+
+// Union of schema-declared fields and whatever the state actually carries,
+// minus the fixed ones — this is the dynamic field list (not hardcoded).
+const dynamicFieldKeys = (schemaProperties, draft) =>
+  [
+    ...new Set([...Object.keys(schemaProperties), ...Object.keys(draft || {})]),
+  ].filter((k) => !FIXED_FIELDS.includes(k))
+
+// A nonce that changes whenever a fresh server snapshot lands, so dynamic field
+// editors re-seed cleanly (via key) without an effect. `server` is a new object
+// reference on each load, so JSON length is a cheap stand-in.
+const serverNonce = (entry) =>
+  entry?.server ? JSON.stringify(entry.server).length : 0
+
+/**
+ *
+ */
+const StateBody = ({ threadId, draft, schema = null, nonce }) => {
+  const dispatch = useDispatch()
+  const schemaProperties = schema?.properties || {}
+  const dynamicKeys = dynamicFieldKeys(schemaProperties, draft)
+
+  return (
+    <>
+      <ContextCard context={draft.context || []} />
+
+      {/* Context summary (fixed field) */}
+      <div className={styles.stCard}>
+        <div className={styles.stCardHead}>
+          <span className={styles.stCardTitle}>Context Summary</span>
+        </div>
+        <textarea
+          className={styles.stArea}
+          value={draft.context_summary || ""}
+          rows={3}
+          placeholder="Rolling summary of the conversation…"
+          onChange={(e) =>
+            dispatch(
+              setField({
+                threadId,
+                key: "context_summary",
+                value: e.target.value,
+              })
+            )
+          }
+          spellCheck={false}
+        />
+      </div>
+
+      {/* Execution metadata (fixed field, diagnostic / read-only) */}
+      <ExecutionMeta meta={draft.execution_meta || {}} />
+
+      {/* Dynamic (graph-defined) fields — not fixed, editable */}
+      <div className={styles.trajHead}>
+        <span>Dynamic fields</span>
+        <span className={styles.tjThread}>{dynamicKeys.length} fields</span>
+      </div>
+      {dynamicKeys.length === 0 ? (
+        <div className={styles.inspEmpty}>
+          No dynamic state fields on this graph.
+        </div>
+      ) : (
+        dynamicKeys.map((key) => (
+          <DynamicField
+            key={`${key}:${nonce}`}
+            fieldKey={key}
+            info={schemaProperties[key]}
+            value={draft[key]}
+            onChange={(v) => dispatch(setField({ threadId, key, value: v }))}
+          />
+        ))
+      )}
+    </>
+  )
+}
+
+StateBody.propTypes = {
+  threadId: PropTypes.string.isRequired,
+  draft: PropTypes.shape({
+    context: PropTypes.array,
+    context_summary: PropTypes.string,
+    execution_meta: PropTypes.object,
+  }).isRequired,
+  schema: PropTypes.shape({ properties: PropTypes.object }),
+  nonce: PropTypes.number.isRequired,
+}
+
 /**
  *
  */
@@ -413,52 +662,19 @@ const StatePane = () => {
     return empty("No active thread — send a message first to create one.")
   }
 
-  const status = entry?.status || "idle"
   const draft = entry?.draft
-  const schemaProperties = schema?.properties || {}
-
-  // Union of schema-declared fields and whatever the state actually carries,
-  // minus the fixed ones — this is the dynamic field list (not hardcoded).
-  const dynamicKeys = [
-    ...new Set([...Object.keys(schemaProperties), ...Object.keys(draft || {})]),
-  ].filter((k) => !FIXED_FIELDS.includes(k))
-
-  // A nonce that changes whenever a fresh server snapshot lands, so dynamic
-  // field editors re-seed cleanly (via key) without an effect. `server` is a new
-  // object reference on each load, so JSON length is a cheap stand-in.
-  const syncNonce = entry?.server ? JSON.stringify(entry.server).length : 0
-
-  const context = draft?.context || []
-  const meta = draft?.execution_meta || {}
-
-  const onSync = () => dispatch(fetchThreadState(threadId))
-  const onSave = () => dispatch(saveThreadState(threadId))
+  const loading = entry?.status === "loading"
 
   return (
     <>
-      <div className={styles.stActions}>
-        <span className={styles.stThread}>thread {threadId}</span>
-        <button
-          className={styles.stBtn}
-          type="button"
-          onClick={onSync}
-          disabled={status === "loading"}
-        >
-          <RefreshCw
-            size={12}
-            className={status === "loading" ? styles.spin : ""}
-          />{" "}
-          Sync
-        </button>
-        <button
-          className={`${styles.stBtn} ${styles.primary}`}
-          type="button"
-          onClick={onSave}
-          disabled={entry?.saving || !draft}
-        >
-          <Save size={12} /> {entry?.saving ? "Saving…" : "Save"}
-        </button>
-      </div>
+      <StateActions
+        threadId={threadId}
+        loading={loading}
+        saving={Boolean(entry?.saving)}
+        canSave={Boolean(draft)}
+        onSync={() => dispatch(fetchThreadState(threadId))}
+        onSave={() => dispatch(saveThreadState(threadId))}
+      />
 
       {entry?.error && (
         <div className={styles.stHint} style={{ marginBottom: 8 }}>
@@ -466,101 +682,17 @@ const StatePane = () => {
         </div>
       )}
 
-      {status === "loading" && !draft ? (
-        empty("Loading thread state…")
-      ) : !draft ? (
-        empty("No state yet for this thread.")
+      {draft ? (
+        <StateBody
+          threadId={threadId}
+          draft={draft}
+          schema={schema}
+          nonce={serverNonce(entry)}
+        />
       ) : (
-        <>
-          {/* Context messages — read-only. The state `context` field uses an
-              append-reducer server-side, so it can't be replaced via Save;
-              editing/adding messages belongs to the Thread Inspector. Here we
-              just show the short-term memory the run is working with. */}
-          <div className={styles.stCard}>
-            <div className={styles.stCardHead}>
-              <span className={styles.stCardTitle}>
-                Context{" "}
-                <span className={styles.stCardCount}>({context.length})</span>
-              </span>
-            </div>
-            <p className={styles.stCardDesc}>
-              Short-term conversation memory (read-only).
-            </p>
-            {context.length === 0 && (
-              <div className={styles.inspEmpty}>No messages.</div>
-            )}
-            {context.map((m, index) => {
-              const text = messageText(m)
-              return (
-                <div className={styles.stMsg} key={m.message_id || index}>
-                  <div className={styles.stMsgHead}>
-                    <span
-                      className={`${styles.stRole} ${styles[m.role] || ""}`}
-                    >
-                      {m.role || "message"}
-                    </span>
-                  </div>
-                  <textarea
-                    className={styles.stArea}
-                    value={text || "(empty)"}
-                    rows={Math.min(6, Math.max(2, text.split("\n").length))}
-                    readOnly
-                    spellCheck={false}
-                  />
-                </div>
-              )
-            })}
-          </div>
-
-          {/* Context summary (fixed field) */}
-          <div className={styles.stCard}>
-            <div className={styles.stCardHead}>
-              <span className={styles.stCardTitle}>Context Summary</span>
-            </div>
-            <textarea
-              className={styles.stArea}
-              value={draft.context_summary || ""}
-              rows={3}
-              placeholder="Rolling summary of the conversation…"
-              onChange={(e) =>
-                dispatch(
-                  setField({
-                    threadId,
-                    key: "context_summary",
-                    value: e.target.value,
-                  })
-                )
-              }
-              spellCheck={false}
-            />
-          </div>
-
-          {/* Execution metadata (fixed field, diagnostic / read-only) */}
-          <ExecutionMeta meta={meta} />
-
-          {/* Dynamic (graph-defined) fields — not fixed, editable */}
-          <div className={styles.trajHead}>
-            <span>Dynamic fields</span>
-            <span className={styles.tjThread}>{dynamicKeys.length} fields</span>
-          </div>
-          {dynamicKeys.length === 0 ? (
-            <div className={styles.inspEmpty}>
-              No dynamic state fields on this graph.
-            </div>
-          ) : (
-            dynamicKeys.map((key) => (
-              <DynamicField
-                key={`${key}:${syncNonce}`}
-                fieldKey={key}
-                info={schemaProperties[key]}
-                value={draft[key]}
-                onChange={(v) =>
-                  dispatch(setField({ threadId, key, value: v }))
-                }
-              />
-            ))
-          )}
-        </>
+        empty(
+          loading ? "Loading thread state…" : "No state yet for this thread."
+        )
       )}
     </>
   )
@@ -569,7 +701,7 @@ const StatePane = () => {
 /**
  *
  */
-export default function Inspector({ onClose }) {
+const Inspector = ({ onClose }) => {
   const [tab, setTab] = useState("events")
 
   return (
@@ -605,3 +737,9 @@ export default function Inspector({ onClose }) {
     </aside>
   )
 }
+
+Inspector.propTypes = {
+  onClose: PropTypes.func.isRequired,
+}
+
+export default Inspector

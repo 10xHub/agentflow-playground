@@ -87,6 +87,12 @@ export const {
   setClientToolRegistered,
 } = toolsSlice.actions
 
+// Node/tool-count payload, whichever envelope shape the response uses.
+const toolsPayload = (res) => {
+  const data = res?.data || res || {}
+  return { nodes: data.nodes || [], tool_count: data.tool_count || 0 }
+}
+
 /**
  * Load the real server-side tools (local + MCP + remote), grouped by tool node,
  * from the connected backend. Safe to call repeatedly.
@@ -103,13 +109,7 @@ export const loadTools = () => async (dispatch) => {
   dispatch(toolsLoading())
   try {
     const res = await client.graphTools()
-    const data = res?.data || res || {}
-    dispatch(
-      toolsLoaded({
-        nodes: data.nodes || [],
-        tool_count: data.tool_count || 0,
-      })
-    )
+    dispatch(toolsLoaded(toolsPayload(res)))
   } catch (e) {
     dispatch(toolsError(e?.message || "Failed to load tools"))
   }

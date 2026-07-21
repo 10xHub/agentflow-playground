@@ -1,7 +1,8 @@
 import { Trash2 } from "lucide-react"
+import PropTypes from "prop-types"
 import { useDispatch, useSelector } from "react-redux"
 
-import { clearThread } from "@/store/threadsSlice"
+import { clearThread } from "@/store/threads-slice"
 
 import styles from "../threads.module.css"
 
@@ -23,6 +24,17 @@ const KvCard = ({ title, rows }) => (
   </div>
 )
 
+KvCard.propTypes = {
+  title: PropTypes.string.isRequired,
+  rows: PropTypes.arrayOf(
+    PropTypes.shape({
+      k: PropTypes.string,
+      v: PropTypes.node,
+      tone: PropTypes.string,
+    })
+  ).isRequired,
+}
+
 // Turn execution_meta into displayable kv rows with tone.
 const metaRows = (em) => {
   if (!em) return []
@@ -36,10 +48,24 @@ const metaRows = (em) => {
     .map(([k, v]) => ({ k, v: String(v), tone: toneFor(k, v) }))
 }
 
+// Summarise the thread context block as kv rows.
 /**
  *
  */
-export default function StatePane() {
+const contextRowsOf = (state, selectedId) => [
+  { k: "messages", v: String((state.context || []).length) },
+  {
+    k: "context_summary",
+    v: state.context_summary || "none",
+    tone: state.context_summary ? undefined : "muted",
+  },
+  { k: "thread_id", v: selectedId?.slice(0, 12) || "—" },
+]
+
+/**
+ *
+ */
+const StatePane = () => {
   const dispatch = useDispatch()
   const { selectedId, detail, detailStatus, busy } = useSelector(
     (s) => s.threads
@@ -53,15 +79,7 @@ export default function StatePane() {
     return <div className={styles.paneEmpty}>No state for this thread.</div>
   }
 
-  const contextRows = [
-    { k: "messages", v: String((state.context || []).length) },
-    {
-      k: "context_summary",
-      v: state.context_summary || "none",
-      tone: state.context_summary ? undefined : "muted",
-    },
-    { k: "thread_id", v: selectedId?.slice(0, 12) || "—" },
-  ]
+  const contextRows = contextRowsOf(state, selectedId)
 
   return (
     <div className={busy ? styles.dim : ""}>
@@ -87,3 +105,5 @@ export default function StatePane() {
     </div>
   )
 }
+
+export default StatePane

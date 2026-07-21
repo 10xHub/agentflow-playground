@@ -1,7 +1,8 @@
 import { ChevronDown, Moon, Settings, Sun } from "lucide-react"
+import PropTypes from "prop-types"
 import { useNavigate } from "react-router-dom"
 
-import { useConnection } from "@/lib/connection/ConnectionContext"
+import { useConnection } from "@/lib/connection/connection-context"
 import { useTheme } from "@/lib/use-theme"
 
 import styles from "./ConnectionBar.module.css"
@@ -25,14 +26,14 @@ const hostLabel = (url) => {
   } catch {
     return url || "—"
   }
-};
+}
 
 /**
  * Global connection bar: brand + active connection pill + capability chips +
  * connection-level actions. `right` lets a page inject an extra armed toggle
  * (e.g. the Chat inspector button) to the left of the theme/settings buttons.
  */
-export default function ConnectionBar({ right = null }) {
+const ConnectionBar = ({ right = null }) => {
   const { theme, toggle } = useTheme()
   const navigate = useNavigate()
   const { active, capabilities, isConnected } = useConnection()
@@ -106,11 +107,21 @@ export default function ConnectionBar({ right = null }) {
   )
 }
 
+ConnectionBar.propTypes = {
+  right: PropTypes.node,
+}
+
+export default ConnectionBar
+
 /**
  * A connection-bar action button styled to match the theme/settings buttons.
- *  Pages inject this into ConnectionBar's `right` slot (e.g. the inspector toggle).
+ * Pages inject this into ConnectionBar's `right` slot (e.g. the inspector toggle).
  */
-export const BarButton = ({ armed = false, children, ...properties }) => (
+export const BarButton = ({
+  armed = false,
+  children = null,
+  ...properties
+}) => (
   <button
     className={`${styles.iconbtn} ${armed ? styles.armed : ""}`}
     type="button"
@@ -119,3 +130,8 @@ export const BarButton = ({ armed = false, children, ...properties }) => (
     {children}
   </button>
 )
+
+BarButton.propTypes = {
+  armed: PropTypes.bool,
+  children: PropTypes.node,
+}

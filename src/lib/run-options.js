@@ -2,7 +2,7 @@
 // config, recursion_limit). Raw text lives in the store; this turns it into
 // something the client can take, and into a label for the composer chip.
 
-/** @returns {{ value: object|null, error: string|null }} */
+/** @returns {{ value: object|null, error: string|null }} The parsed object, or the reason it could not be parsed. */
 export const parseJsonObject = (raw) => {
   const t = (raw || "").trim()
   if (!t) return { value: null, error: null }
@@ -18,7 +18,7 @@ export const parseJsonObject = (raw) => {
   return { value: parsed, error: null }
 }
 
-/** @returns {{ value: number|null, error: string|null }} */
+/** @returns {{ value: number|null, error: string|null }} The parsed limit, or the reason it is invalid. */
 export const parseRecursionLimit = (raw) => {
   const t = String(raw ?? "").trim()
   if (!t) return { value: null, error: null }
@@ -56,30 +56,34 @@ export const resolveRunOptions = (runOptions, threadId) => {
   }
 }
 
+// One chip fragment for a JSON override: nothing when the field is blank, the
+// key count when it parsed, "invalid" when it didn't.
+const describeJson = (raw, parsed, label) => {
+  if (!raw?.trim()) return null
+  return parsed.error
+    ? `${label} invalid`
+    : `${label} ${Object.keys(parsed.value).length}`
+}
+
+const describeRecursion = (raw, limit) => {
+  if (!String(raw ?? "").trim()) return null
+  return limit.error ? "recursion invalid" : `recursion ${limit.value}`
+}
+
 /** Short label for the composer chip; null when nothing is overridden. */
 export const summariseRunOptions = (runOptions) => {
   const options = runOptions || {}
-  const parts = []
-  const initial = parseJsonObject(options.initialState)
-  const config = parseJsonObject(options.config)
-  const limit = parseRecursionLimit(options.recursionLimit)
-
-  if (options.initialState?.trim()) {
-    parts.push(
-      initial.error
-        ? "initial_state invalid"
-        : `initial_state ${Object.keys(initial.value).length}`
-    )
-  }
-  if (options.config?.trim()) {
-    parts.push(
-      config.error
-        ? "config invalid"
-        : `config ${Object.keys(config.value).length}`
-    )
-  }
-  if (String(options.recursionLimit ?? "").trim()) {
-    parts.push(limit.error ? "recursion invalid" : `recursion ${limit.value}`)
-  }
+  const parts = [
+    describeJson(
+      options.initialState,
+      parseJsonObject(options.initialState),
+      "initial_state"
+    ),
+    describeJson(options.config, parseJsonObject(options.config), "config"),
+    describeRecursion(
+      options.recursionLimit,
+      parseRecursionLimit(options.recursionLimit)
+    ),
+  ].filter(Boolean)
   return parts.length ? parts.join(" · ") : null
 }

@@ -1,5 +1,5 @@
-import AppearanceSection from "./components/AppearanceSection"
-import ConnectionSection from "./components/ConnectionSection"
+import AppearanceSection from "./components/appearance-section"
+import ConnectionSection from "./components/connection-section"
 import styles from "./settings.module.css"
 
 // Config hub: manage the active/saved backend connections (delegating deep
@@ -8,7 +8,7 @@ import styles from "./settings.module.css"
 /**
  *
  */
-export default function SettingsPage() {
+const SettingsPage = () => {
   return (
     <div className={styles.page}>
       <div className={styles.scroll}>
@@ -25,3 +25,5 @@ export default function SettingsPage() {
     </div>
   )
 }
+
+export default SettingsPage

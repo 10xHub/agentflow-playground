@@ -1,4 +1,5 @@
 import { Database, GitBranch, Info, Link2, Shield } from "lucide-react"
+import PropTypes from "prop-types"
 import { useState } from "react"
 import { useSelector } from "react-redux"
 
@@ -38,6 +39,11 @@ const Stats = ({ nodeCount, edgeCount }) => {
       ))}
     </div>
   )
+}
+
+Stats.propTypes = {
+  nodeCount: PropTypes.number.isRequired,
+  edgeCount: PropTypes.number.isRequired,
 }
 
 // Checkpointer / publisher / store feature flags with a ✓/✗ marker.
@@ -80,6 +86,13 @@ const Features = ({ checkpointer, checkpointerType, publisher, store }) => {
   )
 }
 
+Features.propTypes = {
+  checkpointer: PropTypes.bool.isRequired,
+  checkpointerType: PropTypes.string.isRequired,
+  publisher: PropTypes.bool.isRequired,
+  store: PropTypes.bool.isRequired,
+}
+
 /**
  *
  */
@@ -102,6 +115,43 @@ const Interrupts = ({ before, after }) => {
   )
 }
 
+Interrupts.propTypes = {
+  before: PropTypes.arrayOf(PropTypes.string).isRequired,
+  after: PropTypes.arrayOf(PropTypes.string).isRequired,
+}
+
+/**
+ *
+ */
+const hasStateIdentity = (values, stateFields) =>
+  values.some((v) => v && v !== "none") || stateFields.length > 0
+
+// State field name chips; renders nothing when the schema exposes no fields.
+/**
+ *
+ */
+const StateFields = ({ stateFields }) => {
+  if (stateFields.length === 0) return null
+  return (
+    <>
+      <div className={styles.kvLine}>
+        <span className={styles.kvKey}>State Fields:</span>
+      </div>
+      <div className={styles.chips}>
+        {stateFields.map((f) => (
+          <span key={f} className={styles.chip}>
+            {f}
+          </span>
+        ))}
+      </div>
+    </>
+  )
+}
+
+StateFields.propTypes = {
+  stateFields: PropTypes.arrayOf(PropTypes.string).isRequired,
+}
+
 /**
  *
  */
@@ -112,10 +162,10 @@ const StateIdentity = ({
   stateType,
   stateFields,
 }) => {
-  const has =
-    [contextType, idGenerator, idType, stateType].some(
-      (v) => v && v !== "none"
-    ) || stateFields.length > 0
+  const has = hasStateIdentity(
+    [contextType, idGenerator, idType, stateType],
+    stateFields
+  )
   if (!has) return null
   return (
     <div className={styles.section}>
@@ -130,20 +180,7 @@ const StateIdentity = ({
           <span className={styles.kvKey}>State Type:</span> {stateType}
         </div>
       )}
-      {stateFields.length > 0 && (
-        <>
-          <div className={styles.kvLine}>
-            <span className={styles.kvKey}>State Fields:</span>
-          </div>
-          <div className={styles.chips}>
-            {stateFields.map((f) => (
-              <span key={f} className={styles.chip}>
-                {f}
-              </span>
-            ))}
-          </div>
-        </>
-      )}
+      <StateFields stateFields={stateFields} />
       {idGenerator && (
         <div className={styles.kvLine}>
           <span className={styles.kvKey}>ID Generator:</span> {idGenerator}
@@ -154,12 +191,47 @@ const StateIdentity = ({
   )
 }
 
+StateIdentity.propTypes = {
+  contextType: PropTypes.string.isRequired,
+  idGenerator: PropTypes.string.isRequired,
+  idType: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+  stateType: PropTypes.string.isRequired,
+  stateFields: PropTypes.arrayOf(PropTypes.string).isRequired,
+}
+
+// Normalise the raw /v1/graph info payload into defaulted display values.
+/**
+ *
+ */
+const normalizeStateInfo = (info) => ({
+  context_type: info.context_type || "none",
+  id_generator: info.id_generator || "",
+  id_type: info.id_type || "",
+  state_type: info.state_type || "",
+  state_fields: info.state_fields || [],
+})
+
+/**
+ *
+ */
+const normalizeInfo = (info) => ({
+  node_count: info.node_count || 0,
+  edge_count: info.edge_count || 0,
+  checkpointer: !!info.checkpointer,
+  checkpointer_type: info.checkpointer_type || "None",
+  publisher: !!info.publisher,
+  store: !!info.store,
+  interrupt_before: info.interrupt_before || [],
+  interrupt_after: info.interrupt_after || [],
+  ...normalizeStateInfo(info),
+})
+
 /**
  * Graph Info card (ported from the legacy view): headline stats, feature flags,
  * interrupts, state & identity — all from the live GET /v1/graph · info payload.
  * The full StateSchema JSON (GET /v1/graph:StateSchema) is collapsible below.
  */
-export default function GraphInfoPane() {
+const GraphInfoPane = () => {
   const info = useSelector((s) => s.graph.info)
   const stateSchema = useSelector((s) => s.graph.stateSchema)
   const [showSchema, setShowSchema] = useState(false)
@@ -176,21 +248,7 @@ export default function GraphInfoPane() {
     )
   }
 
-  const g = {
-    node_count: info.node_count || 0,
-    edge_count: info.edge_count || 0,
-    checkpointer: !!info.checkpointer,
-    checkpointer_type: info.checkpointer_type || "None",
-    publisher: !!info.publisher,
-    store: !!info.store,
-    interrupt_before: info.interrupt_before || [],
-    interrupt_after: info.interrupt_after || [],
-    context_type: info.context_type || "none",
-    id_generator: info.id_generator || "",
-    id_type: info.id_type || "",
-    state_type: info.state_type || "",
-    state_fields: info.state_fields || [],
-  }
+  const g = normalizeInfo(info)
 
   return (
     <Card className={styles.card}>
@@ -238,3 +296,5 @@ export default function GraphInfoPane() {
     </Card>
   )
 }
+
+export default GraphInfoPane

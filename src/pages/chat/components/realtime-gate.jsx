@@ -1,4 +1,5 @@
 import { AudioLines, ArrowRight, Radio } from "lucide-react"
+import PropTypes from "prop-types"
 import { useNavigate } from "react-router-dom"
 
 import styles from "../chat.module.css"
@@ -9,7 +10,7 @@ import styles from "../chat.module.css"
 /**
  *
  */
-export default function RealtimeGate({ agentName }) {
+const RealtimeGate = ({ agentName = "" }) => {
   const navigate = useNavigate()
   const name = agentName || "This agent"
 
@@ -54,3 +55,9 @@ export default function RealtimeGate({ agentName }) {
     </div>
   )
 }
+
+RealtimeGate.propTypes = {
+  agentName: PropTypes.string,
+}
+
+export default RealtimeGate

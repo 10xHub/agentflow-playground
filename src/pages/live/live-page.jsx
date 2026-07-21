@@ -1,9 +1,10 @@
 import { MicOff, WifiOff } from "lucide-react"
+import PropTypes from "prop-types"
 import { useNavigate } from "react-router-dom"
 
-import { useConnection } from "@/lib/connection/ConnectionContext"
+import { useConnection } from "@/lib/connection/connection-context"
 
-import LiveSession from "./components/LiveSession"
+import LiveSession from "./components/live-session"
 import styles from "./live.module.css"
 
 // Full-width centered state panel for the unavailable/not-connected cases; the
@@ -11,7 +12,14 @@ import styles from "./live.module.css"
 /**
  *
  */
-const Gate = ({ icon: Icon, title, body, note, action, onAction }) => (
+const Gate = ({
+  icon: Icon,
+  title,
+  body,
+  note = null,
+  action = null,
+  onAction = null,
+}) => (
   <div className={styles.gate}>
     <div className={styles.gateInner}>
       <Icon size={30} strokeWidth={1.5} className={styles.gateIcon} />
@@ -26,6 +34,15 @@ const Gate = ({ icon: Icon, title, body, note, action, onAction }) => (
     </div>
   </div>
 )
+
+Gate.propTypes = {
+  icon: PropTypes.elementType.isRequired,
+  title: PropTypes.node.isRequired,
+  body: PropTypes.node.isRequired,
+  note: PropTypes.node,
+  action: PropTypes.node,
+  onAction: PropTypes.func,
+}
 
 /**
  *

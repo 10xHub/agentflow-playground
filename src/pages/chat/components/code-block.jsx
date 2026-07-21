@@ -1,4 +1,5 @@
 import { Code2, Eye } from "lucide-react"
+import PropTypes from "prop-types"
 import { useState } from "react"
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter"
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism"
@@ -7,10 +8,10 @@ import { isPreviewableLang } from "@/lib/rich-text"
 
 import styles from "../chat.module.css"
 
-import HtmlFrame from "./HtmlFrame"
+import HtmlFrame from "./html-frame"
 
 /** Fenced code. Renderable languages preview by default, with a source toggle. */
-export default function CodeBlock({ lang, code }) {
+const CodeBlock = ({ lang = "", code = "" }) => {
   const previewable = isPreviewableLang(lang)
   const [preview, setPreview] = useState(previewable)
 
@@ -44,3 +45,10 @@ export default function CodeBlock({ lang, code }) {
     </div>
   )
 }
+
+CodeBlock.propTypes = {
+  lang: PropTypes.string,
+  code: PropTypes.string,
+}
+
+export default CodeBlock

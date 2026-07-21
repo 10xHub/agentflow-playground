@@ -20,7 +20,7 @@ import {
   setThreadId,
   startAgentTurn,
   upsertBlock,
-} from "./chatSlice"
+} from "./chat-slice"
 
 // The active run's AbortController lives outside Redux (non-serializable). Stop
 // aborts it; the stream loop checks signal.aborted and bails.
@@ -72,28 +72,75 @@ const pretty = (value) => {
   }
 }
 
+// Summary line for a chunk that carried a message.
+const summarizeMessage = (message) => {
+  const text = textFromContent(message.content)
+  if (text) return `delta: ${JSON.stringify(text.slice(0, 80))}`
+  if (Array.isArray(message.content)) {
+    const kinds = message.content.map((b) => b?.type).filter(Boolean)
+    if (kinds.length) {
+      return `${message.role || "message"}: ${kinds.join(", ")}`
+    }
+  }
+  return `${message.role || "message"}`
+}
+
+// Summary line for an error chunk.
+const summarizeError = (chunk) => chunk.data?.reason || "error"
+
+// Summary line for a chunk that only carried execution bookkeeping.
+const summarizeExecutionMeta = (em) =>
+  `current_node: ${em.current_node ?? "?"} · step ${em.step ?? "?"}`
+
 // Short human summary of a chunk for the events pane detail line.
 const summarizeChunk = (chunk) => {
-  const message = chunk?.message
-  if (message) {
-    const text = textFromContent(message.content)
-    if (text) return `delta: ${JSON.stringify(text.slice(0, 80))}`
-    if (Array.isArray(message.content)) {
-      const kinds = message.content.map((b) => b?.type).filter(Boolean)
-      if (kinds.length) {
-        return `${message.role || "message"}: ${kinds.join(", ")}`
-      }
-    }
-    return `${message.role || "message"}`
-  }
-  if (chunk?.event === "error") return chunk?.data?.reason || "error"
-  if (chunk?.state?.execution_meta) {
-    const em = chunk.state.execution_meta
-    return `current_node: ${em.current_node ?? "?"} · step ${em.step ?? "?"}`
-  }
-  if (chunk?.data) return pretty(chunk.data).slice(0, 120)
-  return chunk?.event || "chunk"
+  const c = chunk || {}
+  if (c.message) return summarizeMessage(c.message)
+  if (c.event === "error") return summarizeError(c)
+  const em = c.state?.execution_meta
+  if (em) return summarizeExecutionMeta(em)
+  if (c.data) return pretty(c.data).slice(0, 120)
+  return c.event || "chunk"
 }
+
+// --- Content block builders ------------------------------------------------
+// Each returns the { key, block } half of an upsertBlock payload.
+
+const reasoningBlock = (block, index) => ({
+  key: `reasoning:${index}`,
+  block: {
+    kind: "reasoning",
+    summary: "Model reasoning",
+    text: block.summary || block.details || block.text || "",
+    collapsed: true,
+  },
+})
+
+const toolCallBlock = (block, index) => ({
+  key: `tool_call:${block.id || block.name || index}`,
+  block: {
+    kind: "tool_call",
+    name: block.name,
+    code: pretty(block.args ?? {}),
+    collapsed: false,
+  },
+})
+
+const toolResultBlock = (block, index) => ({
+  key: `tool_result:${block.call_id || block.id || index}`,
+  block: {
+    kind: "tool_result",
+    name: block.name || "result",
+    code: pretty(block.output ?? block.content ?? {}),
+    collapsed: true,
+  },
+})
+
+const BLOCK_BUILDERS = new Map([
+  ["reasoning", reasoningBlock],
+  ["tool_call", toolCallBlock],
+  ["tool_result", toolResultBlock],
+])
 
 // Map assistant/tool content blocks from a streamed message into UI blocks,
 // dispatching an upsert for each. Keyed so repeated snapshots update in place.
@@ -101,47 +148,9 @@ const emitContentBlocks = (dispatch, agentId, message) => {
   const content = Array.isArray(message?.content) ? message.content : []
 
   content.forEach((block, index) => {
-    if (block?.type === "reasoning") {
-      const text = block.summary || block.details || block.text || ""
-      dispatch(
-        upsertBlock({
-          id: agentId,
-          key: `reasoning:${index}`,
-          block: {
-            kind: "reasoning",
-            summary: "Model reasoning",
-            text,
-            collapsed: true,
-          },
-        })
-      )
-    } else if (block?.type === "tool_call") {
-      dispatch(
-        upsertBlock({
-          id: agentId,
-          key: `tool_call:${block.id || block.name || index}`,
-          block: {
-            kind: "tool_call",
-            name: block.name,
-            code: pretty(block.args ?? {}),
-            collapsed: false,
-          },
-        })
-      )
-    } else if (block?.type === "tool_result") {
-      dispatch(
-        upsertBlock({
-          id: agentId,
-          key: `tool_result:${block.call_id || block.id || index}`,
-          block: {
-            kind: "tool_result",
-            name: block.name || "result",
-            code: pretty(block.output ?? block.content ?? {}),
-            collapsed: true,
-          },
-        })
-      )
-    }
+    const build = BLOCK_BUILDERS.get(block?.type)
+    if (!build) return
+    dispatch(upsertBlock({ id: agentId, ...build(block, index) }))
   })
 }
 
@@ -165,11 +174,8 @@ const emitToolMessage = (dispatch, agentId, message) => {
   )
 }
 
-// Build the { method, url, headers, body } snapshot the cURL pane renders from.
-const buildRequestSnapshot = (mode, messages, run, granularity) => {
-  const settings = getCurrentSettings()
-  const base = (settings.backendUrl || "").replace(/\/$/, "")
-  const path = mode === "invoke" ? "/v1/graph/invoke" : "/v1/graph/stream"
+// Redacted auth headers for the cURL pane — never the real secrets.
+const redactedAuthHeaders = (settings) => {
   const headers = { "Content-Type": "application/json" }
   if (settings.authMode === "bearer" && settings.authToken) {
     headers.Authorization = "Bearer •••"
@@ -183,6 +189,15 @@ const buildRequestSnapshot = (mode, messages, run, granularity) => {
       if (h?.name) headers[h.name] = "•••"
     })
   }
+  return headers
+}
+
+// Build the { method, url, headers, body } snapshot the cURL pane renders from.
+const buildRequestSnapshot = (mode, messages, run, granularity) => {
+  const settings = getCurrentSettings()
+  const base = (settings.backendUrl || "").replace(/\/$/, "")
+  const path = mode === "invoke" ? "/v1/graph/invoke" : "/v1/graph/stream"
+  const headers = redactedAuthHeaders(settings)
   return {
     method: "POST",
     mode,
@@ -198,6 +213,83 @@ const buildRequestSnapshot = (mode, messages, run, granularity) => {
   }
 }
 
+const chunkEventName = (chunk) => chunk?.event || "chunk"
+
+const chunkNode = (chunk) =>
+  chunk?.metadata?.node || chunk?.metadata?.current_node
+
+// Mirror a chunk into the inspector's frames + events panes.
+const logChunk = (dispatch, chunk, startedAt) => {
+  dispatch(
+    pushFrame({
+      dir: "in",
+      label: `event: ${chunkEventName(chunk)}`,
+      time: since(startedAt),
+    })
+  )
+  dispatch(
+    pushEvent({
+      type: chunkEventName(chunk),
+      node: chunkNode(chunk) || "—",
+      time: since(startedAt),
+      detail: summarizeChunk(chunk),
+    })
+  )
+}
+
+// Adopt the thread id the server assigns mid-stream.
+const syncThreadId = (dispatch, getState, chunk) => {
+  const chunkThreadId = chunk?.thread_id || chunk?.metadata?.thread_id
+  if (chunkThreadId && chunkThreadId !== getState().chat.threadId) {
+    dispatch(setThreadId(chunkThreadId))
+  }
+}
+
+const syncAgentNode = (dispatch, agentId, chunk) => {
+  const node = chunkNode(chunk)
+  if (node) dispatch(setAgentNode({ id: agentId, node }))
+}
+
+// The failure reason can arrive in any of several slots.
+const errorChunkReason = (chunk) =>
+  chunk.data?.reason ||
+  chunk.state?.execution_meta?.internal_data?.error ||
+  chunk.message ||
+  "Graph execution error"
+
+const throwIfErrorChunk = (chunk) => {
+  const c = chunk || {}
+  if (c.event !== "error") return
+  throw new Error(String(errorChunkReason(c)))
+}
+
+// Fan one streamed message out into blocks / usage / text. Returns whether it
+// contributed visible text.
+const applyChunkMessage = (dispatch, agentId, message) => {
+  if (!message || message.role === "user") return false
+
+  if (message.role === "tool") {
+    emitToolMessage(dispatch, agentId, message)
+    return false
+  }
+
+  emitContentBlocks(dispatch, agentId, message)
+  if (message.usages) {
+    dispatch(addUsage({ id: agentId, usage: message.usages }))
+  }
+
+  const text = textFromContent(message.content)
+  if (!text) return false
+  dispatch(
+    setAgentText({
+      id: agentId,
+      text,
+      mode: message.delta ? "append" : "replace",
+    })
+  )
+  return true
+}
+
 // Consume the async chunk stream (shared by "stream" and "ws" modes) and fan the
 // chunks out into messages + inspector logs. Returns whether any text was seen.
 const consumeStream = async (
@@ -208,65 +300,26 @@ const consumeStream = async (
   for await (const chunk of stream) {
     if (signal?.aborted) break
 
-    dispatch(
-      pushFrame({
-        dir: "in",
-        label: `event: ${chunk?.event || "chunk"}`,
-        time: since(startedAt),
-      })
-    )
-    dispatch(
-      pushEvent({
-        type: chunk?.event || "chunk",
-        node: chunk?.metadata?.node || chunk?.metadata?.current_node || "—",
-        time: since(startedAt),
-        detail: summarizeChunk(chunk),
-      })
-    )
+    logChunk(dispatch, chunk, startedAt)
+    syncThreadId(dispatch, getState, chunk)
+    syncAgentNode(dispatch, agentId, chunk)
+    throwIfErrorChunk(chunk)
 
-    const chunkThreadId = chunk?.thread_id || chunk?.metadata?.thread_id
-    if (chunkThreadId && chunkThreadId !== getState().chat.threadId) {
-      dispatch(setThreadId(chunkThreadId))
-    }
-
-    const node = chunk?.metadata?.node || chunk?.metadata?.current_node
-    if (node) dispatch(setAgentNode({ id: agentId, node }))
-
-    if (chunk?.event === "error") {
-      const reason =
-        chunk?.data?.reason ||
-        chunk?.state?.execution_meta?.internal_data?.error ||
-        chunk?.message ||
-        "Graph execution error"
-      throw new Error(String(reason))
-    }
-
-    const message = chunk?.message
-    if (!message || message.role === "user") continue
-
-    if (message.role === "tool") {
-      emitToolMessage(dispatch, agentId, message)
-      continue
-    }
-
-    emitContentBlocks(dispatch, agentId, message)
-    if (message.usages) {
-      dispatch(addUsage({ id: agentId, usage: message.usages }))
-    }
-
-    const text = textFromContent(message.content)
-    if (text) {
-      sawText = true
-      dispatch(
-        setAgentText({
-          id: agentId,
-          text,
-          mode: message.delta ? "append" : "replace",
-        })
-      )
-    }
+    if (applyChunkMessage(dispatch, agentId, chunk?.message)) sawText = true
   }
   return sawText
+}
+
+// Merge info (counts/state schema) with the node/edge lists, which sit one
+// level up from `info` in the response.
+const normalizeGraphInfo = (res) => {
+  const data = res?.data || res || {}
+  const info = data.info || {}
+  return {
+    ...info,
+    nodes: data.nodes || info.nodes || [],
+    edges: data.edges || info.edges || [],
+  }
 }
 
 /**
@@ -282,17 +335,7 @@ export const loadGraphInfo = () => async (dispatch) => {
   }
   try {
     const res = await client.graph()
-    // Merge info (counts/state schema) with the node/edge lists, which sit one
-    // level up from `info` in the response.
-    const data = res?.data || res || {}
-    const info = data.info || {}
-    dispatch(
-      setGraphInfo({
-        ...info,
-        nodes: data.nodes || info.nodes || [],
-        edges: data.edges || info.edges || [],
-      })
-    )
+    dispatch(setGraphInfo(normalizeGraphInfo(res)))
   } catch {
     /* non-fatal: inspector Graph tab just stays empty */
   }
@@ -334,6 +377,146 @@ export const fixThread = () => async (dispatch, getState) => {
   }
 }
 
+// Per-run overrides from the composer popup, shaped for the client call.
+const buildClientOptions = (run, granularity) => ({
+  config: run.config,
+  response_granularity: granularity,
+  ...(run.initial_state ? { initial_state: run.initial_state } : {}),
+  ...(run.recursion_limit ? { recursion_limit: run.recursion_limit } : {}),
+})
+
+const outboundLabel = (mode) =>
+  `POST /v1/graph/${mode === "invoke" ? "invoke" : "stream"}${mode === "ws" ? " (ws)" : ""}`
+
+// Everything that marks the start of a run, in dispatch order.
+const startRun = (
+  dispatch,
+  { agentId, granularity, mode, outgoing, run, startedAt, trimmed }
+) => {
+  dispatch(addUserMessage({ id: uid("user"), text: trimmed, time: nowTime() }))
+  dispatch(startAgentTurn({ id: agentId }))
+  dispatch(setGenerating(true))
+  dispatch(setError(null))
+  dispatch(
+    beginRun({
+      startedAt,
+      request: buildRequestSnapshot(mode, outgoing, run, granularity),
+    })
+  )
+  dispatch(
+    pushFrame({ dir: "out", label: outboundLabel(mode), time: nowTime() })
+  )
+}
+
+const responseThreadId = (result) =>
+  result?.thread_id || result?.metadata?.thread_id
+
+const responseMessages = (result) =>
+  result?.messages || result?.data?.messages || []
+
+// Fan one invoke-result message out. Returns whether it contributed text.
+const applyResultMessage = (dispatch, agentId, m) => {
+  if (m.role === "tool") emitToolMessage(dispatch, agentId, m)
+  else emitContentBlocks(dispatch, agentId, m)
+  if (m.usages) dispatch(addUsage({ id: agentId, usage: m.usages }))
+  const t = textFromContent(m.content)
+  if (!t) return false
+  dispatch(setAgentText({ id: agentId, text: t, mode: "replace" }))
+  return true
+}
+
+// Single request/response — no streaming.
+const runInvoke = async (
+  client,
+  outgoing,
+  clientOptions,
+  { dispatch, agentId, startedAt }
+) => {
+  const result = await client.invoke(outgoing, clientOptions)
+  dispatch(
+    pushFrame({ dir: "in", label: "200 invoke result", time: since(startedAt) })
+  )
+  dispatch(
+    pushEvent({
+      type: "result",
+      node: "—",
+      time: since(startedAt),
+      detail: "invoke complete",
+    })
+  )
+
+  const resThreadId = responseThreadId(result)
+  if (resThreadId) dispatch(setThreadId(resThreadId))
+
+  let sawText = false
+  responseMessages(result)
+    .filter((m) => m.role !== "user")
+    .forEach((m) => {
+      if (applyResultMessage(dispatch, agentId, m)) sawText = true
+    })
+  return sawText
+}
+
+// Route the run to the transport the user picked. Returns whether text landed.
+const executeRun = async (client, mode, outgoing, clientOptions, ctx) => {
+  if (mode === "invoke") return runInvoke(client, outgoing, clientOptions, ctx)
+  if (mode === "ws") {
+    if (typeof client.wsStream !== "function") {
+      throw new Error(
+        "This agentflow-client build does not support WebSocket streaming."
+      )
+    }
+    return consumeStream(client.wsStream(outgoing, clientOptions), ctx)
+  }
+  return consumeStream(client.stream(outgoing, clientOptions), ctx)
+}
+
+// Close out a run that completed without throwing.
+const finishRun = (dispatch, { agentId, mode, sawText, signal }) => {
+  if (signal.aborted) {
+    dispatch(
+      finishAgentTurn({
+        id: agentId,
+        runMeta: { status: "stopped", path: mode },
+      })
+    )
+    return
+  }
+  dispatch(
+    finishAgentTurn({ id: agentId, runMeta: { status: "done", path: mode } })
+  )
+  if (!sawText) {
+    dispatch(
+      setAgentText({ id: agentId, text: "(no text returned)", mode: "replace" })
+    )
+  }
+}
+
+// Close out a run that threw. An abort is a clean stop, not an error.
+const failRun = (dispatch, e, { agentId, mode, signal, startedAt }) => {
+  if (signal.aborted) {
+    dispatch(
+      finishAgentTurn({
+        id: agentId,
+        runMeta: { status: "stopped", path: mode },
+      })
+    )
+    return
+  }
+  const reason = e?.message || e
+  dispatch(appendErrorAnswer({ id: agentId, text: `Error: ${reason}` }))
+  dispatch(finishAgentTurn({ id: agentId, runMeta: { status: "error" } }))
+  dispatch(setError(e?.message || "Stream failed"))
+  dispatch(
+    pushEvent({
+      type: "error",
+      node: "—",
+      time: since(startedAt),
+      detail: String(reason),
+    })
+  )
+}
+
 /**
  * Send a user message and stream the assistant's reply into the store, honoring
  * the selected mode (invoke | stream | ws) and response_granularity.
@@ -351,158 +534,40 @@ export const sendMessage = (text) => async (dispatch, getState) => {
     return
   }
 
-  const { mode, granularity, runOptions } = getState().chat
+  const { mode, granularity, runOptions, threadId } = getState().chat
   const startedAt = Date.now()
   const outgoing = [Message.text_message(trimmed, "user")]
-  const { threadId } = getState().chat
 
   // Per-run overrides from the composer popup. Refuse to send malformed JSON
   // rather than silently dropping what the user typed.
   const run = resolveRunOptions(runOptions, threadId)
   if (!run.valid) {
-    const [field, message] = Object.entries(run.errors)[0]
+    const [[field, message]] = Object.entries(run.errors)
     dispatch(setError(`Run options — ${field}: ${message}`))
     return
   }
-  const { config } = run
-  const clientOptions = {
-    config,
-    response_granularity: granularity,
-    ...(run.initial_state ? { initial_state: run.initial_state } : {}),
-    ...(run.recursion_limit ? { recursion_limit: run.recursion_limit } : {}),
-  }
+  const clientOptions = buildClientOptions(run, granularity)
 
-  dispatch(addUserMessage({ id: uid("user"), text: trimmed, time: nowTime() }))
   const agentId = uid("agent")
-  dispatch(startAgentTurn({ id: agentId }))
-  dispatch(setGenerating(true))
-  dispatch(setError(null))
-  dispatch(
-    beginRun({
-      startedAt,
-      request: buildRequestSnapshot(mode, outgoing, run, granularity),
-    })
-  )
-  dispatch(
-    pushFrame({
-      dir: "out",
-      label: `POST /v1/graph/${mode === "invoke" ? "invoke" : "stream"}${mode === "ws" ? " (ws)" : ""}`,
-      time: nowTime(),
-    })
-  )
+  startRun(dispatch, {
+    agentId,
+    granularity,
+    mode,
+    outgoing,
+    run,
+    startedAt,
+    trimmed,
+  })
 
   activeAbort = new AbortController()
   const { signal } = activeAbort
-  let sawText = false
+  const ctx = { dispatch, getState, agentId, startedAt, signal }
 
   try {
-    if (mode === "invoke") {
-      // Single request/response — no streaming.
-      const result = await client.invoke(outgoing, clientOptions)
-      dispatch(
-        pushFrame({
-          dir: "in",
-          label: "200 invoke result",
-          time: since(startedAt),
-        })
-      )
-      dispatch(
-        pushEvent({
-          type: "result",
-          node: "—",
-          time: since(startedAt),
-          detail: "invoke complete",
-        })
-      )
-
-      const resThreadId = result?.thread_id || result?.metadata?.thread_id
-      if (resThreadId) dispatch(setThreadId(resThreadId))
-
-      const msgs = result?.messages || result?.data?.messages || []
-      msgs
-        .filter((m) => m.role !== "user")
-        .forEach((m) => {
-          if (m.role === "tool") emitToolMessage(dispatch, agentId, m)
-          else emitContentBlocks(dispatch, agentId, m)
-          if (m.usages) dispatch(addUsage({ id: agentId, usage: m.usages }))
-          const t = textFromContent(m.content)
-          if (t) {
-            sawText = true
-            dispatch(setAgentText({ id: agentId, text: t, mode: "replace" }))
-          }
-        })
-    } else if (mode === "ws") {
-      if (typeof client.wsStream !== "function") {
-        throw new Error(
-          "This agentflow-client build does not support WebSocket streaming."
-        )
-      }
-      const stream = client.wsStream(outgoing, clientOptions)
-      sawText = await consumeStream(stream, {
-        dispatch,
-        getState,
-        agentId,
-        startedAt,
-        signal,
-      })
-    } else {
-      const stream = client.stream(outgoing, clientOptions)
-      sawText = await consumeStream(stream, {
-        dispatch,
-        getState,
-        agentId,
-        startedAt,
-        signal,
-      })
-    }
-
-    if (signal.aborted) {
-      dispatch(
-        finishAgentTurn({
-          id: agentId,
-          runMeta: { status: "stopped", path: mode },
-        })
-      )
-    } else {
-      dispatch(
-        finishAgentTurn({
-          id: agentId,
-          runMeta: { status: "done", path: mode },
-        })
-      )
-      if (!sawText) {
-        dispatch(
-          setAgentText({
-            id: agentId,
-            text: "(no text returned)",
-            mode: "replace",
-          })
-        )
-      }
-    }
+    const sawText = await executeRun(client, mode, outgoing, clientOptions, ctx)
+    finishRun(dispatch, { agentId, mode, sawText, signal })
   } catch (e) {
-    if (signal.aborted) {
-      dispatch(
-        finishAgentTurn({
-          id: agentId,
-          runMeta: { status: "stopped", path: mode },
-        })
-      )
-    } else {
-      dispatch(
-        appendErrorAnswer({ id: agentId, text: `Error: ${e?.message || e}` })
-      )
-      dispatch(finishAgentTurn({ id: agentId, runMeta: { status: "error" } }))
-      dispatch(setError(e?.message || "Stream failed"))
-      dispatch(
-        pushEvent({
-          type: "error",
-          node: "—",
-          time: since(startedAt),
-          detail: String(e?.message || e),
-        })
-      )
-    }
+    failRun(dispatch, e, { agentId, mode, signal, startedAt })
   } finally {
     activeAbort = null
     dispatch(setGenerating(false))

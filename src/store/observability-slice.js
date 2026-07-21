@@ -41,6 +41,12 @@ const observabilitySlice = createSlice({
 export const { obsLoading, obsLoaded, obsError, obsReset } =
   observabilitySlice.actions
 
+const unwrap = (res) => res?.data || res || {}
+
+// A thread with no runs yet returns 404 — treat as empty, not an error.
+const isNotFound = (e) =>
+  e?.status === 404 || /not found/i.test(e?.message || "")
+
 /**
  * Load the observability trace for a thread (latest run, or a specific run_id).
  */
@@ -60,11 +66,9 @@ export const loadObservability = (threadId, runId) => async (dispatch) => {
   dispatch(obsLoading())
   try {
     const res = await client.observability(threadId, runId)
-    const data = res?.data || res || {}
-    dispatch(obsLoaded(data))
+    dispatch(obsLoaded(unwrap(res)))
   } catch (e) {
-    // A thread with no runs yet returns 404 — treat as empty, not an error.
-    if (e?.status === 404 || /not found/i.test(e?.message || "")) {
+    if (isNotFound(e)) {
       dispatch(
         obsLoaded({ thread_id: threadId, run_count: 0, run_ids: [], run: null })
       )

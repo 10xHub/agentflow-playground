@@ -1,12 +1,13 @@
 import { ChevronDown } from "lucide-react"
+import PropTypes from "prop-types"
 import { useState } from "react"
 
 import { formatJson } from "@/lib/rich-text"
 
 import styles from "../chat.module.css"
 
-import CodeBlock from "./CodeBlock"
-import RichText from "./RichText"
+import CodeBlock from "./code-block"
+import RichText from "./rich-text"
 
 const TAG = {
   reasoning: { cls: styles.reason, label: "reasoning" },
@@ -15,7 +16,7 @@ const TAG = {
 }
 
 /** Tool args / results: highlighted JSON when it parses, rich text otherwise. */
-const ToolPayload = ({ code }) => {
+const ToolPayload = ({ code = "" }) => {
   const json = formatJson(code)
   if (json) return <CodeBlock lang="json" code={json} />
   return (
@@ -25,14 +26,32 @@ const ToolPayload = ({ code }) => {
   )
 }
 
+ToolPayload.propTypes = {
+  code: PropTypes.string,
+}
+
 /** Collapsible reasoning / tool_call / tool_result block inside an agent turn. */
-export default function ContentBlock({ block }) {
+const ContentBlock = ({ block }) => {
   const [collapsed, setCollapsed] = useState(!!block.collapsed)
   const tag = TAG[block.kind]
 
+  const toggle = () => setCollapsed((c) => !c)
+  const onKeyDown = (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault()
+      toggle()
+    }
+  }
+
   return (
     <div className={`${styles.block} ${collapsed ? styles.collapsed : ""}`}>
-      <div className={styles.blockH} onClick={() => setCollapsed((c) => !c)}>
+      <div
+        className={styles.blockH}
+        role="button"
+        tabIndex={0}
+        onClick={toggle}
+        onKeyDown={onKeyDown}
+      >
         <span className={`${styles.tag} ${tag.cls}`}>{tag.label}</span>
         {block.kind === "reasoning" ? (
           <span>{block.summary}</span>
@@ -56,3 +75,17 @@ export default function ContentBlock({ block }) {
     </div>
   )
 }
+
+ContentBlock.propTypes = {
+  block: PropTypes.shape({
+    collapsed: PropTypes.bool,
+    kind: PropTypes.string,
+    summary: PropTypes.string,
+    name: PropTypes.string,
+    meta: PropTypes.node,
+    text: PropTypes.string,
+    code: PropTypes.string,
+  }).isRequired,
+}
+
+export default ContentBlock

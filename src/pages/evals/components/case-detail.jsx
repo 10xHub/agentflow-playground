@@ -1,3 +1,5 @@
+import PropTypes from "prop-types"
+
 import styles from "../evals.module.css"
 
 const RUBRIC_COLOR = { danger: "var(--danger)", accent: "var(--accent)" }
@@ -5,7 +7,7 @@ const RUBRIC_COLOR = { danger: "var(--danger)", accent: "var(--accent)" }
 /**
  *
  */
-export default function CaseDetail({ activeCase }) {
+const CaseDetail = ({ activeCase = null }) => {
   if (!activeCase) {
     return (
       <aside className={styles.cdet}>
@@ -41,8 +43,8 @@ export default function CaseDetail({ activeCase }) {
         {isSim && activeCase.conversation && (
           <>
             <div className={styles.cdH}>Simulated conversation</div>
-            {activeCase.conversation.map((turn, index) => (
-              <div className={styles.turn} key={index}>
+            {activeCase.conversation.map((turn) => (
+              <div className={styles.turn} key={`${turn.role}:${turn.text}`}>
                 <div
                   className={`${styles.tav} ${turn.role === "sim" ? styles.u : styles.a}`}
                 >
@@ -101,3 +103,31 @@ export default function CaseDetail({ activeCase }) {
     </aside>
   )
 }
+
+CaseDetail.propTypes = {
+  activeCase: PropTypes.shape({
+    name: PropTypes.string,
+    status: PropTypes.string,
+    type: PropTypes.string,
+    input: PropTypes.string,
+    expected: PropTypes.string,
+    actual: PropTypes.string,
+    lat: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    cost: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    conversation: PropTypes.arrayOf(
+      PropTypes.shape({
+        role: PropTypes.string,
+        text: PropTypes.string,
+      })
+    ),
+    rubric: PropTypes.arrayOf(
+      PropTypes.shape({
+        key: PropTypes.string,
+        value: PropTypes.number,
+        tone: PropTypes.string,
+      })
+    ),
+  }),
+}
+
+export default CaseDetail

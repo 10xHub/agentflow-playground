@@ -1,12 +1,21 @@
 import { Check, Pencil, RotateCcw } from "lucide-react"
+import PropTypes from "prop-types"
 
 import { COLLECTIONS } from "../data"
 import styles from "../memory.module.css"
 
+// Keyboard parity for the div/span rows that stay divs to keep the layout intact.
+const keyActivate = (fn) => (e) => {
+  if (e.key === "Enter" || e.key === " ") {
+    e.preventDefault()
+    fn()
+  }
+}
+
 /**
  *
  */
-export default function FacetsColumn({
+const FacetsColumn = ({
   collection,
   onCollectionChange,
   loaded,
@@ -14,11 +23,11 @@ export default function FacetsColumn({
   typeCounts,
   onToggleType,
   onAllTypes,
-  cat,
+  cat = null,
   catCounts,
   onSetCat,
   onReload,
-}) {
+}) => {
   return (
     <aside className={styles.facets}>
       <div className={styles.facetsScroll}>
@@ -65,15 +74,22 @@ export default function FacetsColumn({
             <span className="mono">user_id</span> to the connected token
             server-side; there is no cross-user list. Set{" "}
             <span className="mono">collection</span> to inspect a non-default
-            one — it's sent as <span className="mono">config.collection</span>{" "}
-            (no list-collections endpoint exists, so type the name).
+            one — it&apos;s sent as{" "}
+            <span className="mono">config.collection</span> (no list-collections
+            endpoint exists, so type the name).
           </div>
         </div>
 
         <div className={styles.fg}>
           <div className={styles.fgH}>
             <span className={styles.lbl}>Memory type</span>
-            <span className={styles.all} onClick={onAllTypes}>
+            <span
+              className={styles.all}
+              role="button"
+              tabIndex={0}
+              onClick={onAllTypes}
+              onKeyDown={keyActivate(onAllTypes)}
+            >
               all
             </span>
           </div>
@@ -84,7 +100,10 @@ export default function FacetsColumn({
                 <div
                   key={t.k}
                   className={`${styles.frow} ${on ? styles.on : ""}`}
+                  role="button"
+                  tabIndex={0}
                   onClick={() => onToggleType(t.k)}
+                  onKeyDown={keyActivate(() => onToggleType(t.k))}
                 >
                   <span className={styles.ck}>
                     <Check size={9} strokeWidth={3.5} />
@@ -101,7 +120,13 @@ export default function FacetsColumn({
         <div className={styles.fg}>
           <div className={styles.fgH}>
             <span className={styles.lbl}>Category</span>
-            <span className={styles.all} onClick={() => onSetCat(null)}>
+            <span
+              className={styles.all}
+              role="button"
+              tabIndex={0}
+              onClick={() => onSetCat(null)}
+              onKeyDown={keyActivate(() => onSetCat(null))}
+            >
               all
             </span>
           </div>
@@ -111,7 +136,10 @@ export default function FacetsColumn({
               <div
                 key={c.k}
                 className={`${styles.catrow} ${cat === c.k ? styles.on : ""}`}
+                role="button"
+                tabIndex={0}
                 onClick={() => onSetCat(c.k)}
+                onKeyDown={keyActivate(() => onSetCat(c.k))}
               >
                 {c.k}
                 <span className={styles.fn}>{c.n}</span>
@@ -123,3 +151,29 @@ export default function FacetsColumn({
     </aside>
   )
 }
+
+FacetsColumn.propTypes = {
+  collection: PropTypes.string.isRequired,
+  onCollectionChange: PropTypes.func.isRequired,
+  loaded: PropTypes.node.isRequired,
+  types: PropTypes.instanceOf(Set).isRequired,
+  typeCounts: PropTypes.arrayOf(
+    PropTypes.shape({
+      k: PropTypes.string.isRequired,
+      n: PropTypes.number.isRequired,
+    })
+  ).isRequired,
+  onToggleType: PropTypes.func.isRequired,
+  onAllTypes: PropTypes.func.isRequired,
+  cat: PropTypes.string,
+  catCounts: PropTypes.arrayOf(
+    PropTypes.shape({
+      k: PropTypes.string.isRequired,
+      n: PropTypes.number.isRequired,
+    })
+  ).isRequired,
+  onSetCat: PropTypes.func.isRequired,
+  onReload: PropTypes.func.isRequired,
+}
+
+export default FacetsColumn

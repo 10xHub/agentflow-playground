@@ -1,8 +1,12 @@
+import PropTypes from "prop-types"
+
+const DEFAULT_NOTE = "coming next"
+
 // Temporary stand-in for routes still being converted from the HTML mockups.
 /**
  *
  */
-export default function Placeholder({ name, note = "coming next" }) {
+const Placeholder = ({ name, note = DEFAULT_NOTE }) => {
   return (
     <div
       style={{
@@ -18,3 +22,10 @@ export default function Placeholder({ name, note = "coming next" }) {
     </div>
   )
 }
+
+Placeholder.propTypes = {
+  name: PropTypes.string.isRequired,
+  note: PropTypes.string,
+}
+
+export default Placeholder

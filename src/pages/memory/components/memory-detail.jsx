@@ -1,8 +1,9 @@
 import { Pencil, Search, Trash2 } from "lucide-react"
-import { useEffect, useState } from "react"
+import PropTypes from "prop-types"
+import { useState } from "react"
 import { useDispatch } from "react-redux"
 
-import { deleteMemory } from "@/store/memorySlice"
+import { deleteMemory } from "@/store/memory-slice"
 
 import { embBars } from "../data"
 import styles from "../memory.module.css"
@@ -18,7 +19,7 @@ const MetaJson = ({ meta }) => {
       {entries.map(([k, v], index) => (
         <span key={k}>
           {"  "}
-          <span className={styles.key}>"{k}"</span>
+          <span className={styles.key}>&quot;{k}&quot;</span>
           {": "}
           <span className={styles.str}>
             {typeof v === "string" ? `"${v}"` : v}
@@ -31,22 +32,23 @@ const MetaJson = ({ meta }) => {
   )
 }
 
+MetaJson.propTypes = {
+  meta: PropTypes.object.isRequired,
+}
+
 /**
  *
  */
-export default function MemoryDetail({
-  mem,
-  mode,
-  strategy,
-  metric,
-  collection,
-  query,
-}) {
+const MemoryDetail = ({ mem, mode, strategy, metric, collection, query }) => {
   const dispatch = useDispatch()
   const [delArmed, setDelArmed] = useState(false)
+  const [armedFor, setArmedFor] = useState(mem.id)
 
   // Re-arm resets whenever the selected record changes (mirrors resetDelete()).
-  useEffect(() => setDelArmed(false), [mem.id])
+  if (armedFor !== mem.id) {
+    setArmedFor(mem.id)
+    setDelArmed(false)
+  }
 
   const onDelete = () => {
     if (delArmed) {
@@ -58,7 +60,7 @@ export default function MemoryDetail({
   }
 
   const search = mode === "search"
-  const bars = embBars(mem.type)
+  const bars = embBars(mem.type).map((h, index) => ({ id: `bar-${index}`, h }))
   const typeColor = `var(--t-${mem.type})`
 
   return (
@@ -106,7 +108,7 @@ export default function MemoryDetail({
             </div>
             <div className={styles.kv}>
               <span className={styles.k}>query</span>
-              <span className={styles.v}>"{query}"</span>
+              <span className={styles.v}>&quot;{query}&quot;</span>
             </div>
             <div className={styles.kv}>
               <span className={styles.k}>retrieval_strategy</span>
@@ -155,10 +157,10 @@ export default function MemoryDetail({
           <div className={styles.card}>
             <div className={styles.secH}>Vector</div>
             <div className={styles.emb}>
-              {bars.map((h, index) => (
+              {bars.map((b) => (
                 <i
-                  key={index}
-                  style={{ height: `${h}%`, background: typeColor }}
+                  key={b.id}
+                  style={{ height: `${b.h}%`, background: typeColor }}
                 />
               ))}
             </div>
@@ -180,3 +182,23 @@ export default function MemoryDetail({
     </section>
   )
 }
+
+MemoryDetail.propTypes = {
+  mem: PropTypes.shape({
+    id: PropTypes.string,
+    type: PropTypes.string,
+    cat: PropTypes.string,
+    content: PropTypes.string,
+    score: PropTypes.number,
+    thread: PropTypes.string,
+    ts: PropTypes.string,
+    meta: PropTypes.object,
+  }).isRequired,
+  mode: PropTypes.string.isRequired,
+  strategy: PropTypes.string.isRequired,
+  metric: PropTypes.string.isRequired,
+  collection: PropTypes.string.isRequired,
+  query: PropTypes.string.isRequired,
+}
+
+export default MemoryDetail

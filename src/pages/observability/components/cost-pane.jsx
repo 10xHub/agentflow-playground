@@ -1,4 +1,11 @@
+import PropTypes from "prop-types"
+
 import styles from "../observability.module.css"
+
+const tableShape = PropTypes.shape({
+  head: PropTypes.arrayOf(PropTypes.node).isRequired,
+  rows: PropTypes.arrayOf(PropTypes.arrayOf(PropTypes.node)).isRequired,
+})
 
 /**
  *
@@ -10,8 +17,8 @@ const Table = ({ data }) => (
       <span className={styles.c2}>{data.head[1]}</span>
       <span className={styles.c3}>{data.head[2]}</span>
     </div>
-    {data.rows.map((r, index) => (
-      <div className={styles.tblRow} key={index}>
+    {data.rows.map((r) => (
+      <div className={styles.tblRow} key={String(r[0])}>
         <span className={styles.c1}>{r[0]}</span>
         <span className={styles.c2}>{r[1]}</span>
         <span className={styles.c3}>{r[2]}</span>
@@ -20,10 +27,14 @@ const Table = ({ data }) => (
   </div>
 )
 
+Table.propTypes = {
+  data: tableShape.isRequired,
+}
+
 /**
  *
  */
-export default function CostPane({ cost }) {
+const CostPane = ({ cost = null }) => {
   if (!cost) return null
   return (
     <div>
@@ -71,3 +82,30 @@ export default function CostPane({ cost }) {
     </div>
   )
 }
+
+CostPane.propTypes = {
+  cost: PropTypes.shape({
+    cards: PropTypes.arrayOf(
+      PropTypes.shape({
+        label: PropTypes.string.isRequired,
+        value: PropTypes.node,
+        accent: PropTypes.bool,
+        small: PropTypes.node,
+        tail: PropTypes.node,
+        tailSmall: PropTypes.node,
+      })
+    ).isRequired,
+    breakdown: PropTypes.arrayOf(
+      PropTypes.shape({
+        key: PropTypes.string.isRequired,
+        value: PropTypes.node,
+        pct: PropTypes.number,
+        variant: PropTypes.string,
+      })
+    ).isRequired,
+    byModel: tableShape.isRequired,
+    byNode: tableShape.isRequired,
+  }),
+}
+
+export default CostPane

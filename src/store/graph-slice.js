@@ -39,6 +39,36 @@ const graphSlice = createSlice({
 
 export const { graphLoading, graphLoaded, graphError } = graphSlice.actions
 
+// Merge info (counts/state schema) with the node/edge lists, which sit one level
+// up from `info` in the response.
+const normalizeGraph = (res) => {
+  const data = res?.data || res || {}
+  const info = data.info || {}
+  return {
+    info,
+    nodes: data.nodes || info.nodes || [],
+    edges: data.edges || info.edges || [],
+  }
+}
+
+// Only fetch the schema once (it's large and static) unless missing. Returns
+// undefined when skipped or when the fetch fails — the pane falls back.
+const fetchStateSchema = async (client, withSchema, haveSchema) => {
+  if (
+    !withSchema ||
+    haveSchema ||
+    typeof client.graphStateSchema !== "function"
+  ) {
+    return undefined
+  }
+  try {
+    const schemaRes = await client.graphStateSchema()
+    return schemaRes?.data || schemaRes || null
+  } catch {
+    return undefined // non-fatal; pane falls back
+  }
+}
+
 /**
  * Fetch the live graph structure (and, on first load, the state schema) from the
  * connected backend. Safe to call repeatedly — it refreshes in place.
@@ -56,34 +86,13 @@ export const loadGraph =
 
     dispatch(graphLoading())
     try {
-      const res = await client.graph()
-      const data = res?.data || res || {}
-      const info = data.info || {}
-
-      let stateSchema
-      // Only fetch the schema once (it's large and static) unless missing.
-      const haveSchema = getState().graph.stateSchema
-      if (
-        withSchema &&
-        !haveSchema &&
-        typeof client.graphStateSchema === "function"
-      ) {
-        try {
-          const schemaRes = await client.graphStateSchema()
-          stateSchema = schemaRes?.data || schemaRes || null
-        } catch {
-          stateSchema = undefined // non-fatal; pane falls back
-        }
-      }
-
-      dispatch(
-        graphLoaded({
-          info,
-          nodes: data.nodes || info.nodes || [],
-          edges: data.edges || info.edges || [],
-          stateSchema,
-        })
+      const { info, nodes, edges } = normalizeGraph(await client.graph())
+      const stateSchema = await fetchStateSchema(
+        client,
+        withSchema,
+        getState().graph.stateSchema
       )
+      dispatch(graphLoaded({ info, nodes, edges, stateSchema }))
     } catch (e) {
       dispatch(graphError(e?.message || "Failed to load graph"))
     }

@@ -1,8 +1,9 @@
 import { RefreshCw, Search } from "lucide-react"
+import PropTypes from "prop-types"
 import { useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
 
-import { loadThreadList } from "@/store/threadsSlice"
+import { loadThreadList } from "@/store/threads-slice"
 
 import styles from "../threads.module.css"
 
@@ -21,10 +22,17 @@ const ago = (iso) => {
 const shortId = (id) =>
   id?.length > 12 ? `${id.slice(0, 8)}…${id.slice(-3)}` : id
 
+// Keyboard equivalent of the row click (Enter / Space activate).
+const activateOnKey = (handler) => (e) => {
+  if (e.key !== "Enter" && e.key !== " ") return
+  e.preventDefault()
+  handler()
+}
+
 /**
  *
  */
-export default function ThreadList({ selectedId, onSelect }) {
+const ThreadList = ({ selectedId = null, onSelect }) => {
   const dispatch = useDispatch()
   const { list, listStatus, listError } = useSelector((s) => s.threads)
   const [query, setQuery] = useState("")
@@ -82,7 +90,10 @@ export default function ThreadList({ selectedId, onSelect }) {
           <div
             key={t.thread_id}
             className={`${styles.row} ${selectedId === t.thread_id ? styles.active : ""}`}
+            role="button"
+            tabIndex={0}
             onClick={() => onSelect(t.thread_id)}
+            onKeyDown={activateOnKey(() => onSelect(t.thread_id))}
           >
             <div className={styles.rowTop}>
               <span className={styles.rowId}>
@@ -100,3 +111,10 @@ export default function ThreadList({ selectedId, onSelect }) {
     </section>
   )
 }
+
+ThreadList.propTypes = {
+  selectedId: PropTypes.string,
+  onSelect: PropTypes.func.isRequired,
+}
+
+export default ThreadList

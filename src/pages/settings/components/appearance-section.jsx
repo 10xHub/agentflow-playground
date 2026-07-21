@@ -13,7 +13,7 @@ const OPTIONS = [
 /**
  *
  */
-export default function AppearanceSection() {
+const AppearanceSection = () => {
   const { mode, setMode } = useTheme()
 
   return (
@@ -49,3 +49,5 @@ export default function AppearanceSection() {
     </section>
   )
 }
+
+export default AppearanceSection

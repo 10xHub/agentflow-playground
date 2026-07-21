@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react"
 import { useNavigate, useSearchParams } from "react-router-dom"
 
 import { track } from "@/lib/analytics"
-import { useConnection } from "@/lib/connection/ConnectionContext"
+import { useConnection } from "@/lib/connection/connection-context"
 import { newConnectionId } from "@/lib/connection/connections-store"
 import { useTheme } from "@/lib/use-theme"
 

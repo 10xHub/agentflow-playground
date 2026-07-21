@@ -8,11 +8,11 @@ import {
   setMetric,
   setMode,
   setStrategy,
-} from "@/store/memorySlice"
+} from "@/store/memory-slice"
 
-import FacetsColumn from "./components/FacetsColumn"
-import MemoryDetail from "./components/MemoryDetail"
-import MemoryList from "./components/MemoryList"
+import FacetsColumn from "./components/facets-column"
+import MemoryDetail from "./components/memory-detail"
+import MemoryList from "./components/memory-list"
 import styles from "./memory.module.css"
 
 const ALL_TYPES = [
@@ -28,7 +28,7 @@ const ALL_TYPES = [
 /**
  *
  */
-export default function MemoryPage() {
+const MemoryPage = () => {
   const dispatch = useDispatch()
   const {
     items,
@@ -169,3 +169,5 @@ export default function MemoryPage() {
     </div>
   )
 }
+
+export default MemoryPage

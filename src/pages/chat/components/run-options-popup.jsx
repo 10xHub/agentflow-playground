@@ -1,9 +1,10 @@
 import { RotateCcw, X } from "lucide-react"
+import PropTypes from "prop-types"
 import { useEffect, useRef } from "react"
 import { useDispatch, useSelector } from "react-redux"
 
 import { parseJsonObject, parseRecursionLimit } from "@/lib/run-options"
-import { resetRunOptions, setRunOptions } from "@/store/chatSlice"
+import { resetRunOptions, setRunOptions } from "@/store/chat-slice"
 
 import styles from "../chat.module.css"
 
@@ -11,7 +12,7 @@ const PLACEHOLDER_STATE = '{\n  "user_name": "Shudipto"\n}'
 const PLACEHOLDER_CONFIG = '{\n  "recursion_limit": 10\n}'
 
 /** Per-run initial_state / config / recursion_limit, anchored above the composer. */
-export default function RunOptionsPopup({ focus, onClose }) {
+const RunOptionsPopup = ({ focus = "", onClose }) => {
   const dispatch = useDispatch()
   const runOptions = useSelector((s) => s.chat.runOptions)
   const threadId = useSelector((s) => s.chat.threadId)
@@ -131,3 +132,10 @@ export default function RunOptionsPopup({ focus, onClose }) {
     </div>
   )
 }
+
+RunOptionsPopup.propTypes = {
+  focus: PropTypes.string,
+  onClose: PropTypes.func.isRequired,
+}
+
+export default RunOptionsPopup

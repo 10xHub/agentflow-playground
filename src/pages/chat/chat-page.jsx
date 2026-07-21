@@ -2,28 +2,37 @@ import { PanelRight } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { useSelector } from "react-redux"
 
-import { useConnectionBarSlot } from "@/components/shell/AppShell"
-import { BarButton } from "@/components/shell/ConnectionBar"
-import { useConnection } from "@/lib/connection/ConnectionContext"
+import { useConnectionBarSlot } from "@/components/shell/app-shell"
+import { BarButton } from "@/components/shell/connection-bar"
+import { useConnection } from "@/lib/connection/connection-context"
 
 import styles from "./chat.module.css"
-import ChatHeader from "./components/ChatHeader"
-import Composer from "./components/Composer"
-import Inspector from "./components/Inspector"
-import Message from "./components/Message"
-import RealtimeGate from "./components/RealtimeGate"
+import ChatHeader from "./components/chat-header"
+import Composer from "./components/composer"
+import Inspector from "./components/inspector"
+import Message from "./components/message"
+import RealtimeGate from "./components/realtime-gate"
+
+// A live (realtime) agent rejects turn-based chat; show a dedicated state instead.
+const isLiveAgent = (isConnected, capabilities) =>
+  isConnected && Boolean(capabilities?.find((c) => c.name === "live")?.on)
+
+// How the current mode reaches the server, for the status lines below.
+const TRANSPORT = {
+  invoke: "POST /v1/graph/invoke",
+  ws: "WS /v1/graph/ws",
+  stream: "POST /v1/graph/stream",
+}
 
 /**
  *
  */
-export default function ChatPage() {
+const ChatPage = () => {
   const [inspectorOpen, setInspectorOpen] = useState(false)
   const { setBarRight } = useConnectionBarSlot()
   const { isConnected, capabilities, active } = useConnection()
 
-  // A live (realtime) agent rejects turn-based chat; show a dedicated state instead.
-  const isRealtime =
-    isConnected && Boolean(capabilities?.find((c) => c.name === "live")?.on)
+  const isRealtime = isLiveAgent(isConnected, capabilities)
 
   const messages = useSelector((s) => s.chat.messages)
   const generating = useSelector((s) => s.chat.generating)
@@ -31,13 +40,7 @@ export default function ChatPage() {
   const mode = useSelector((s) => s.chat.mode)
   const threadReference = useRef(null)
 
-  // How the current mode reaches the server, for the status lines below.
-  const transport =
-    mode === "invoke"
-      ? "POST /v1/graph/invoke"
-      : mode === "ws"
-        ? "WS /v1/graph/ws"
-        : "POST /v1/graph/stream"
+  const transport = TRANSPORT[mode] || TRANSPORT.stream
 
   // Publish the inspector toggle into the shared connection bar; clear on leave.
   // A realtime agent has no turn-based inspector, so don't offer it in that state.
@@ -111,3 +114,5 @@ export default function ChatPage() {
     </>
   )
 }
+
+export default ChatPage

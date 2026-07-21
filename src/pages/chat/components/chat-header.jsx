@@ -9,8 +9,8 @@ import {
   setGranularity,
   setMode,
   switchThread,
-} from "@/store/chatSlice"
-import { fixThread, stopGeneration } from "@/store/chatThunks"
+} from "@/store/chat-slice"
+import { fixThread, stopGeneration } from "@/store/chat-thunks"
 
 import styles from "../chat.module.css"
 
@@ -132,7 +132,7 @@ const ThreadPicker = () => {
 /**
  *
  */
-export default function ChatHeader() {
+const ChatHeader = () => {
   const dispatch = useDispatch()
   const mode = useSelector((s) => s.chat.mode)
   const granularity = useSelector((s) => s.chat.granularity)
@@ -194,3 +194,5 @@ export default function ChatHeader() {
     </div>
   )
 }
+
+export default ChatHeader

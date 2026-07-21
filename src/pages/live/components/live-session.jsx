@@ -1,4 +1,5 @@
 import { AlertTriangle, Mic, Radio, Square } from "lucide-react"
+import PropTypes from "prop-types"
 import { useEffect, useRef, useState } from "react"
 
 import { getAgentFlowClient } from "@/lib/agentflow-client"
@@ -21,12 +22,137 @@ const STATUS_LABEL = {
   error: "Error",
 }
 
+const scrollReferenceShape = PropTypes.shape({
+  current: PropTypes.instanceOf(Element),
+})
+
+const messageShape = PropTypes.shape({
+  id: PropTypes.number.isRequired,
+  role: PropTypes.string.isRequired,
+  text: PropTypes.string,
+})
+
+// Title, status dot and the start/end control.
+/**
+ *
+ */
+const SessionHeader = ({ status, live, busy, stopped, onStart, onStop }) => (
+  <div className={styles.sessHead}>
+    <div className={styles.sessTitle}>
+      <Radio size={16} strokeWidth={1.8} />
+      Live session
+      <span className={styles.mockTag}>Gemini Live</span>
+    </div>
+    <div className={styles.sessStatus}>
+      <span className={`${styles.sdot} ${live ? styles.sdotLive : ""}`} />
+      {STATUS_LABEL[status]}
+    </div>
+    {stopped ? (
+      <button
+        className={styles.startBtn}
+        onClick={onStart}
+        disabled={busy}
+        type="button"
+      >
+        {status === "idle" ? "Start session" : "Restart"}
+      </button>
+    ) : (
+      <button className={styles.endBtn} onClick={onStop} type="button">
+        <Square size={13} /> End
+      </button>
+    )}
+  </div>
+)
+
+SessionHeader.propTypes = {
+  status: PropTypes.string.isRequired,
+  live: PropTypes.bool.isRequired,
+  busy: PropTypes.bool.isRequired,
+  stopped: PropTypes.bool.isRequired,
+  onStart: PropTypes.func.isRequired,
+  onStop: PropTypes.func.isRequired,
+}
+
+/**
+ *
+ */
+const emptyHint = (status, busy) => {
+  if (status === "idle") {
+    return "Start the session, then hold the mic to talk to the agent."
+  }
+  if (busy) return "Connecting to the live socket…"
+  return "Tap the mic and speak."
+}
+
+// Interleaved user/agent transcript, auto-scrolled by the parent via scrollRef.
+/**
+ *
+ */
+const Transcript = ({ messages, status, busy, scrollRef }) => (
+  <div className={styles.transcript} ref={scrollRef}>
+    {messages.length === 0 && (
+      <div className={styles.sessEmpty}>{emptyHint(status, busy)}</div>
+    )}
+    {messages.map((m) => (
+      <div
+        key={m.id}
+        className={`${styles.bubble} ${m.role === "user" ? styles.user : styles.agent}`}
+      >
+        <span className={styles.bRole}>
+          {m.role === "user" ? "you" : "agent"}
+        </span>
+        <span className={styles.bText}>{m.text}</span>
+      </div>
+    ))}
+  </div>
+)
+
+Transcript.propTypes = {
+  messages: PropTypes.arrayOf(messageShape).isRequired,
+  status: PropTypes.string.isRequired,
+  busy: PropTypes.bool.isRequired,
+  scrollRef: scrollReferenceShape.isRequired,
+}
+
+/**
+ *
+ */
+const voiceHint = (live, recording) => {
+  if (!live) return "Start the session to talk"
+  return recording ? "Listening… tap to send" : "Tap to talk"
+}
+
+// Push-to-talk control.
+/**
+ *
+ */
+const VoiceBar = ({ live, recording, onToggle }) => (
+  <div className={styles.voiceBar}>
+    <button
+      className={`${styles.micBtn} ${recording ? styles.micOn : ""}`}
+      onClick={onToggle}
+      disabled={!live}
+      type="button"
+      aria-pressed={recording}
+    >
+      <Mic size={22} strokeWidth={1.8} />
+    </button>
+    <div className={styles.voiceHint}>{voiceHint(live, recording)}</div>
+  </div>
+)
+
+VoiceBar.propTypes = {
+  live: PropTypes.bool.isRequired,
+  recording: PropTypes.bool.isRequired,
+  onToggle: PropTypes.func.isRequired,
+}
+
 // A voice-to-voice session over /v1/graph/live: push-to-talk streams mic PCM to the
 // agent, the agent's audio plays back, and both transcripts stream in as text.
 /**
  *
  */
-export default function LiveSession() {
+const LiveSession = () => {
   const [status, setStatus] = useState("idle")
   const [error, setError] = useState(null)
   const [messages, setMessages] = useState([])
@@ -184,31 +310,14 @@ export default function LiveSession() {
 
   return (
     <div className={styles.session}>
-      <div className={styles.sessHead}>
-        <div className={styles.sessTitle}>
-          <Radio size={16} strokeWidth={1.8} />
-          Live session
-          <span className={styles.mockTag}>Gemini Live</span>
-        </div>
-        <div className={styles.sessStatus}>
-          <span className={`${styles.sdot} ${live ? styles.sdotLive : ""}`} />
-          {STATUS_LABEL[status]}
-        </div>
-        {stopped ? (
-          <button
-            className={styles.startBtn}
-            onClick={start}
-            disabled={busy}
-            type="button"
-          >
-            {status === "idle" ? "Start session" : "Restart"}
-          </button>
-        ) : (
-          <button className={styles.endBtn} onClick={stop} type="button">
-            <Square size={13} /> End
-          </button>
-        )}
-      </div>
+      <SessionHeader
+        status={status}
+        live={live}
+        busy={busy}
+        stopped={stopped}
+        onStart={start}
+        onStop={stop}
+      />
 
       {status === "error" && error && (
         <div className={styles.sessErr}>
@@ -216,47 +325,16 @@ export default function LiveSession() {
         </div>
       )}
 
-      <div className={styles.transcript} ref={scrollReference}>
-        {messages.length === 0 && (
-          <div className={styles.sessEmpty}>
-            {status === "idle"
-              ? "Start the session, then hold the mic to talk to the agent."
-              : busy
-                ? "Connecting to the live socket…"
-                : "Tap the mic and speak."}
-          </div>
-        )}
-        {messages.map((m) => (
-          <div
-            key={m.id}
-            className={`${styles.bubble} ${m.role === "user" ? styles.user : styles.agent}`}
-          >
-            <span className={styles.bRole}>
-              {m.role === "user" ? "you" : "agent"}
-            </span>
-            <span className={styles.bText}>{m.text}</span>
-          </div>
-        ))}
-      </div>
+      <Transcript
+        messages={messages}
+        status={status}
+        busy={busy}
+        scrollRef={scrollReference}
+      />
 
-      <div className={styles.voiceBar}>
-        <button
-          className={`${styles.micBtn} ${recording ? styles.micOn : ""}`}
-          onClick={toggleMic}
-          disabled={!live}
-          type="button"
-          aria-pressed={recording}
-        >
-          <Mic size={22} strokeWidth={1.8} />
-        </button>
-        <div className={styles.voiceHint}>
-          {!live
-            ? "Start the session to talk"
-            : recording
-              ? "Listening… tap to send"
-              : "Tap to talk"}
-        </div>
-      </div>
+      <VoiceBar live={live} recording={recording} onToggle={toggleMic} />
     </div>
   )
 }
+
+export default LiveSession

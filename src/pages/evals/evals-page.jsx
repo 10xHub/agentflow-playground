@@ -2,33 +2,35 @@ import { useEffect, useMemo, useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
 
 import { track } from "@/lib/analytics"
-import { loadEvalRun, loadEvalRuns } from "@/store/evalsSlice"
+import { loadEvalRun, loadEvalRuns } from "@/store/evals-slice"
 
-import CaseDetail from "./components/CaseDetail"
-import Drilldown from "./components/Drilldown"
-import RunList from "./components/RunList"
+import CaseDetail from "./components/case-detail"
+import Drilldown from "./components/drilldown"
+import RunList from "./components/run-list"
 import styles from "./evals.module.css"
 
 /**
  *
  */
-export default function EvalsPage() {
+const EvalsPage = () => {
   const dispatch = useDispatch()
   const { runs, selectedRunId, detail, detailStatus, detailError } =
     useSelector((s) => s.evals)
 
   const [tab, setTab] = useState("cases")
-  const [caseId, setCaseId] = useState(null)
+  // The picked case is stored together with the detail it belongs to, so a new
+  // detail falls back to its first case without needing an effect.
+  const [picked, setPicked] = useState({ detail: null, id: null })
 
   // Load runs on mount.
   useEffect(() => {
     dispatch(loadEvalRuns())
   }, [dispatch])
 
-  // When a new detail arrives, default-select its first case.
-  useEffect(() => {
-    if (detail?.cases?.length) setCaseId(detail.cases[0].id)
-  }, [detail])
+  const caseId =
+    picked.detail === detail ? picked.id : (detail?.cases?.[0]?.id ?? null)
+
+  const handleSelectCase = (id) => setPicked({ detail, id })
 
   const activeCase = useMemo(() => {
     if (!detail) return null
@@ -56,9 +58,11 @@ export default function EvalsPage() {
         tab={tab}
         onTab={setTab}
         selectedCaseId={caseId}
-        onSelectCase={setCaseId}
+        onSelectCase={handleSelectCase}
       />
       <CaseDetail activeCase={activeCase} />
     </div>
   )
 }
+
+export default EvalsPage

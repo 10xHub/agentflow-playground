@@ -1,14 +1,23 @@
 import { Search } from "lucide-react"
+import PropTypes from "prop-types"
 import { useState } from "react"
 
 import styles from "../observability.module.css"
 
 const EVENT_CHIPS = ["all", "message", "updates", "state", "error"]
 
+// Keyboard equivalent of the row click, for the role="button" rows below.
+const activateOnKey = (event, fire) => {
+  if (event.key === "Enter" || event.key === " ") {
+    event.preventDefault()
+    fire()
+  }
+}
+
 /**
  *
  */
-export default function EventsPane({ events, selectedId, onSelect }) {
+const EventsPane = ({ events = null, selectedId = null, onSelect }) => {
   const [chip, setChip] = useState("all")
   const [query, setQuery] = useState("")
 
@@ -60,7 +69,12 @@ export default function EventsPane({ events, selectedId, onSelect }) {
         <div
           key={e.id}
           className={`${styles.ev} ${selectedId === e.id ? styles.sel : ""}`}
+          role="button"
+          tabIndex={0}
           onClick={() => onSelect({ ...e, selType: "event" })}
+          onKeyDown={(event) =>
+            activateOnKey(event, () => onSelect({ ...e, selType: "event" }))
+          }
         >
           <span className={styles.evT}>{e.time}</span>
           <span className={`${styles.evType} ${styles[e.type]}`}>{e.type}</span>
@@ -71,3 +85,19 @@ export default function EventsPane({ events, selectedId, onSelect }) {
     </div>
   )
 }
+
+EventsPane.propTypes = {
+  events: PropTypes.arrayOf(
+    PropTypes.shape({
+      id: PropTypes.string.isRequired,
+      time: PropTypes.string,
+      type: PropTypes.string,
+      node: PropTypes.string,
+      summary: PropTypes.node,
+    })
+  ),
+  selectedId: PropTypes.string,
+  onSelect: PropTypes.func.isRequired,
+}
+
+export default EventsPane

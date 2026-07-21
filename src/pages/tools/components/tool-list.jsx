@@ -1,4 +1,5 @@
 import { Plus } from "lucide-react"
+import PropTypes from "prop-types"
 import { useMemo } from "react"
 
 import { serverToolVM } from "../normalize"
@@ -14,10 +15,18 @@ const DOT_VAR = {
 /**
  *
  */
-const ToolRow = ({ vm, active, onSelect }) => (
+const ToolRow = ({ vm, active = false, onSelect }) => (
   <div
     className={`${styles.trow} ${active ? styles.active : ""}`}
+    role="button"
+    tabIndex={0}
     onClick={() => onSelect(vm.key)}
+    onKeyDown={(e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault()
+        onSelect(vm.key)
+      }
+    }}
   >
     <span className={styles.tdot} style={{ background: DOT_VAR[vm.kind] }} />
     <span className={styles.tn}>{vm.name}</span>
@@ -33,19 +42,41 @@ const ToolRow = ({ vm, active, onSelect }) => (
   </div>
 )
 
+ToolRow.propTypes = {
+  vm: PropTypes.shape({
+    key: PropTypes.string.isRequired,
+    kind: PropTypes.string,
+    name: PropTypes.string,
+    registered: PropTypes.bool,
+    params: PropTypes.array,
+  }).isRequired,
+  active: PropTypes.bool,
+  onSelect: PropTypes.func.isRequired,
+}
+
+// Placeholder line shown while the list has no groups to render.
+const emptyListMessage = (status, error) => {
+  if (status === "loading") return "Loading tools…"
+  if (status === "error") return error || "Failed to load tools."
+  if (status === "ready") {
+    return "No tools on this graph. Add a client tool to get started."
+  }
+  return null
+}
+
 /**
  *
  */
-export default function ToolList({
+const ToolList = ({
   serverNodes,
   clientVMs,
-  selectedKey,
-  isNew,
-  status,
-  error,
+  selectedKey = null,
+  isNew = false,
+  status = "idle",
+  error = null,
   onSelect,
   onNew,
-}) {
+}) => {
   // Group server tools by node, splitting local/remote (server) vs mcp.
   const groups = useMemo(() => {
     const out = []
@@ -83,6 +114,8 @@ export default function ToolList({
     return out
   }, [serverNodes, clientVMs])
 
+  const emptyMsg = groups.length === 0 ? emptyListMessage(status, error) : null
+
   return (
     <section className={styles.list}>
       <div className={styles.listHead}>
@@ -93,19 +126,7 @@ export default function ToolList({
         </button>
       </div>
       <div className={styles.listScroll}>
-        {status === "loading" && groups.length === 0 && (
-          <div className={styles.listMsg}>Loading tools…</div>
-        )}
-        {status === "error" && groups.length === 0 && (
-          <div className={styles.listMsg}>
-            {error || "Failed to load tools."}
-          </div>
-        )}
-        {status === "ready" && groups.length === 0 && (
-          <div className={styles.listMsg}>
-            No tools on this graph. Add a client tool to get started.
-          </div>
-        )}
+        {emptyMsg && <div className={styles.listMsg}>{emptyMsg}</div>}
         {groups.map((g) => (
           <div key={g.id}>
             <div className={styles.grpH}>
@@ -127,3 +148,21 @@ export default function ToolList({
     </section>
   )
 }
+
+ToolList.propTypes = {
+  serverNodes: PropTypes.arrayOf(
+    PropTypes.shape({
+      node_name: PropTypes.string,
+      tools: PropTypes.array,
+    })
+  ).isRequired,
+  clientVMs: PropTypes.array.isRequired,
+  selectedKey: PropTypes.string,
+  isNew: PropTypes.bool,
+  status: PropTypes.string,
+  error: PropTypes.string,
+  onSelect: PropTypes.func.isRequired,
+  onNew: PropTypes.func.isRequired,
+}
+
+export default ToolList

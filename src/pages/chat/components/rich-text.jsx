@@ -1,4 +1,5 @@
 import { Code2, Eye } from "lucide-react"
+import PropTypes from "prop-types"
 import { useState } from "react"
 import ReactMarkdown from "react-markdown"
 import rehypeRaw from "rehype-raw"
@@ -9,8 +10,8 @@ import { detectFormat } from "@/lib/rich-text"
 
 import styles from "../chat.module.css"
 
-import CodeBlock from "./CodeBlock"
-import HtmlFrame from "./HtmlFrame"
+import CodeBlock from "./code-block"
+import HtmlFrame from "./html-frame"
 
 // Inline HTML is allowed through, but not the parts that would leak out of the
 // message and restyle or instrument the playground itself.
@@ -43,7 +44,7 @@ const COMPONENTS = {
  * sandboxed frame; everything else is markdown. Detection is deferred while a
  * response is still streaming, since partial HTML reflows on every token.
  */
-export default function RichText({ text, streaming, children }) {
+const RichText = ({ text = "", streaming = false, children = null }) => {
   const isHtml = !streaming && detectFormat(text) === "html"
   const [preview, setPreview] = useState(true)
 
@@ -84,3 +85,11 @@ export default function RichText({ text, streaming, children }) {
     </>
   )
 }
+
+RichText.propTypes = {
+  text: PropTypes.string,
+  streaming: PropTypes.bool,
+  children: PropTypes.node,
+}
+
+export default RichText

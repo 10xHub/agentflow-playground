@@ -8,8 +8,8 @@ import {
 import { Outlet } from "react-router-dom"
 
 import styles from "./AppShell.module.css"
-import ConnectionBar from "./ConnectionBar"
-import Sidebar from "./Sidebar"
+import ConnectionBar from "./connection-bar"
+import Sidebar from "./sidebar"
 
 // Lets a page inject content into the shared connection bar (e.g. Chat's
 // inspector toggle) without the shell knowing about page internals.
@@ -25,7 +25,7 @@ export const useConnectionBarSlot = () => useContext(BarSlotContext)
  * The routed page renders into the flexible content region and owns its own
  * inner layout (main + optional right panel).
  */
-export default function AppShell() {
+const AppShell = () => {
   const [collapsed, setCollapsed] = useState(false)
   const [barRight, setBarRight] = useState(null)
 
@@ -46,3 +46,5 @@ export default function AppShell() {
     </div>
   )
 }
+
+export default AppShell

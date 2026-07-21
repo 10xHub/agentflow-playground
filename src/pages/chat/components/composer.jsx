@@ -3,18 +3,18 @@ import { useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
 
 import { track } from "@/lib/analytics"
-import { useConnection } from "@/lib/connection/ConnectionContext"
+import { useConnection } from "@/lib/connection/connection-context"
 import { summariseRunOptions } from "@/lib/run-options"
-import { sendMessage, stopGeneration } from "@/store/chatThunks"
+import { sendMessage, stopGeneration } from "@/store/chat-thunks"
 
 import styles from "../chat.module.css"
 
-import RunOptionsPopup from "./RunOptionsPopup"
+import RunOptionsPopup from "./run-options-popup"
 
 /**
  *
  */
-export default function Composer() {
+const Composer = () => {
   const dispatch = useDispatch()
   const generating = useSelector((s) => s.chat.generating)
   const runOptions = useSelector((s) => s.chat.runOptions)
@@ -114,3 +114,5 @@ export default function Composer() {
     </div>
   )
 }
+
+export default Composer

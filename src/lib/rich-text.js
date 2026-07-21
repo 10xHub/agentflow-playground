@@ -6,7 +6,7 @@ const DOC_START = /^<!doctype\s+html|^<html[\s>]/i
 const STRUCTURAL =
   /<(div|section|main|article|header|footer|nav|table|ul|ol|form|svg|style|script|h[1-6])[\s>]/gi
 
-/** @returns {"html" | "markdown"} */
+/** @returns {"html" | "markdown"} How the text should be rendered. */
 export const detectFormat = (text) => {
   const t = (text || "").trim()
   if (!t) return "markdown"

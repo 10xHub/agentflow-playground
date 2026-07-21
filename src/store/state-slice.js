@@ -2,7 +2,7 @@ import { createSlice } from "@reduxjs/toolkit"
 
 import { getAgentFlowClient } from "@/lib/agentflow-client"
 
-import { loadGraph } from "./graphSlice"
+import { loadGraph } from "./graph-slice"
 
 // Thread-specific AgentState for the chat Inspector's State tab.
 //
@@ -57,6 +57,10 @@ const normalizeState = (raw = {}) => {
 }
 
 const unwrap = (res) => res?.data || res || {}
+
+const NOT_CONNECTED = "Not connected to a backend"
+
+const messageOf = (e, fallback) => e?.message || fallback
 
 const blankEntry = () => ({
   server: null,
@@ -176,12 +180,7 @@ export const fetchThreadState = (threadId) => async (dispatch, getState) => {
   try {
     client = getAgentFlowClient()
   } catch (e) {
-    dispatch(
-      stateFailed({
-        threadId,
-        error: e?.message || "Not connected to a backend",
-      })
-    )
+    dispatch(stateFailed({ threadId, error: messageOf(e, NOT_CONNECTED) }))
     return
   }
   // Lazily pull the schema once — reuses graph.stateSchema.
@@ -197,7 +196,7 @@ export const fetchThreadState = (threadId) => async (dispatch, getState) => {
     dispatch(
       stateFailed({
         threadId,
-        error: e?.message || "Failed to load thread state",
+        error: messageOf(e, "Failed to load thread state"),
       })
     )
   }
@@ -219,12 +218,7 @@ export const saveThreadState = (threadId) => async (dispatch, getState) => {
   try {
     client = getAgentFlowClient()
   } catch (error) {
-    dispatch(
-      saveFailed({
-        threadId,
-        error: error?.message || "Not connected to a backend",
-      })
-    )
+    dispatch(saveFailed({ threadId, error: messageOf(error, NOT_CONNECTED) }))
     return
   }
 
@@ -237,7 +231,7 @@ export const saveThreadState = (threadId) => async (dispatch, getState) => {
     dispatch(
       saveFailed({
         threadId,
-        error: error?.message || "Failed to save thread state",
+        error: messageOf(error, "Failed to save thread state"),
       })
     )
   }

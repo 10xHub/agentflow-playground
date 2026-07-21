@@ -1,3 +1,4 @@
+import PropTypes from "prop-types"
 import { useMemo } from "react"
 
 import {
@@ -10,14 +11,14 @@ import {
 
 import styles from "../graph.module.css"
 
-import { displayName, typeLabel } from "./GraphCanvas"
+import { displayName, typeLabel } from "./graph-canvas"
 
 /**
  * Node Details card (ported from the legacy view). Shows the selected node's
  * type and id, plus the nodes it connects to (in either direction), derived from
  * the live edge list.
  */
-export default function NodePane({ node, nodes, edges }) {
+const NodePane = ({ node = null, nodes, edges }) => {
   const connected = useMemo(() => {
     if (!node) return []
     const names = new Set()
@@ -79,3 +80,24 @@ export default function NodePane({ node, nodes, edges }) {
     </Card>
   )
 }
+
+NodePane.propTypes = {
+  node: PropTypes.shape({
+    id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    name: PropTypes.string,
+  }),
+  nodes: PropTypes.arrayOf(
+    PropTypes.shape({
+      id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+      name: PropTypes.string,
+    })
+  ).isRequired,
+  edges: PropTypes.arrayOf(
+    PropTypes.shape({
+      source: PropTypes.string,
+      target: PropTypes.string,
+    })
+  ).isRequired,
+}
+
+export default NodePane

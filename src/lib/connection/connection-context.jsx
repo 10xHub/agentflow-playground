@@ -1,4 +1,5 @@
 import { AgentFlowClient } from "@10xscale/agentflow-client"
+import PropTypes from "prop-types"
 import {
   createContext,
   useCallback,
@@ -48,6 +49,13 @@ const buildAuth = (conn) => {
   return null
 }
 
+// A single header row -> [name, value], or null when either side is blank.
+const headerEntry = (row) => {
+  const name = (row?.name || "").trim()
+  const value = (row?.value || "").trim()
+  return name && value ? [name, value] : null
+}
+
 // "header" mode: any number of {name, value} rows, sent as plain request headers.
 // Non-empty, trimmed name required; later rows win on duplicate names.
 /**
@@ -59,9 +67,11 @@ const buildHeaders = (conn) => {
   }
   const out = {}
   for (const row of conn.authHeaders) {
-    const name = (row?.name || "").trim()
-    const value = (row?.value || "").trim()
-    if (name && value) out[name] = value
+    const entry = headerEntry(row)
+    if (entry) {
+      const [name, value] = entry
+      out[name] = value
+    }
   }
   return Object.keys(out).length ? out : null
 }
@@ -83,29 +93,74 @@ const buildClient = (conn) => {
   return { client: new AgentFlowClient(config), baseUrl }
 }
 
+const isRejected = (error, message) =>
+  error?.status === 401 || error?.status === 403 || /unauthor/i.test(message)
+
+const isTimedOut = (error, message) =>
+  error?.name === "AbortError" || /timeout|timed out/i.test(message)
+
+const isUnreachable = (error, message) =>
+  error instanceof TypeError ||
+  /failed to fetch|networkerror|load failed/i.test(message)
+
 // Turn SDK / fetch failures into a short, honest message for the probe pane.
 /**
  *
  */
 const humanizeError = (error, baseUrl) => {
   const message = error?.message || String(error)
-  if (
-    error?.status === 401 ||
-    error?.status === 403 ||
-    /unauthor/i.test(message)
-  ) {
+  if (isRejected(error, message)) {
     return "Rejected (401/403) — this backend needs a valid token."
   }
-  if (error?.name === "AbortError" || /timeout|timed out/i.test(message)) {
-    return `Timed out reaching ${baseUrl}.`
-  }
-  if (
-    error instanceof TypeError ||
-    /failed to fetch|networkerror|load failed/i.test(message)
-  ) {
+  if (isTimedOut(error, message)) return `Timed out reaching ${baseUrl}.`
+  if (isUnreachable(error, message)) {
     return `Could not reach ${baseUrl} — is the server running? (network or CORS)`
   }
   return message
+}
+
+const settingsToken = (s) =>
+  s.authMode === "bearer" ? s.authToken || s.auth?.token || "" : ""
+
+const basicField = (s, key) => (s.auth?.type === "basic" ? s.auth[key] : "")
+
+// Rebuild the full connection object from persisted settings so a reload can
+// re-verify without the user re-entering anything.
+const connFromSettings = (s) => ({
+  id: "active",
+  name: s.name || "Backend",
+  backendUrl: s.backendUrl,
+  authMode: s.authMode || "none",
+  authToken: settingsToken(s),
+  authUsername: basicField(s, "username"),
+  authPassword: basicField(s, "password"),
+  authHeaders: s.authMode === "header" ? s.headers || [] : [],
+})
+
+// The active connection, shaped for persistence (SDK reuse across the app).
+const settingsFrom = (conn, baseUrl) => ({
+  name: conn.name,
+  backendUrl: baseUrl,
+  authMode: conn.authMode,
+  authToken: conn.authMode === "bearer" ? conn.authToken : "",
+  auth: buildAuth(conn),
+  headers: conn.authMode === "header" ? conn.authHeaders : [],
+})
+
+// `silent` (the on-load re-verify) falls back to idle rather than a red error
+// state, since the user didn't just click Connect.
+const failStatus = (silent) => (silent ? "idle" : "error")
+
+const countOf = (info, key, list) => info?.[key] ?? list?.length ?? null
+
+// Node/edge counts come from the graph info block, falling back to the lists.
+const probeCounts = (graph) => {
+  const graphInfo = graph?.data?.info || null
+  return {
+    graphInfo,
+    nodes: countOf(graphInfo, "node_count", graph?.data?.nodes),
+    edges: countOf(graphInfo, "edge_count", graph?.data?.edges),
+  }
 }
 
 /**
@@ -120,20 +175,6 @@ export const ConnectionProvider = ({ children }) => {
   const [probe, setProbe] = useState(null) // {latencyMs, nodes, edges}
   const [saved, setSaved] = useState(() => listConnections())
   const clientReference = useRef(null)
-
-  // Rebuild the full connection object from persisted settings so a reload can
-  // re-verify without the user re-entering anything.
-  const connFromSettings = (s) => ({
-    id: "active",
-    name: s.name || "Backend",
-    backendUrl: s.backendUrl,
-    authMode: s.authMode || "none",
-    authToken:
-      s.authMode === "bearer" ? s.authToken || s.auth?.token || "" : "",
-    authUsername: s.auth?.type === "basic" ? s.auth.username : "",
-    authPassword: s.auth?.type === "basic" ? s.auth.password : "",
-    authHeaders: s.authMode === "header" ? s.headers || [] : [],
-  })
 
   // On load: if a backend was saved, show it immediately AND silently re-verify
   // it in the background. The connection status lives only in React memory, so a
@@ -161,7 +202,7 @@ export const ConnectionProvider = ({ children }) => {
       try {
         ;({ client, baseUrl } = buildClient(conn))
       } catch (e) {
-        setStatus(silent ? "idle" : "error")
+        setStatus(failStatus(silent))
         if (!silent) setError(e.message)
         return { ok: false, error: e }
       }
@@ -171,11 +212,7 @@ export const ConnectionProvider = ({ children }) => {
         await client.ping()
         const graph = await client.graph()
         const latencyMs = Math.round(performance.now() - started)
-        const graphInfo = graph?.data?.info || null
-        const nodes =
-          graphInfo?.node_count ?? graph?.data?.nodes?.length ?? null
-        const edges =
-          graphInfo?.edge_count ?? graph?.data?.edges?.length ?? null
+        const { graphInfo, nodes, edges } = probeCounts(graph)
 
         clientReference.current = client
         const normalized = { ...conn, backendUrl: baseUrl }
@@ -186,22 +223,13 @@ export const ConnectionProvider = ({ children }) => {
         setStatus("connected")
 
         // Persist the active connection for SDK reuse across the app.
-        saveCurrentSettings({
-          name: normalized.name,
-          backendUrl: baseUrl,
-          authMode: normalized.authMode,
-          authToken:
-            normalized.authMode === "bearer" ? normalized.authToken : "",
-          auth: buildAuth(normalized),
-          headers:
-            normalized.authMode === "header" ? normalized.authHeaders : [],
-        })
+        saveCurrentSettings(settingsFrom(normalized, baseUrl))
         if (remember) setSaved(upsertConnection(normalized))
 
         return { ok: true, info: graphInfo }
       } catch (e) {
         clientReference.current = null
-        setStatus(silent ? "idle" : "error")
+        setStatus(failStatus(silent))
         setError(silent ? null : humanizeError(e, baseUrl))
         setCapabilities(null)
         setInfo(null)
@@ -260,4 +288,8 @@ export const ConnectionProvider = ({ children }) => {
       {children}
     </ConnectionContext.Provider>
   )
+}
+
+ConnectionProvider.propTypes = {
+  children: PropTypes.node.isRequired,
 }

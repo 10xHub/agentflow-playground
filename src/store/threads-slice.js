@@ -82,6 +82,13 @@ export const {
 
 const unwrap = (res) => res?.data || res || {}
 
+// State + messages come from two independent endpoints; either may be missing,
+// in which case the state's own `context` is the message list.
+const detailFrom = (stateRes, msgRes) => {
+  const state = unwrap(stateRes).state || null
+  return { state, messages: unwrap(msgRes).messages || state?.context || [] }
+}
+
 /** GET /v1/threads — the thread list. */
 export const loadThreadList = () => async (dispatch, getState) => {
   let client
@@ -121,9 +128,7 @@ export const loadThread = (threadId) => async (dispatch) => {
       client.threadState(threadId).catch(() => null),
       client.threadMessages(threadId).catch(() => null),
     ])
-    const state = unwrap(stateRes).state || null
-    const messages = unwrap(msgRes).messages || state?.context || []
-    dispatch(detailLoaded({ state, messages }))
+    dispatch(detailLoaded(detailFrom(stateRes, msgRes)))
   } catch (e) {
     dispatch(detailFailed(e?.message || "Failed to load thread"))
   }

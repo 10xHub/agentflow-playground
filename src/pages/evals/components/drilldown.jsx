@@ -1,13 +1,56 @@
 import { Download } from "lucide-react"
+import PropTypes from "prop-types"
 
 import styles from "../evals.module.css"
 
 const THRESHOLD = 0.8
 
+const CASE_SHAPE = PropTypes.shape({
+  id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  name: PropTypes.string,
+  type: PropTypes.string,
+  status: PropTypes.string,
+  score: PropTypes.number,
+  lat: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  cost: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+})
+
+const REGRESSION_SHAPE = PropTypes.shape({
+  note: PropTypes.shape({
+    current: PropTypes.string,
+    prev: PropTypes.string,
+    suite: PropTypes.string,
+  }).isRequired,
+  summary: PropTypes.arrayOf(
+    PropTypes.shape({
+      label: PropTypes.string,
+      value: PropTypes.node,
+      tone: PropTypes.string,
+    })
+  ).isRequired,
+  rows: PropTypes.arrayOf(
+    PropTypes.shape({
+      name: PropTypes.string,
+      delta: PropTypes.node,
+      dir: PropTypes.string,
+      flip: PropTypes.node,
+      stay: PropTypes.bool,
+    })
+  ).isRequired,
+})
+
+// Enter/Space activate the row the same way a click does.
+const activateOnKey = (event, activate) => {
+  if (event.key === "Enter" || event.key === " ") {
+    event.preventDefault()
+    activate()
+  }
+}
+
 /**
  *
  */
-const CasesPane = ({ cases, selectedCaseId, onSelectCase }) => (
+const CasesPane = ({ cases, selectedCaseId = null, onSelectCase }) => (
   <div className={styles.ctable}>
     <div className={`${styles.crow} ${styles.h}`}>
       <span className={styles.cName}>case</span>
@@ -21,7 +64,10 @@ const CasesPane = ({ cases, selectedCaseId, onSelectCase }) => (
       <div
         key={c.id}
         className={`${styles.crow} ${c.id === selectedCaseId ? styles.active : ""}`}
+        role="button"
+        tabIndex={0}
         onClick={() => onSelectCase(c.id)}
+        onKeyDown={(e) => activateOnKey(e, () => onSelectCase(c.id))}
       >
         <span className={styles.cName}>
           <span className={styles.nm}>{c.name}</span>
@@ -57,6 +103,12 @@ const CasesPane = ({ cases, selectedCaseId, onSelectCase }) => (
     ))}
   </div>
 )
+
+CasesPane.propTypes = {
+  cases: PropTypes.arrayOf(CASE_SHAPE).isRequired,
+  selectedCaseId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  onSelectCase: PropTypes.func.isRequired,
+}
 
 /**
  *
@@ -97,18 +149,105 @@ const RegressionPane = ({ regression }) => {
   )
 }
 
+RegressionPane.propTypes = {
+  regression: REGRESSION_SHAPE.isRequired,
+}
+
 /**
  *
  */
-export default function Drilldown({
+const StatsRow = ({ stats }) => (
+  <div className={styles.dStats}>
+    {stats.map((s) => (
+      <div className={styles.dstat} key={s.label}>
+        <div className={styles.sl}>{s.label}</div>
+        <div className={`${styles.sv} ${s.tone ? styles[s.tone] : ""}`}>
+          {s.value}
+        </div>
+      </div>
+    ))}
+  </div>
+)
+
+StatsRow.propTypes = {
+  stats: PropTypes.arrayOf(
+    PropTypes.shape({
+      label: PropTypes.string,
+      value: PropTypes.node,
+      tone: PropTypes.string,
+    })
+  ).isRequired,
+}
+
+/**
+ *
+ */
+const TabButton = ({ id, label, tab, onTab }) => (
+  <button
+    className={`${styles.tab} ${tab === id ? styles.on : ""}`}
+    onClick={() => onTab(id)}
+  >
+    {label}
+  </button>
+)
+
+TabButton.propTypes = {
+  id: PropTypes.string.isRequired,
+  label: PropTypes.string.isRequired,
+  tab: PropTypes.string.isRequired,
+  onTab: PropTypes.func.isRequired,
+}
+
+/**
+ *
+ */
+const DrilldownBody = ({
   detail,
-  status,
-  error,
+  tab,
+  selectedCaseId = null,
+  onSelectCase,
+}) => {
+  if (tab === "cases") {
+    return (
+      <CasesPane
+        cases={detail.cases}
+        selectedCaseId={selectedCaseId}
+        onSelectCase={onSelectCase}
+      />
+    )
+  }
+  if (!detail.regression) {
+    return (
+      <div className={styles.empty}>
+        No regression data — this run has no prior baseline.
+      </div>
+    )
+  }
+  return <RegressionPane regression={detail.regression} />
+}
+
+DrilldownBody.propTypes = {
+  detail: PropTypes.shape({
+    cases: PropTypes.arrayOf(CASE_SHAPE),
+    regression: REGRESSION_SHAPE,
+  }).isRequired,
+  tab: PropTypes.string.isRequired,
+  selectedCaseId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  onSelectCase: PropTypes.func.isRequired,
+}
+
+/**
+ *
+ */
+const Drilldown = ({
+  detail = null,
+  status = null,
+  error = null,
   tab,
   onTab,
-  selectedCaseId,
+  selectedCaseId = null,
   onSelectCase,
-}) {
+}) => {
   if (status === "loading") {
     return (
       <section className={styles.detail}>
@@ -151,16 +290,7 @@ export default function Drilldown({
           </div>
         </div>
 
-        <div className={styles.dStats}>
-          {detail.stats.map((s) => (
-            <div className={styles.dstat} key={s.label}>
-              <div className={styles.sl}>{s.label}</div>
-              <div className={`${styles.sv} ${s.tone ? styles[s.tone] : ""}`}>
-                {s.value}
-              </div>
-            </div>
-          ))}
-        </div>
+        <StatsRow stats={detail.stats} />
         <div className={styles.distbar}>
           <span className={styles.pg} style={{ width: `${detail.rate}%` }} />
           <span className={styles.fl} style={{ width: `${failPct}%` }} />
@@ -168,18 +298,8 @@ export default function Drilldown({
 
         <div className={styles.dActions}>
           <div className={styles.tabs}>
-            <button
-              className={`${styles.tab} ${tab === "cases" ? styles.on : ""}`}
-              onClick={() => onTab("cases")}
-            >
-              Cases
-            </button>
-            <button
-              className={`${styles.tab} ${tab === "reg" ? styles.on : ""}`}
-              onClick={() => onTab("reg")}
-            >
-              Regression
-            </button>
+            <TabButton id="cases" label="Cases" tab={tab} onTab={onTab} />
+            <TabButton id="reg" label="Regression" tab={tab} onTab={onTab} />
           </div>
           <div className={styles.right}>
             <button className={styles.abtn}>
@@ -191,20 +311,40 @@ export default function Drilldown({
       </div>
 
       <div className={styles.dBody}>
-        {tab === "cases" ? (
-          <CasesPane
-            cases={detail.cases}
-            selectedCaseId={selectedCaseId}
-            onSelectCase={onSelectCase}
-          />
-        ) : detail.regression ? (
-          <RegressionPane regression={detail.regression} />
-        ) : (
-          <div className={styles.empty}>
-            No regression data — this run has no prior baseline.
-          </div>
-        )}
+        <DrilldownBody
+          detail={detail}
+          tab={tab}
+          selectedCaseId={selectedCaseId}
+          onSelectCase={onSelectCase}
+        />
       </div>
     </section>
   )
 }
+
+Drilldown.propTypes = {
+  detail: PropTypes.shape({
+    title: PropTypes.string,
+    sub: PropTypes.string,
+    status: PropTypes.string,
+    rate: PropTypes.number,
+    threshold: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    stats: PropTypes.arrayOf(
+      PropTypes.shape({
+        label: PropTypes.string,
+        value: PropTypes.node,
+        tone: PropTypes.string,
+      })
+    ),
+    cases: PropTypes.arrayOf(CASE_SHAPE),
+    regression: REGRESSION_SHAPE,
+  }),
+  status: PropTypes.string,
+  error: PropTypes.string,
+  tab: PropTypes.string.isRequired,
+  onTab: PropTypes.func.isRequired,
+  selectedCaseId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  onSelectCase: PropTypes.func.isRequired,
+}
+
+export default Drilldown

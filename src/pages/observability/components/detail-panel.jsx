@@ -1,3 +1,5 @@
+import PropTypes from "prop-types"
+
 import styles from "../observability.module.css"
 
 const nf = new Intl.NumberFormat("en-US")
@@ -31,18 +33,63 @@ const attributesFor = (sel) => {
   ]
 }
 
+// Header strings differ for events vs spans; kept out of the component so the
+// render stays a straight read of the derived values.
 /**
  *
  */
-export default function DetailPanel({ sel }) {
-  const isEvent = sel?.selType === "event"
+const headerFor = (sel) => {
+  if (sel?.selType === "event") {
+    return {
+      title: "Event detail",
+      kind: sel.type,
+      name: `${sel.type} · ${sel.node}`,
+      sub: `offset ${sel.time}`,
+    }
+  }
+  return {
+    title: "Span detail",
+    kind: sel?.kind ?? "—",
+    name: (sel?.name ?? "").replace(/^\w+: /, ""),
+    sub: `${sel?.dur ?? ""} · status OK`,
+  }
+}
 
-  const title = isEvent ? "Event detail" : "Span detail"
-  const kind = isEvent ? sel.type : (sel?.kind ?? "—")
-  const name = isEvent
-    ? `${sel.type} · ${sel.node}`
-    : (sel?.name ?? "").replace(/^\w+: /, "")
-  const sub = isEvent ? `offset ${sel.time}` : `${sel?.dur ?? ""} · status OK`
+/**
+ *
+ */
+const SpanContext = ({ sel = null }) => (
+  <>
+    <div className={styles.attrH}>Context</div>
+    <div className={styles.attr}>
+      <span className={styles.ak}>span.id</span>
+      <span className={styles.av}>{sel?.spanId ?? "—"}</span>
+    </div>
+    <div className={styles.attr}>
+      <span className={styles.ak}>parent</span>
+      <span className={styles.av}>{sel?.parent ?? "—"}</span>
+    </div>
+    <div className={styles.attr}>
+      <span className={styles.ak}>kind</span>
+      <span className={styles.av}>{sel?.kind ?? "—"}</span>
+    </div>
+  </>
+)
+
+SpanContext.propTypes = {
+  sel: PropTypes.shape({
+    spanId: PropTypes.string,
+    parent: PropTypes.string,
+    kind: PropTypes.string,
+  }),
+}
+
+/**
+ *
+ */
+const DetailPanel = ({ sel = null }) => {
+  const isEvent = sel?.selType === "event"
+  const { title, kind, name, sub } = headerFor(sel)
 
   const attributes = attributesFor(sel)
 
@@ -76,23 +123,26 @@ export default function DetailPanel({ sel }) {
             <div className={styles.jsonBox}>{sel.summary}</div>
           </>
         ) : (
-          <>
-            <div className={styles.attrH}>Context</div>
-            <div className={styles.attr}>
-              <span className={styles.ak}>span.id</span>
-              <span className={styles.av}>{sel?.spanId ?? "—"}</span>
-            </div>
-            <div className={styles.attr}>
-              <span className={styles.ak}>parent</span>
-              <span className={styles.av}>{sel?.parent ?? "—"}</span>
-            </div>
-            <div className={styles.attr}>
-              <span className={styles.ak}>kind</span>
-              <span className={styles.av}>{sel?.kind ?? "—"}</span>
-            </div>
-          </>
+          <SpanContext sel={sel} />
         )}
       </div>
     </aside>
   )
 }
+
+DetailPanel.propTypes = {
+  sel: PropTypes.shape({
+    selType: PropTypes.string,
+    type: PropTypes.string,
+    node: PropTypes.string,
+    time: PropTypes.string,
+    name: PropTypes.string,
+    kind: PropTypes.string,
+    dur: PropTypes.string,
+    summary: PropTypes.node,
+    spanId: PropTypes.string,
+    parent: PropTypes.string,
+  }),
+}
+
+export default DetailPanel

@@ -1,16 +1,17 @@
 import { Info } from "lucide-react"
+import PropTypes from "prop-types"
 
 import styles from "../tools.module.css"
 
-import JsonSchema from "./JsonSchema"
-import ParameterTable from "./ParamTable"
+import JsonSchema from "./json-schema"
+import ParamTable from "./param-table"
 
 // Read-only view for server / MCP tools — schema comes from all_tools() and
 // cannot be edited from the playground.
 /**
  *
  */
-export default function ReadonlyDetail({ tool }) {
+const ReadonlyDetail = ({ tool }) => {
   const isMcp = tool.kind === "mcp"
 
   const kindBadge = isMcp ? (
@@ -59,10 +60,25 @@ export default function ReadonlyDetail({ tool }) {
           <b>Read-only.</b> {isMcp ? "MCP tool schemas" : "Server tool schemas"}{" "}
           come live from <span className="mono">GET /v1/graph/tools</span> (
           <span className="mono">all_tools()</span> on node{" "}
-          <span className="mono">{tool.node}</span>) and can't be edited from
-          the playground. Client tools run fully in the browser.
+          <span className="mono">{tool.node}</span>) and can&apos;t be edited
+          from the playground. Client tools run fully in the browser.
         </span>
       </div>
     </>
   )
 }
+
+ReadonlyDetail.propTypes = {
+  tool: PropTypes.shape({
+    kind: PropTypes.string,
+    src: PropTypes.string,
+    server: PropTypes.string,
+    transport: PropTypes.string,
+    node: PropTypes.string,
+    name: PropTypes.string,
+    desc: PropTypes.string,
+    params: PropTypes.array,
+  }).isRequired,
+}
+
+export default ReadonlyDetail

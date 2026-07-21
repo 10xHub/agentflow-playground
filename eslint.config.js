@@ -1,4 +1,5 @@
 import config from "@10xscale/eslint-modern"
+import globals from "globals"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 
@@ -6,7 +7,12 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 export default [
   {
-    ignores: ["**/*.{test,spec}.{js,jsx,ts,tsx}", "src/setup-tests.js"],
+    ignores: [
+      "**/*.{test,spec}.{js,jsx,ts,tsx}",
+      "src/setup-tests.js",
+      // Dead code kept for reference only; nothing outside it imports from it.
+      "src/_legacy/**",
+    ],
   },
   ...config,
   {
@@ -38,24 +44,14 @@ export default [
     rules: {
       // disable handler naming rule for our project conventions
       "react/jsx-handler-names": "off",
+      // short names like `e`, `res`, `props` are the house convention
+      "unicorn/prevent-abbreviations": "off",
+      // React 19 ignores `defaultProps` on function components; destructuring
+      // defaults are the only mechanism that actually runs.
+      "react/require-default-props": ["error", { functions: "defaultArguments" }],
     },
     languageOptions: {
-      globals: {
-        console: "readonly",
-        fetch: "readonly",
-        clearInterval: "readonly",
-        clearTimeout: "readonly",
-        window: "readonly",
-        localStorage: "readonly",
-        document: "readonly",
-        navigator: "readonly",
-        Blob: "readonly",
-        FormData: "readonly",
-        setInterval: "readonly",
-        setTimeout: "readonly",
-        URLSearchParams: "readonly",
-        URL: "readonly",
-      },
+      globals: globals.browser,
     },
   },
 ]

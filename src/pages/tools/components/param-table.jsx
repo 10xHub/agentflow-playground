@@ -1,9 +1,11 @@
+import PropTypes from "prop-types"
+
 import styles from "../tools.module.css"
 
 /**
  *
  */
-export default function ParameterTable({ params }) {
+const ParameterTable = ({ params }) => {
   if (!params.length) {
     return (
       <div className={styles.dDesc} style={{ margin: 0 }}>
@@ -36,3 +38,16 @@ export default function ParameterTable({ params }) {
     </div>
   )
 }
+
+ParameterTable.propTypes = {
+  params: PropTypes.arrayOf(
+    PropTypes.shape({
+      n: PropTypes.string.isRequired,
+      t: PropTypes.string,
+      r: PropTypes.bool,
+      d: PropTypes.string,
+    })
+  ).isRequired,
+}
+
+export default ParameterTable

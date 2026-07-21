@@ -64,13 +64,8 @@ export const {
   detailFailed,
 } = evalsSlice.actions
 
-// Resolve the base URL + auth header from the persisted connection (the SDK has
-// no eval methods, so we hit the endpoints with fetch directly).
-const evalFetch = async (path) => {
-  const s = getCurrentSettings()
-  // Ensures we're actually connected (throws a clear error otherwise).
-  getAgentFlowClient()
-  const base = (s.backendUrl || "").replace(/\/$/, "")
+// Auth headers matching the persisted connection's auth mode.
+const evalHeaders = (s) => {
   const headers = { "Content-Type": "application/json" }
   if (s.authMode === "bearer" && s.authToken) {
     headers.Authorization = `Bearer ${s.authToken}`
@@ -79,8 +74,18 @@ const evalFetch = async (path) => {
   } else if (s.authMode === "header" && Array.isArray(s.headers)) {
     s.headers.forEach((h) => h?.name && (headers[h.name] = h.value))
   }
+  return headers
+}
 
-  const res = await fetch(`${base}${path}`, { headers })
+// Resolve the base URL + auth header from the persisted connection (the SDK has
+// no eval methods, so we hit the endpoints with fetch directly).
+const evalFetch = async (path) => {
+  const s = getCurrentSettings()
+  // Ensures we're actually connected (throws a clear error otherwise).
+  getAgentFlowClient()
+  const base = (s.backendUrl || "").replace(/\/$/, "")
+
+  const res = await fetch(`${base}${path}`, { headers: evalHeaders(s) })
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
   const json = await res.json()
   return json?.data ?? json

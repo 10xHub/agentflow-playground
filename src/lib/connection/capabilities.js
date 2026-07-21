@@ -13,7 +13,7 @@ export const CAP_ORDER = [
 
 /**
  * @param {object|undefined} info - `data.info` from client.graph()
- * @returns {Array<{name:string,on:boolean,detail:string}>}
+ * @returns {Array<{name:string,on:boolean,detail:string}>} One entry per known capability.
  */
 export const deriveCapabilities = (info) => {
   const index = info || {}
