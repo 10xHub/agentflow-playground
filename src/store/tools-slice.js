@@ -4,9 +4,8 @@ import { getAgentFlowClient } from "@/lib/agentflow-client"
 
 // Tools state:
 //   - `serverNodes`: real tool nodes + tools from GET /v1/graph/tools (local/mcp/remote).
-//   - `clientTools`: browser-owned tools the playground registers via the SDK. These
-//     live only on the client (persisted to localStorage) until pushed to the server
-//     via /v1/graph/setup.
+//   - `clientTools`: browser-owned handlers persisted to localStorage. Matching trusted
+//     schemas must already exist in the server's agentflow.json.
 
 const CLIENT_TOOLS_KEY = "agentflow-client-tools"
 
@@ -136,38 +135,22 @@ const buildHandler = (tool) => {
 }
 
 /**
- * Register the playground's client tools with the SDK (registerTool) and push
- * them to the server (setup) so the agent can call them. Each tool is attached to
- * a real tool node so the server routes remote_tool_calls back to the browser.
+ * Register the playground's client-side handlers. The server advertises only
+ * remote-tool schemas declared in agentflow.json.
  */
 export const registerClientTools =
-  ({ nodeName, only } = {}) =>
+  ({ only } = {}) =>
   async (dispatch, getState) => {
     const client = getAgentFlowClient()
-    const { clientTools, serverNodes } = getState().tools
+    const { clientTools } = getState().tools
 
-    // Default to the first tool node if the caller didn't specify one.
-    const targetNode = nodeName || serverNodes[0]?.node_name || "TOOL"
     const toRegister = only
       ? clientTools.filter((t) => t.id === only)
       : clientTools
 
     for (const t of toRegister) {
-      client.registerTool({
-        node: targetNode,
-        name: t.name,
-        description: t.description || "",
-        parameters: t.parameters || {
-          type: "object",
-          properties: {},
-          required: [],
-        },
-        handler: buildHandler(t),
-      })
+      client.registerToolHandler(t.name, buildHandler(t))
     }
-
-    // setup() sends all registered tool definitions to the server.
-    await client.setup()
 
     toRegister.forEach((t) =>
       dispatch(setClientToolRegistered({ id: t.id, registered: true }))

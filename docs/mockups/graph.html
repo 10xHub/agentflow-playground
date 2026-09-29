@@ -327,7 +327,7 @@
       tools:[
         {name:'get_weather', src:'local', desc:'Current weather for a location.', params:'location:str, units:str'},
         {name:'get_report', src:'local', desc:'Fetch a quarterly report by period.', params:'quarter:str'},
-        {name:'send_email', src:'remote', desc:'Client-side tool attached via POST /v1/graph/setup.', params:'to:str, subject:str, body:str'}
+        {name:'send_email', src:'remote', desc:'Declared in agentflow.json; executed by the client.', params:'to:str, subject:str, body:str'}
       ],
       mcp:[{server:'filesystem', tools:['fs.read','fs.write']}] },
     END:{ id:'n_9d40', kind:'sentinel', desc:'Graph exit point. The final state is returned to the caller.',
