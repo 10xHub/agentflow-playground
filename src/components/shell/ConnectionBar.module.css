@@ -9,35 +9,6 @@
   background: var(--surface);
 }
 
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-}
-.mark {
-  width: 20px;
-  height: 20px;
-  border: 1.5px solid var(--text);
-  border-radius: 6px;
-  position: relative;
-  flex: none;
-}
-.mark::after {
-  content: "";
-  position: absolute;
-  inset: 4px;
-  border-radius: 2px;
-  border: 1.5px solid var(--text-secondary);
-}
-.wordmark {
-  font-family: var(--mono);
-  font-size: 12.5px;
-  font-weight: 500;
-  letter-spacing: -0.01em;
-}
-.dim {
-  color: var(--text-muted);
-}
 .sep {
   width: 1px;
   height: 22px;
@@ -69,8 +40,8 @@
   background: var(--text-muted);
 }
 .dot.live {
-  background: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-weak);
+  background: var(--ok);
+  box-shadow: 0 0 0 3px var(--ok-weak);
 }
 .connName {
   font-size: 12.5px;

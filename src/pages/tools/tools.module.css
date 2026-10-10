@@ -36,7 +36,7 @@
   height: 28px;
   padding: 0 10px;
   border-radius: 8px;
-  border: 1px solid rgba(62, 207, 142, 0.3);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
   background: var(--accent-weak);
   color: var(--accent);
   font-family: var(--sans);
@@ -205,7 +205,7 @@
 }
 .nb.client {
   color: var(--accent);
-  border-color: rgba(62, 207, 142, 0.3);
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
 }
 .nb.mcp {
   color: var(--violet);

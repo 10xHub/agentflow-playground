@@ -49,7 +49,7 @@ const RealtimeGate = ({ agentName = "" }) => {
         <p className={styles.rtHelp}>
           Want turn-based chat instead? Point <code>agent</code> at a non-live
           graph (e.g. <code>graph.react:app</code>) in{" "}
-          <code>agentflow.json</code>, then reconnect.
+          <code>10xgraph.json</code>, then reconnect.
         </p>
       </div>
     </div>

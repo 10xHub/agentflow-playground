@@ -91,9 +91,9 @@
   flex: none;
 }
 .passPill.pass {
-  color: var(--accent);
-  border-color: rgba(62, 207, 142, 0.3);
-  background: var(--accent-weak);
+  color: var(--ok);
+  border-color: color-mix(in srgb, var(--ok) 30%, transparent);
+  background: var(--ok-weak);
 }
 .passPill.fail {
   color: var(--danger);
@@ -164,7 +164,7 @@
   line-height: 1;
 }
 .dRate .big.pass {
-  color: var(--accent);
+  color: var(--ok);
 }
 .dRate .big.fail {
   color: var(--danger);
@@ -194,7 +194,7 @@
   color: var(--text);
 }
 .dstat .sv.ok {
-  color: var(--accent);
+  color: var(--ok);
 }
 .dstat .sv.bad {
   color: var(--danger);
@@ -369,7 +369,7 @@
   border-radius: 4px;
 }
 .scoreFill.pass {
-  background: var(--accent);
+  background: var(--ok);
 }
 .scoreFill.fail {
   background: var(--danger);
@@ -402,8 +402,8 @@
   border: 1px solid;
 }
 .cStat .b.pass {
-  color: var(--accent);
-  border-color: rgba(62, 207, 142, 0.3);
+  color: var(--ok);
+  border-color: color-mix(in srgb, var(--ok) 30%, transparent);
 }
 .cStat .b.fail {
   color: var(--danger);
@@ -463,7 +463,7 @@
   color: var(--danger);
 }
 .rc .v.ok {
-  color: var(--accent);
+  color: var(--ok);
 }
 .rc .v.warn {
   color: var(--warn);
@@ -562,8 +562,8 @@
   flex: none;
 }
 .cdBadge.pass {
-  color: var(--accent);
-  border-color: rgba(62, 207, 142, 0.3);
+  color: var(--ok);
+  border-color: color-mix(in srgb, var(--ok) 30%, transparent);
 }
 .cdBadge.fail {
   color: var(--danger);
@@ -601,7 +601,7 @@
   color: var(--text-secondary);
 }
 .cdBox.expected {
-  border-color: rgba(62, 207, 142, 0.25);
+  border-color: color-mix(in srgb, var(--ok) 25%, transparent);
 }
 .cdBox.actual.fail {
   border-color: rgba(242, 109, 109, 0.3);
@@ -675,7 +675,7 @@
 }
 .tav.a {
   background: var(--accent-weak);
-  border: 1px solid rgba(62, 207, 142, 0.25);
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
   color: var(--accent);
 }
 .tbub {

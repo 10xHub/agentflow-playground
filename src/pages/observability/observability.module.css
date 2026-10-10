@@ -632,7 +632,7 @@
   text-align: right;
 }
 .attr .av.ok {
-  color: var(--accent);
+  color: var(--ok);
 }
 .detOpen {
   display: flex;

@@ -1,51 +1,71 @@
-/* Agentflow Playground — design tokens (source of truth: docs/mockups/design.md)
-   Minimalism, dark-first (OLED). Components reference these vars, never raw hex. */
+/* 10xGraph Playground design tokens. Palette and type follow the 10xGraph brand
+   (agentflow-docs/src/styles/global.css); layout spec in docs/mockups/design.md.
+   Dark-first. Components reference these vars, never raw hex. */
 
 :root,
 html[data-theme="dark"] {
-  --bg: #0b0c0e;
-  --surface: #131417;
-  --surface-2: #17181c;
-  --elevated: #1c1d22;
-  --border: #26272d;
-  --border-strong: #33353d;
-  --text: #ecedef;
-  --text-secondary: #9a9ea7;
-  --text-muted: #63676f;
-  --accent: #3ecf8e;
-  --accent-weak: rgba(62, 207, 142, 0.12);
-  --danger: #f26d6d;
-  --warn: #e5b567;
-  --btn-bg: #f2f3f5;
-  --btn-text: #0b0c0e;
-  --focus-ring: rgba(236, 237, 239, 0.1);
+  color-scheme: dark;
+  --bg: #0b0e13;
+  --surface: #10151d;
+  --surface-2: #141a24;
+  --elevated: #1a212d;
+  --border: #222b3a;
+  --border-strong: #2d3849;
+  --text: #eceff4;
+  --text-secondary: #a9b4c4;
+  --text-muted: #7f8b9e;
+  --accent: #7ea6ff;
+  --accent-weak: rgba(126, 166, 255, 0.12);
+  --on-accent: #0b0e13;
+  --brand-amber: #e9a57c;
+  /* status signals (live, pass, healthy) stay green, separate from the brand accent */
+  --ok: #4fd1ae;
+  --ok-weak: rgba(79, 209, 174, 0.12);
+  --danger: #f2868a;
+  --danger-weak: rgba(242, 134, 138, 0.12);
+  --warn: #f0b45a;
+  --warn-weak: rgba(240, 180, 90, 0.12);
+  --btn-bg: #f2f4f7;
+  --btn-text: #0b0e13;
+  --focus-ring: rgba(126, 166, 255, 0.22);
 
-  /* categorical viz colors (kept separate so --accent stays status-only) */
+  /* categorical viz colors */
   --viz-node: #8fb8ff;
   --viz-llm: #c69cf0;
   --viz-tool: #e5b567;
   --viz-root: #6ee7b7;
   --info: #8fb8ff;
 
-  --sans: "Fira Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --mono: "Fira Code", ui-monospace, "SF Mono", Menlo, monospace;
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --sans:
+    "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
 }
 
 html[data-theme="light"] {
-  --bg: #fbfbfc;
+  color-scheme: light;
+  --bg: #fafaf8;
   --surface: #ffffff;
-  --surface-2: #f7f8f9;
-  --elevated: #f1f2f4;
-  --border: #e6e7ea;
-  --border-strong: #d6d8dd;
-  --text: #16181d;
-  --text-secondary: #5c616b;
-  --text-muted: #9297a1;
-  --accent: #1ba674;
-  --accent-weak: rgba(27, 166, 116, 0.1);
-  --btn-bg: #16181d;
+  --surface-2: #f4f5f2;
+  --elevated: #eceee9;
+  --border: #e3e5e0;
+  --border-strong: #d3d6cf;
+  --text: #11151b;
+  --text-secondary: #4f5a68;
+  --text-muted: #7a8492;
+  --accent: #2f5bd3;
+  --accent-weak: rgba(47, 91, 211, 0.1);
+  --on-accent: #ffffff;
+  --brand-amber: #c8692f;
+  --ok: #0f7a5c;
+  --ok-weak: rgba(15, 122, 92, 0.1);
+  --danger: #b4232c;
+  --danger-weak: rgba(180, 35, 44, 0.08);
+  --warn: #8a5a00;
+  --warn-weak: rgba(138, 90, 0, 0.1);
+  --btn-bg: #11151b;
   --btn-text: #ffffff;
-  --focus-ring: rgba(22, 24, 29, 0.08);
+  --focus-ring: rgba(47, 91, 211, 0.16);
 }
 
 * {

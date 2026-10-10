@@ -367,7 +367,7 @@ export const fixThread = () => async (dispatch, getState) => {
   try {
     const client = getAgentFlowClient()
     if (typeof client.fixGraph !== "function") {
-      dispatch(setError("Fix thread requires a newer agentflow-client build."))
+      dispatch(setError("Fix thread requires a newer 10xGraph client build."))
       return
     }
     await client.fixGraph(threadId)
@@ -463,7 +463,7 @@ const executeRun = async (client, mode, outgoing, clientOptions, ctx) => {
   if (mode === "ws") {
     if (typeof client.wsStream !== "function") {
       throw new Error(
-        "This agentflow-client build does not support WebSocket streaming."
+        "This 10xGraph client build does not support WebSocket streaming."
       )
     }
     return consumeStream(client.wsStream(outgoing, clientOptions), ctx)

@@ -44,12 +44,12 @@
   gap: 8px;
   height: 30px;
   padding: 0 11px;
-  border: 1px solid rgba(62, 207, 142, 0.28);
-  background: var(--accent-weak);
+  border: 1px solid color-mix(in srgb, var(--ok) 28%, transparent);
+  background: var(--ok-weak);
   border-radius: 8px;
   font-family: var(--mono);
   font-size: 11px;
-  color: var(--accent);
+  color: var(--ok);
 }
 .health .hdot {
   width: 7px;
@@ -106,7 +106,7 @@
 }
 .statusPill.speaking {
   color: var(--accent);
-  border-color: rgba(62, 207, 142, 0.3);
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
   background: var(--accent-weak);
 }
 
@@ -124,7 +124,7 @@
 .wave .bar {
   width: 4px;
   border-radius: 3px;
-  background: linear-gradient(var(--accent), rgba(62, 207, 142, 0.4));
+  background: linear-gradient(var(--accent), color-mix(in srgb, var(--accent) 40%, transparent));
   animation: live-wv 1s ease-in-out infinite;
 }
 @keyframes live-wv {
@@ -190,7 +190,7 @@
   width: 66px;
   height: 66px;
   border-radius: 50%;
-  border: 1px solid rgba(62, 207, 142, 0.4);
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
   background: var(--accent-weak);
   color: var(--accent);
   display: grid;
@@ -207,7 +207,7 @@
   position: absolute;
   inset: -6px;
   border-radius: 50%;
-  border: 1px solid rgba(62, 207, 142, 0.25);
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
   animation: live-pulse 1.6s ease-in-out infinite;
 }
 .micBtn:hover {
@@ -296,7 +296,7 @@
 }
 .tAv.agent {
   background: var(--accent-weak);
-  border: 1px solid rgba(62, 207, 142, 0.25);
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
   color: var(--accent);
 }
 .tBody {
@@ -366,7 +366,7 @@
   color: var(--text);
 }
 .toolInline .ok {
-  color: var(--accent);
+  color: var(--ok);
   margin-left: 4px;
 }
 
@@ -509,7 +509,7 @@
 }
 .chip.on {
   color: var(--accent);
-  border-color: rgba(62, 207, 142, 0.3);
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
   background: var(--accent-weak);
 }
 .chip .cx {

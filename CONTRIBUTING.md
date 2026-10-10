@@ -1,17 +1,17 @@
-# Contributing to the Agentflow playground
+# Contributing to the 10xGraph playground
 
 Thanks for helping. This file covers the playground UI only. For the core framework, the CLI, or
 the client SDK, see the `CONTRIBUTING.md` in those repositories.
 
 ## Scope of this repository
 
-The React + Vite frontend that talks to an Agentflow backend through
+The React + Vite frontend that talks to a 10xGraph backend through
 `@10xscale/agentflow-client`. Anything about how the server behaves belongs in the API repo;
 anything about how requests are made belongs in the client SDK.
 
 ## Setup
 
-Node 20 or newer, plus a running backend (`agentflow api`).
+Node 20 or newer, plus a running backend (`10xgraph api`).
 
 ```bash
 npm install

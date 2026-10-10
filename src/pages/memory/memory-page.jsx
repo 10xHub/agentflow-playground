@@ -105,7 +105,7 @@ const MemoryPage = () => {
             inspect.
           </p>
           <p className={styles.unconfiguredHint}>
-            Set a <code>store</code> in your <code>agentflow.json</code> (for
+            Set a <code>store</code> in your <code>10xgraph.json</code> (for
             example a <code>QdrantStore</code> or <code>Mem0Store</code>) and
             restart the API server, then reload this page.
           </p>

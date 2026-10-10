@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom"
 import { useConnection } from "@/lib/connection/connection-context"
 import { useTheme } from "@/lib/use-theme"
 
+import { Brand } from "./brand"
 import styles from "./ConnectionBar.module.css"
 
 // Shown until a real probe fills in capabilities (keeps still-dummy pages populated).
@@ -49,12 +50,7 @@ const ConnectionBar = ({ right = null }) => {
 
   return (
     <div className={styles.connbar}>
-      <div className={styles.brand}>
-        <span className={styles.mark} />
-        <span className={styles.wordmark}>
-          agentflow<span className={styles.dim}>/playground</span>
-        </span>
-      </div>
+      <Brand />
       <div className={styles.sep} />
 
       <button

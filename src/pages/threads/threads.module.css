@@ -167,15 +167,15 @@
   border-radius: 50%;
 }
 .st.healthy {
-  color: var(--accent);
-  border-color: rgba(62, 207, 142, 0.28);
+  color: var(--ok);
+  border-color: color-mix(in srgb, var(--ok) 28%, transparent);
 }
 .st.healthy .sd {
-  background: var(--accent);
+  background: var(--ok);
 }
 .st.running {
   color: var(--accent);
-  border-color: rgba(62, 207, 142, 0.28);
+  border-color: color-mix(in srgb, var(--accent) 28%, transparent);
 }
 .st.running .sd {
   background: var(--accent);
@@ -327,7 +327,7 @@
 }
 .tbtn.primary {
   color: var(--accent);
-  border-color: rgba(62, 207, 142, 0.3);
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
   background: var(--accent-weak);
 }
 .tbtn.primary:hover {
@@ -469,7 +469,7 @@
 .rb.assistant {
   color: var(--accent);
   background: var(--accent-weak);
-  border: 1px solid rgba(62, 207, 142, 0.25);
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
 }
 .rb.tool {
   color: var(--blue);
@@ -597,7 +597,7 @@
   color: var(--warn);
 }
 .kv .v.ok {
-  color: var(--accent);
+  color: var(--ok);
 }
 .kv .v.bad {
   color: var(--danger);
@@ -652,10 +652,10 @@
   gap: 9px;
   margin-top: 16px;
   padding: 11px 14px;
-  border: 1px solid rgba(62, 207, 142, 0.3);
-  background: var(--accent-weak);
+  border: 1px solid color-mix(in srgb, var(--ok) 30%, transparent);
+  background: var(--ok-weak);
   border-radius: 10px;
-  color: var(--accent);
+  color: var(--ok);
   font-size: 12.5px;
 }
 .verify svg {

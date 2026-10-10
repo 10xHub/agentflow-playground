@@ -3,6 +3,7 @@ import PropTypes from "prop-types"
 import { useEffect, useRef, useState } from "react"
 import { useNavigate, useSearchParams } from "react-router-dom"
 
+import { Brand } from "@/components/shell/brand"
 import { track } from "@/lib/analytics"
 import { useConnection } from "@/lib/connection/connection-context"
 import { newConnectionId } from "@/lib/connection/connections-store"
@@ -80,19 +81,14 @@ const buildConn = (source, profile) => ({
  */
 const TopBar = ({ theme, onToggle }) => (
   <div className={styles.topbar}>
-    <div className={styles.brand}>
-      <span className={styles.mark} />
-      <span className={styles.wordmark}>
-        agentflow<span className={styles.dim}>/playground</span>
-      </span>
-    </div>
+    <Brand size={22} />
     <div className={styles.topActions}>
       <button className={styles.ghost} onClick={onToggle} type="button">
         {theme === "light" ? "Dark" : "Light"}
       </button>
       <a
         className={styles.ghost}
-        href="https://agentflow.10xscale.ai/"
+        href="https://10xgraph.com/docs"
         target="_blank"
         rel="noreferrer"
       >
@@ -564,8 +560,8 @@ ConnectButton.propTypes = {
 const PageFooter = () => (
   <div className={styles.footer}>
     Press <span className={styles.kbd}>↵</span> to connect ·{" "}
-    <a href="https://agentflow.10xscale.ai/" target="_blank" rel="noreferrer">
-      agentflow docs
+    <a href="https://10xgraph.com/docs" target="_blank" rel="noreferrer">
+      10xGraph docs
     </a>
   </div>
 )
@@ -636,7 +632,7 @@ const ConnectionPage = () => {
   const onEnterPlayground = () => navigate("/chat")
 
   // Auto-connect from ?backendUrl= (+ optional ?token=) — this is exactly what
-  // `agentflow play` appends, and makes a connection shareable as a link.
+  // `10xgraph play` appends, and makes a connection shareable as a link.
   useEffect(() => {
     if (autoRan.current) return
     const backendUrl =
@@ -717,7 +713,7 @@ const ConnectionPage = () => {
             <div className={styles.eyebrow}>Connect a backend</div>
             <h1 className={styles.title}>Point at a deployment</h1>
             <p className={styles.lede}>
-              Connect to any Agentflow API — a local dev server or a live
+              Connect to any 10xGraph API — a local dev server or a live
               deployment. Everything you see is scoped to the token you provide.
             </p>
 

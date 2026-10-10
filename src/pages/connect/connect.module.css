@@ -21,35 +21,6 @@
   padding: 16px 24px;
   border-bottom: 1px solid var(--border);
 }
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.mark {
-  width: 22px;
-  height: 22px;
-  border: 1.5px solid var(--text);
-  border-radius: 6px;
-  position: relative;
-  flex: none;
-}
-.mark::after {
-  content: "";
-  position: absolute;
-  inset: 4px;
-  border-radius: 2px;
-  border: 1.5px solid var(--text-secondary);
-}
-.wordmark {
-  font-family: var(--mono);
-  font-size: 13px;
-  font-weight: 500;
-  letter-spacing: -0.01em;
-}
-.wordmark .dim {
-  color: var(--text-muted);
-}
 .topActions {
   display: flex;
   align-items: center;
@@ -402,7 +373,7 @@
   flex: none;
 }
 .dot.live {
-  background: var(--accent);
+  background: var(--ok);
 }
 .dot.idle {
   background: var(--text-muted);
@@ -473,12 +444,12 @@
   font-size: 11px;
 }
 .cap.on .ci {
-  background: var(--accent-weak);
-  color: var(--accent);
+  background: var(--ok-weak);
+  color: var(--ok);
 }
 .cap.on {
   color: var(--text);
-  border-color: rgba(62, 207, 142, 0.22);
+  border-color: color-mix(in srgb, var(--ok) 22%, transparent);
 }
 .cap.off {
   opacity: 0.5;
@@ -501,7 +472,7 @@
   font-weight: 500;
 }
 .meta .ok {
-  color: var(--accent);
+  color: var(--ok);
 }
 .btnEnter {
   margin-top: auto;

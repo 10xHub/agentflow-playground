@@ -88,8 +88,8 @@
   flex-shrink: 0;
 }
 .dot.live {
-  background: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-weak);
+  background: var(--ok);
+  box-shadow: 0 0 0 3px var(--ok-weak);
 }
 
 .badge {
