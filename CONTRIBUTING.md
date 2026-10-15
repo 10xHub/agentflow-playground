@@ -6,7 +6,7 @@ the client SDK, see the `CONTRIBUTING.md` in those repositories.
 ## Scope of this repository
 
 The React + Vite frontend that talks to a 10xGraph backend through
-`@10xscale/agentflow-client`. Anything about how the server behaves belongs in the API repo;
+[`10xgraph-client`](https://www.npmjs.com/package/10xgraph-client). Anything about how the server behaves belongs in the API repo;
 anything about how requests are made belongs in the client SDK.
 
 ## Setup
@@ -15,12 +15,11 @@ Node 20 or newer, plus a running backend (`10xgraph api`).
 
 ```bash
 npm install
-npm run dev        # predev rebuilds the local client first
+npm run dev        # http://localhost:5173
 ```
 
-The client SDK is currently linked from the local monorepo path (`file:../agentflow-client`)
-rather than npm. `predev` and `prebuild` rebuild it for you; if you change the SDK while the dev
-server is running, use `npm run watch:client`.
+The client SDK comes from npm (`10xgraph-client`). To try an unreleased SDK change, run
+`npm link` in your clone of the client and `npm link 10xgraph-client` here.
 
 ## The checks
 
@@ -32,10 +31,10 @@ npm run build      # production build
 
 ## Making a change
 
-- Keep components in `src/components/`, routes in `src/pages/`, client and store logic in
-  `src/services/`, shared helpers in `src/lib/`.
+- Keep components in `src/components/`, routes in `src/pages/`, Redux slices in `src/store/`,
+  shared helpers (including the client wrapper `src/lib/tenxgraph-client.js`) in `src/lib/`.
 - User-facing strings go through `react-i18next`. Add new keys to both
-  `src/locales/en/translation.json` and `src/locales/hi/translation.json`.
+  `public/locales/en/translation.json` and `public/locales/hi/translation.json`.
 - Run `npm run format` before opening a pull request.
 
 ## Commit and pull request expectations
@@ -48,5 +47,5 @@ npm run build      # production build
 
 ## License
 
-Agentflow is [MIT licensed](LICENSE) and made by [10xScale](https://10xscale.ai). Contributions
+The 10xGraph Playground is [MIT licensed](LICENSE) and made by [10xScale](https://10xscale.ai). Contributions
 are accepted under the same license.

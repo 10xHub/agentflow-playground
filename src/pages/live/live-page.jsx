@@ -49,7 +49,7 @@ Gate.propTypes = {
  */
 export const LivePage = () => {
   const navigate = useNavigate()
-  const { isConnected, capabilities, active } = useConnection()
+  const { isConnected, isDemo, capabilities, active } = useConnection()
   const liveSupported = Boolean(
     capabilities?.find((c) => c.name === "live")?.on
   )
@@ -63,6 +63,18 @@ export const LivePage = () => {
         body="Connect a backend to start a live session."
         action="Connect a backend"
         onAction={() => navigate("/")}
+      />
+    )
+  }
+
+  // Live voice streams audio to a realtime model, which a recording cannot stand in for.
+  if (isDemo) {
+    return (
+      <Gate
+        icon={MicOff}
+        title="Live needs a live server"
+        body="Live voice streams audio to a realtime model over the /v1/graph/live WebSocket, so it is not part of the recorded demo."
+        note="Run 10xGraph with a realtime agent (for example a Gemini live model) to try it."
       />
     )
   }

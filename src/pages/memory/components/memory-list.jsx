@@ -8,6 +8,8 @@ import { forgetVisible, searchMemories } from "@/store/memory-slice"
 import { DISTANCE_METRICS, RETRIEVAL_STRATEGIES } from "../data"
 import styles from "../memory.module.css"
 
+import KeywordNote from "./keyword-note"
+
 // Browse mode does an extra client-side text filter over the loaded rows.
 const visibleRows = (list, search, browseFilter) => {
   if (search || !browseFilter.trim()) return list
@@ -302,6 +304,8 @@ const MemoryList = ({
         disabled={!shown.length}
         onConfirm={confirmForget}
       />
+
+      {search ? <KeywordNote /> : null}
 
       <div className={styles.rows}>
         <RowsPlaceholder

@@ -1,0 +1,110 @@
+.banner {
+  flex: none;
+  padding: 9px 16px 10px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-2);
+  font-family: var(--sans);
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.tag {
+  flex: none;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--warn-weak);
+  color: var(--warn);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.lead {
+  flex: 1 1 320px;
+  min-width: 0;
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.action {
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--elevated);
+  color: var(--text);
+  font-size: 12px;
+  line-height: 26px;
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.action:hover {
+  border-color: var(--border-strong);
+}
+.action:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+.callout {
+  margin: 7px 0 0;
+  color: var(--text);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.pillar {
+  margin-right: 8px;
+  padding: 1px 7px;
+  border-radius: 5px;
+  background: var(--accent-weak);
+  color: var(--accent);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  white-space: nowrap;
+}
+
+.sheet {
+  width: min(720px, 100vw);
+  max-width: 100vw;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  color: var(--text);
+  border-left: 1px solid var(--border);
+}
+
+.sheetTitle {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--text);
+}
+
+.sheetNote {
+  color: var(--text-secondary);
+  font-size: 12.5px;
+}
+
+.code {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  padding: 10px;
+}

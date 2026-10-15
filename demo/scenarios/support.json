@@ -1,0 +1,41 @@
+{
+  "id": "support",
+  "title": "Acme order support agent",
+  "model": "scripted (no LLM; see demo/agent/script.py)",
+  "runs": [
+    {
+      "id": "history",
+      "label": "Look up a customer and an order",
+      "prompt": "What do you know about customer c_88, and where is order 1043?",
+      "pillar": 4,
+      "after": null,
+      "threadId": "demo-history"
+    },
+    {
+      "id": "prefs",
+      "label": "Save a contact preference to memory",
+      "prompt": "c_88 prefers email over phone, please remember that.",
+      "pillar": 3,
+      "after": null,
+      "threadId": "demo-prefs",
+      "writesMemory": true
+    },
+    {
+      "id": "refund",
+      "label": "Refund a broken order",
+      "prompt": "Order 1042 arrived broken. Can I get a refund?",
+      "pillar": 1,
+      "after": "prefs",
+      "threadId": "demo-refund"
+    },
+    {
+      "id": "count",
+      "label": "Check how many refunds went out",
+      "prompt": "How many refunds were issued for order 1042?",
+      "pillar": 2,
+      "after": "refund",
+      "threadId": "demo-refund"
+    }
+  ],
+  "memoryQueries": ["contact preference", "email", "c_88"]
+}

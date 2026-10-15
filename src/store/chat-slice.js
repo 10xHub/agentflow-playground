@@ -21,42 +21,45 @@ export const DRAFT_ID = "__draft__" // active-but-unassigned thread key
 
 const UNTITLED_THREAD = "New thread" // fallback title before a first user message
 
-const persisted = loadThreads()
+// A function, so a demoSwitched reset (store/index.js) re-reads the cache for
+// whichever mode the app is now in.
+const initialState = () => {
+  const persisted = loadThreads()
+  return {
+    // messages[]: user  -> { id, role:"user", who, time, text }
+    //             agent -> { id, role:"agent", who, node, blocks:[], answer:[], streaming, runMeta }
+    messages: persisted.activeId
+      ? persisted.byId[persisted.activeId]?.messages || []
+      : [],
+    generating: false,
+    error: null,
+    threadId:
+      persisted.activeId && persisted.activeId !== DRAFT_ID
+        ? persisted.activeId
+        : null,
 
-const initialState = {
-  // messages[]: user  -> { id, role:"user", who, time, text }
-  //             agent -> { id, role:"agent", who, node, blocks:[], answer:[], streaming, runMeta }
-  messages: persisted.activeId
-    ? persisted.byId[persisted.activeId]?.messages || []
-    : [],
-  generating: false,
-  error: null,
-  threadId:
-    persisted.activeId && persisted.activeId !== DRAFT_ID
-      ? persisted.activeId
-      : null,
+    // Thread cache (persisted).
+    threads: { order: persisted.order || [], byId: persisted.byId || {} },
 
-  // Thread cache (persisted).
-  threads: { order: persisted.order || [], byId: persisted.byId || {} },
+    // Run configuration surfaced in the header, consumed by the thunk.
+    mode: "stream", // "invoke" | "stream" | "ws"
+    granularity: "low", // "full" | "partial" | "low"
 
-  // Run configuration surfaced in the header, consumed by the thunk.
-  mode: "stream", // "invoke" | "stream" | "ws"
-  granularity: "low", // "full" | "partial" | "low"
+    // Per-run overrides edited in the composer popup. JSON is kept as raw text so
+    // a half-typed object survives a reopen; the thunk parses at send time.
+    runOptions: {
+      initialState: "", // -> initial_state
+      config: "", // merged over { thread_id }
+      recursionLimit: "", // blank = client default (25)
+    },
 
-  // Per-run overrides edited in the composer popup. JSON is kept as raw text so
-  // a half-typed object survives a reopen; the thunk parses at send time.
-  runOptions: {
-    initialState: "", // -> initial_state
-    config: "", // merged over { thread_id }
-    recursionLimit: "", // blank = client default (25)
-  },
-
-  // Live inspector data — reset at the start of each run.
-  events: [], // { type, node, time, detail }
-  frames: [], // { dir:"out"|"in", label, time }
-  graphInfo: null, // structure from client.graph()
-  lastRequest: null, // { method, url, headers, body, mode } for the cURL pane
-  runStartedAt: null,
+    // Live inspector data — reset at the start of each run.
+    events: [], // { type, node, time, detail }
+    frames: [], // { dir:"out"|"in", label, time }
+    graphInfo: null, // structure from client.graph()
+    lastRequest: null, // { method, url, headers, body, mode } for the cURL pane
+    runStartedAt: null,
+  }
 }
 
 const findAgent = (state, id) =>
@@ -134,6 +137,18 @@ const chatSlice = createSlice({
     },
     clearChat: (state) => {
       state.messages = []
+      state.error = null
+      state.events = []
+      state.frames = []
+      state.lastRequest = null
+    },
+    // Swap in a whole thread cache without persisting it: entering the demo hides
+    // the visitor's own threads, and leaving it brings them back.
+    replaceThreads: (state, action) => {
+      const { order = [], byId = {}, activeId = null } = action.payload || {}
+      state.threads = { order, byId }
+      state.messages = activeId ? byId[activeId]?.messages || [] : []
+      state.threadId = activeId && activeId !== DRAFT_ID ? activeId : null
       state.error = null
       state.events = []
       state.frames = []
@@ -310,6 +325,7 @@ export const {
   setGraphInfo,
   clearChat,
   newThread,
+  replaceThreads,
   switchThread,
   removeThread,
   addUserMessage,

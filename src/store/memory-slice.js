@@ -1,6 +1,7 @@
 import { createSlice } from "@reduxjs/toolkit"
 
-import { getAgentFlowClient } from "@/lib/agentflow-client"
+import { getTenxGraphClient } from "@/lib/tenxgraph-client"
+import { DEFAULT_COLLECTION } from "@/pages/memory/data"
 
 // Live memory-store inspector state (POST /v1/store/*). Two modes:
 //   browse -> listMemories()          (all memories, newest first)
@@ -16,8 +17,10 @@ const initialState = {
   query: "",
   strategy: "SIMILARITY",
   metric: "cosine",
-  collection: "agentflow_memories",
+  collection: DEFAULT_COLLECTION,
   busy: false,
+  // Demo mode: the last search was a keyword fallback, not the store's search.
+  keywordMatch: false,
 }
 
 // Adapt the API's MemorySearchResult to the shape the memory components expect.
@@ -51,7 +54,10 @@ const memorySlice = createSlice({
       s.metric = a.payload
     },
     setCollection: (s, a) => {
-      s.collection = a.payload || "agentflow_memories"
+      s.collection = a.payload || DEFAULT_COLLECTION
+    },
+    setKeywordMatch: (s, a) => {
+      s.keywordMatch = a.payload
     },
     selectMemory: (s, a) => {
       s.selectedId = a.payload
@@ -71,7 +77,7 @@ const memorySlice = createSlice({
       s.status = "error"
       s.error = a.payload
     },
-    // The agent has no store backend wired in agentflow.json — the API answers
+    // The agent has no store backend wired in 10xgraph.json — the API answers
     // the store endpoints with 503 "Store is not configured". This is not an
     // error the user can act on from here, so it gets its own empty state.
     unconfigured: (s, a) => {
@@ -93,6 +99,7 @@ export const {
   setMetric,
   setCollection,
   selectMemory,
+  setKeywordMatch,
   loading,
   loaded,
   failed,
@@ -105,7 +112,7 @@ const unwrap = (res) => res?.data || res || {}
 const NOT_CONNECTED = "Not connected"
 
 // The store service raises HTTP 503 "Store is not configured" when no `store`
-// is wired in agentflow.json. The client surfaces that as an AgentFlowError with
+// is wired in 10xgraph.json. The client surfaces that as a TenxGraphError with
 // statusCode 503; match on it (with a message fallback) to branch to the
 // dedicated "not configured" state instead of the generic error state.
 const isStoreUnconfigured = (e) =>
@@ -127,7 +134,7 @@ const cfgFor = (getState) => {
 export const browseMemories = () => async (dispatch, getState) => {
   let client
   try {
-    client = getAgentFlowClient()
+    client = getTenxGraphClient()
   } catch (e) {
     dispatch(failed(e?.message || NOT_CONNECTED))
     return
@@ -137,6 +144,7 @@ export const browseMemories = () => async (dispatch, getState) => {
     const data = unwrap(
       await client.listMemories({ config: cfgFor(getState), limit: 100 })
     )
+    dispatch(setKeywordMatch(false))
     dispatch(loaded((data.memories || []).map(normalize)))
   } catch (e) {
     dispatchFetchError(dispatch, e, "Failed to list memories")
@@ -147,7 +155,7 @@ export const browseMemories = () => async (dispatch, getState) => {
 export const searchMemories = (query) => async (dispatch, getState) => {
   let client
   try {
-    client = getAgentFlowClient()
+    client = getTenxGraphClient()
   } catch (e) {
     dispatch(failed(e?.message || NOT_CONNECTED))
     return
@@ -168,6 +176,7 @@ export const searchMemories = (query) => async (dispatch, getState) => {
         distance_metric: metric,
       })
     )
+    dispatch(setKeywordMatch(Boolean(data.keyword)))
     dispatch(loaded((data.results || data.memories || []).map(normalize)))
   } catch (e) {
     dispatchFetchError(dispatch, e, "Search failed")
@@ -183,7 +192,7 @@ export const refreshMemories = () => (dispatch, getState) => {
 
 /** Delete one memory, then refresh. */
 export const deleteMemory = (id) => async (dispatch) => {
-  const client = getAgentFlowClient()
+  const client = getTenxGraphClient()
   dispatch(setBusy(true))
   try {
     await client.deleteMemory(id)
@@ -195,7 +204,7 @@ export const deleteMemory = (id) => async (dispatch) => {
 
 /** Forget the currently shown set (all visible). */
 export const forgetVisible = () => async (dispatch, getState) => {
-  const client = getAgentFlowClient()
+  const client = getTenxGraphClient()
   const ids = getState().memory.items.map((m) => m.id)
   dispatch(setBusy(true))
   try {

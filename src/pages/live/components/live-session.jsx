@@ -2,9 +2,9 @@ import { AlertTriangle, Mic, Radio, Square } from "lucide-react"
 import PropTypes from "prop-types"
 import { useEffect, useRef, useState } from "react"
 
-import { getAgentFlowClient } from "@/lib/agentflow-client"
 import { track } from "@/lib/analytics"
 import { createMicCapture, createPcmPlayer } from "@/lib/realtime-audio"
+import { getTenxGraphClient } from "@/lib/tenxgraph-client"
 
 import styles from "../live.module.css"
 
@@ -207,7 +207,7 @@ const LiveSession = () => {
   const start = () => {
     let client
     try {
-      client = getAgentFlowClient()
+      client = getTenxGraphClient()
     } catch (e) {
       setError(e?.message || "Not connected")
       setStatus("error")

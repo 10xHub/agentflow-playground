@@ -1,4 +1,4 @@
-export const SETTINGS_STORAGE_KEY = "pyagenity-settings"
+export const SETTINGS_STORAGE_KEY = "10xgraph.settings"
 const LEGACY_BACKEND_URL_KEY = "backendUrl"
 const LEGACY_AUTH_TOKEN_KEY = "authToken"
 const PARSE_ERROR_MESSAGE = "Failed to parse saved settings:"

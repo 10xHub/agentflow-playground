@@ -9,6 +9,7 @@ import { Outlet } from "react-router-dom"
 
 import styles from "./AppShell.module.css"
 import ConnectionBar from "./connection-bar"
+import DemoBanner from "./demo-banner"
 import Sidebar from "./sidebar"
 
 // Lets a page inject content into the shared connection bar (e.g. Chat's
@@ -37,11 +38,14 @@ const AppShell = () => {
       <ConnectionBar right={barRight} />
       <div className={styles.shell}>
         <Sidebar collapsed={collapsed} onToggleCollapse={toggleCollapse} />
-        <main className={styles.content}>
-          <BarSlotContext.Provider value={slot}>
-            <Outlet />
-          </BarSlotContext.Provider>
-        </main>
+        <div className={styles.column}>
+          <DemoBanner />
+          <main className={styles.content}>
+            <BarSlotContext.Provider value={slot}>
+              <Outlet />
+            </BarSlotContext.Provider>
+          </main>
+        </div>
       </div>
     </div>
   )

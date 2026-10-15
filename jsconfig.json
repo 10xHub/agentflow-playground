@@ -6,14 +6,9 @@
     "jsx": "react-jsx",
     "paths": {
       "@/*": ["./src/*"],
-      "@hooks/*": ["./src/lib/hooks/*"],
       "@lib/*": ["./src/lib/*"],
-      "@context/*": ["./src/lib/context/*"],
       "@pages/*": ["./src/pages/*"],
-      "@constants/*": ["./src/lib/constants/*"],
-      "@api/*": ["./src/services/api/*"],
-      "@query/*": ["./src/services/query/*"],
-      "@store/*": ["./src/services/store/*"]
+      "@constants/*": ["./src/lib/constants/*"]
     }
   },
   "exclude": ["node_modules", "dist"]

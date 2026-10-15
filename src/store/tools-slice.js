@@ -1,15 +1,18 @@
 import { createSlice } from "@reduxjs/toolkit"
 
-import { getAgentFlowClient } from "@/lib/agentflow-client"
+import { isDemoActive } from "@/lib/demo/demo-mode"
+import { getTenxGraphClient } from "@/lib/tenxgraph-client"
 
 // Tools state:
 //   - `serverNodes`: real tool nodes + tools from GET /v1/graph/tools (local/mcp/remote).
 //   - `clientTools`: browser-owned handlers persisted to localStorage. Matching trusted
-//     schemas must already exist in the server's agentflow.json.
+//     schemas must already exist in the server's 10xgraph.json.
 
-const CLIENT_TOOLS_KEY = "agentflow-client-tools"
+const CLIENT_TOOLS_KEY = "10xgraph.client-tools"
 
+// The demo never reads or writes the visitor's own client tools.
 const loadClientTools = () => {
+  if (isDemoActive()) return []
   try {
     const raw = localStorage.getItem(CLIENT_TOOLS_KEY)
     return raw ? JSON.parse(raw) : []
@@ -19,6 +22,7 @@ const loadClientTools = () => {
 }
 
 const persistClientTools = (tools) => {
+  if (isDemoActive()) return
   try {
     localStorage.setItem(CLIENT_TOOLS_KEY, JSON.stringify(tools))
   } catch {
@@ -26,13 +30,14 @@ const persistClientTools = (tools) => {
   }
 }
 
-const initialState = {
+// A function, so a demoSwitched reset re-reads storage for the current mode.
+const initialState = () => ({
   serverNodes: [], // [{ node_name, tool_count, tools: [{name, description, source, parameters}] }]
   serverToolCount: 0,
   clientTools: loadClientTools(), // [{ id, name, description, parameters, code, mock, callMode, registered }]
   status: "idle", // "idle" | "loading" | "ready" | "error"
   error: null,
-}
+})
 
 const toolsSlice = createSlice({
   name: "tools",
@@ -99,7 +104,7 @@ const toolsPayload = (res) => {
 export const loadTools = () => async (dispatch) => {
   let client
   try {
-    client = getAgentFlowClient()
+    client = getTenxGraphClient()
   } catch (e) {
     dispatch(toolsError(e?.message || "Not connected to a backend"))
     return
@@ -136,12 +141,12 @@ const buildHandler = (tool) => {
 
 /**
  * Register the playground's client-side handlers. The server advertises only
- * remote-tool schemas declared in agentflow.json.
+ * remote-tool schemas declared in 10xgraph.json.
  */
 export const registerClientTools =
   ({ only } = {}) =>
   async (dispatch, getState) => {
-    const client = getAgentFlowClient()
+    const client = getTenxGraphClient()
     const { clientTools } = getState().tools
 
     const toRegister = only

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
 
+import { useConnection } from "@/lib/connection/connection-context"
+import { DEMO_TRACE_THREAD } from "@/lib/demo/callouts"
 import { loadObservability } from "@/store/observability-slice"
 
 import CostPane from "./components/cost-pane"
@@ -43,7 +45,9 @@ const selectionIds = (sel) => {
  */
 const ObservabilityPage = () => {
   const dispatch = useDispatch()
-  const threadId = useSelector((s) => s.chat.threadId)
+  const chatThreadId = useSelector((s) => s.chat.threadId)
+  const { isDemo } = useConnection()
+  const threadId = chatThreadId ?? (isDemo ? DEMO_TRACE_THREAD : null)
   const { run, status, error, runCount } = useSelector((s) => s.observability)
 
   const [tab, setTab] = useState("trace")

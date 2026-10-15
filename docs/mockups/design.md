@@ -1,4 +1,4 @@
-# Agentflow Playground — Design System
+# 10xGraph Playground — Design System
 
 Status: Draft for the HTML mockup stage. This is the visual source of truth for the
 mockups and the later React build. Style direction: **minimalism, dark-first (OLED)**.

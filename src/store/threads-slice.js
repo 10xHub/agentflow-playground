@@ -1,6 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit"
 
-import { getAgentFlowClient } from "@/lib/agentflow-client"
+import { getTenxGraphClient } from "@/lib/tenxgraph-client"
 
 // Live thread inspector data from the checkpointer API:
 //   list    -> GET  /v1/threads          -> data.threads[]
@@ -93,7 +93,7 @@ const detailFrom = (stateRes, msgRes) => {
 export const loadThreadList = () => async (dispatch, getState) => {
   let client
   try {
-    client = getAgentFlowClient()
+    client = getTenxGraphClient()
   } catch (e) {
     dispatch(listFailed(e?.message || "Not connected to a backend"))
     return
@@ -117,7 +117,7 @@ export const loadThread = (threadId) => async (dispatch) => {
   dispatch(selectThread(threadId))
   let client
   try {
-    client = getAgentFlowClient()
+    client = getTenxGraphClient()
   } catch (e) {
     dispatch(detailFailed(e?.message || "Not connected"))
     return
@@ -136,7 +136,7 @@ export const loadThread = (threadId) => async (dispatch) => {
 
 /** DELETE a thread, then refresh the list. */
 export const removeThread = (threadId) => async (dispatch) => {
-  const client = getAgentFlowClient()
+  const client = getTenxGraphClient()
   dispatch(setBusy(true))
   try {
     await client.deleteThread(threadId)
@@ -148,7 +148,7 @@ export const removeThread = (threadId) => async (dispatch) => {
 
 /** Clear a thread's checkpoint state, then reload its detail. */
 export const clearThread = (threadId) => async (dispatch) => {
-  const client = getAgentFlowClient()
+  const client = getTenxGraphClient()
   dispatch(setBusy(true))
   try {
     await client.clearThreadState(threadId)
@@ -160,7 +160,7 @@ export const clearThread = (threadId) => async (dispatch) => {
 
 /** Delete a single message from a thread, then reload its detail. */
 export const removeMessage = (threadId, messageId) => async (dispatch) => {
-  const client = getAgentFlowClient()
+  const client = getTenxGraphClient()
   dispatch(setBusy(true))
   try {
     await client.deleteMessage(threadId, messageId)

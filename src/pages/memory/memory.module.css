@@ -709,18 +709,6 @@
   color: var(--accent);
 }
 
-.emb {
-  display: flex;
-  align-items: flex-end;
-  gap: 2px;
-  height: 34px;
-  margin-top: 4px;
-}
-.emb i {
-  flex: 1;
-  border-radius: 2px;
-  opacity: 0.55;
-}
 .embMeta {
   font-family: var(--mono);
   font-size: 10.5px;
@@ -792,4 +780,35 @@
 }
 .unconfiguredRetry:hover {
   border-color: var(--accent);
+}
+
+/* Demo mode: keyword-fallback label with the recorded searches. */
+.keywordNote {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.keywordChip {
+  padding: 2px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--accent-weak);
+  color: var(--text);
+  font: 500 12px/1.4 var(--mono);
+  cursor: pointer;
+}
+
+.keywordChip:hover {
+  border-color: var(--accent);
+}
+
+.keywordChip:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
 }

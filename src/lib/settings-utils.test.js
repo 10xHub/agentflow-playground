@@ -7,7 +7,7 @@ import {
   saveCurrentSettings,
 } from "@/lib/settings-utils"
 
-const SETTINGS_STORAGE_KEY = "pyagenity-settings"
+const SETTINGS_STORAGE_KEY = "10xgraph.settings"
 
 describe("settings-utils", () => {
   beforeEach(() => {

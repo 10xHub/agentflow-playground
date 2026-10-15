@@ -11,7 +11,7 @@ import { useTheme } from "@/lib/use-theme"
 
 import styles from "./connect.module.css"
 
-// Every auth mode the installed SDK transmits (AgentFlowAuth union: bearer/basic/header).
+// Every auth mode the installed SDK transmits (TenxGraphAuth union: bearer/basic/header).
 // "header" is how you reach a backend guarded by a custom BaseAuth that reads an
 // arbitrary header (e.g. X-API-Key) — see the note under the field.
 const AUTH_MODES = [

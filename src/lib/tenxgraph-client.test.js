@@ -1,28 +1,37 @@
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
-const { AgentFlowClientMock } = vi.hoisted(() => ({
-  AgentFlowClientMock: vi.fn(function MockAgentFlowClient(options) {
+const { TenxGraphClientMock } = vi.hoisted(() => ({
+  TenxGraphClientMock: vi.fn(function MockTenxGraphClient(options) {
     this.options = options
   }),
 }))
 
-vi.mock("@10xscale/agentflow-client", () => ({
-  AgentFlowClient: AgentFlowClientMock,
+vi.mock("10xgraph-client", () => ({
+  TenxGraphClient: TenxGraphClientMock,
 }))
 
+const { loadedFixture } = vi.hoisted(() => ({ loadedFixture: { current: null } }))
+
+vi.mock("@/lib/demo/fixtures", () => ({
+  getLoadedFixture: () => loadedFixture.current,
+}))
+
+import { DemoClient } from "@/lib/demo/demo-client"
+import { enterDemo, exitDemo } from "@/lib/demo/demo-mode"
+import fixture from "@/lib/demo/test-fixture"
 import {
-  getAgentFlowClient,
-  resetAgentFlowClient,
+  getTenxGraphClient,
+  resetTenxGraphClient,
   validateAndNormalizeUrl,
-} from "@/lib/agentflow-client"
+} from "@/lib/tenxgraph-client"
 
-const SETTINGS_STORAGE_KEY = "pyagenity-settings"
+const SETTINGS_STORAGE_KEY = "10xgraph.settings"
 
-describe("agentflow-client", () => {
+describe("tenxgraph-client", () => {
   beforeEach(() => {
     localStorage.clear()
     vi.clearAllMocks()
-    resetAgentFlowClient()
+    resetTenxGraphClient()
   })
 
   it("creates a client with normalized settings", () => {
@@ -35,9 +44,9 @@ describe("agentflow-client", () => {
       })
     )
 
-    const client = getAgentFlowClient()
+    const client = getTenxGraphClient()
 
-    expect(AgentFlowClientMock).toHaveBeenCalledWith({
+    expect(TenxGraphClientMock).toHaveBeenCalledWith({
       baseUrl: "https://example.com",
       auth: {
         type: "bearer",
@@ -46,7 +55,7 @@ describe("agentflow-client", () => {
       timeout: 600000,
       debug: false,
     })
-    expect(client).toBeInstanceOf(AgentFlowClientMock)
+    expect(client).toBeInstanceOf(TenxGraphClientMock)
   })
 
   it("returns the same client instance for repeated calls with unchanged settings", () => {
@@ -59,11 +68,11 @@ describe("agentflow-client", () => {
       })
     )
 
-    const firstClient = getAgentFlowClient()
-    const secondClient = getAgentFlowClient()
+    const firstClient = getTenxGraphClient()
+    const secondClient = getTenxGraphClient()
 
     expect(firstClient).toBe(secondClient)
-    expect(AgentFlowClientMock).toHaveBeenCalledTimes(1)
+    expect(TenxGraphClientMock).toHaveBeenCalledTimes(1)
   })
 
   it("rebuilds the client when the stored settings change", () => {
@@ -74,7 +83,7 @@ describe("agentflow-client", () => {
         authMode: "none",
       })
     )
-    const firstClient = getAgentFlowClient()
+    const firstClient = getTenxGraphClient()
 
     localStorage.setItem(
       SETTINGS_STORAGE_KEY,
@@ -88,10 +97,10 @@ describe("agentflow-client", () => {
         },
       })
     )
-    const secondClient = getAgentFlowClient()
+    const secondClient = getTenxGraphClient()
 
     expect(firstClient).not.toBe(secondClient)
-    expect(AgentFlowClientMock).toHaveBeenCalledTimes(2)
+    expect(TenxGraphClientMock).toHaveBeenCalledTimes(2)
   })
 
   it("omits auth when it is missing", () => {
@@ -102,9 +111,9 @@ describe("agentflow-client", () => {
       })
     )
 
-    getAgentFlowClient()
+    getTenxGraphClient()
 
-    expect(AgentFlowClientMock).toHaveBeenCalledWith(
+    expect(TenxGraphClientMock).toHaveBeenCalledWith(
       expect.not.objectContaining({ auth: expect.anything() })
     )
   })
@@ -124,9 +133,9 @@ describe("agentflow-client", () => {
       })
     )
 
-    getAgentFlowClient()
+    getTenxGraphClient()
 
-    expect(AgentFlowClientMock).toHaveBeenCalledWith({
+    expect(TenxGraphClientMock).toHaveBeenCalledWith({
       baseUrl: "https://example.com",
       auth: {
         type: "basic",
@@ -143,9 +152,9 @@ describe("agentflow-client", () => {
     localStorage.setItem("backendUrl", "https://example.com/")
     localStorage.setItem("authToken", "secret-token")
 
-    getAgentFlowClient()
+    getTenxGraphClient()
 
-    expect(AgentFlowClientMock).toHaveBeenCalledWith({
+    expect(TenxGraphClientMock).toHaveBeenCalledWith({
       baseUrl: "https://example.com",
       auth: {
         type: "bearer",
@@ -169,9 +178,9 @@ describe("agentflow-client", () => {
       })
     )
 
-    getAgentFlowClient()
+    getTenxGraphClient()
 
-    expect(AgentFlowClientMock).toHaveBeenCalledWith(
+    expect(TenxGraphClientMock).toHaveBeenCalledWith(
       expect.objectContaining({
         headers: {
           "X-Tenant-Id": "acme",
@@ -190,9 +199,9 @@ describe("agentflow-client", () => {
       })
     )
 
-    getAgentFlowClient()
+    getTenxGraphClient()
 
-    expect(AgentFlowClientMock).toHaveBeenCalledWith(
+    expect(TenxGraphClientMock).toHaveBeenCalledWith(
       expect.not.objectContaining({ headers: expect.anything() })
     )
   })
@@ -212,9 +221,9 @@ describe("agentflow-client", () => {
       })
     )
 
-    getAgentFlowClient()
+    getTenxGraphClient()
 
-    expect(AgentFlowClientMock).toHaveBeenCalledWith(
+    expect(TenxGraphClientMock).toHaveBeenCalledWith(
       expect.objectContaining({
         auth: { type: "header", name: "X-API-Key", value: "secret-key", prefix: null },
         headers: { "X-Tenant-Id": "acme" },
@@ -223,7 +232,7 @@ describe("agentflow-client", () => {
   })
 
   it("throws when the backend URL is not configured", () => {
-    expect(() => getAgentFlowClient()).toThrow("Backend URL is not set")
+    expect(() => getTenxGraphClient()).toThrow("Backend URL is not set")
   })
 
   it("validates and normalizes URLs", () => {
@@ -240,5 +249,35 @@ describe("agentflow-client", () => {
     expect(() => validateAndNormalizeUrl("https:// bad-url")).toThrow(
       "Invalid backend URL format"
     )
+  })
+
+  describe("in demo mode", () => {
+    beforeEach(() => {
+      loadedFixture.current = null
+      enterDemo("support")
+    })
+
+    afterEach(() => {
+      exitDemo()
+    })
+
+    it("refuses until the fixture has loaded, without building a real client", () => {
+      expect(() => getTenxGraphClient()).toThrow("Demo data is still loading")
+      expect(TenxGraphClientMock).not.toHaveBeenCalled()
+    })
+
+    it("returns the same DemoClient even when a real backend is saved", () => {
+      localStorage.setItem(
+        SETTINGS_STORAGE_KEY,
+        JSON.stringify({ backendUrl: "http://mine:8000" })
+      )
+      loadedFixture.current = fixture
+
+      const client = getTenxGraphClient()
+
+      expect(client).toBeInstanceOf(DemoClient)
+      expect(getTenxGraphClient()).toBe(client)
+      expect(TenxGraphClientMock).not.toHaveBeenCalled()
+    })
   })
 })

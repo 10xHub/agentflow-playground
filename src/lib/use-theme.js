@@ -4,7 +4,7 @@ import { useCallback, useSyncExternalStore } from "react"
 // `data-theme` on <html>, and tokens.css swaps the palette off that attribute.
 // An inline bootstrap in index.html applies the saved theme before first paint
 // (no flash); this module keeps every mounted useTheme() in sync afterwards.
-export const THEME_STORAGE_KEY = "agentflow.theme"
+export const THEME_STORAGE_KEY = "10xgraph.theme"
 const MODES = ["light", "dark", "system"]
 const DEFAULT_MODE = "dark"
 const DARK_QUERY = "(prefers-color-scheme: dark)"

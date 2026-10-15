@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Agentflow Playground — Graph</title>
+<title>10xGraph Playground — Graph</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Fira+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -162,7 +162,7 @@
 <body>
   <!-- CONNECTION BAR -->
   <div class="connbar">
-    <div class="brand"><span class="mark"></span><span class="wordmark">agentflow<span class="dim">/playground</span></span></div>
+    <div class="brand"><span class="mark"></span><span class="wordmark">10xgraph<span class="dim">/playground</span></span></div>
     <div class="sep"></div>
     <div class="conn-pill">
       <span class="dot live"></span><span class="conn-name">Local dev</span><span class="conn-url">localhost:8000</span>
@@ -327,7 +327,7 @@
       tools:[
         {name:'get_weather', src:'local', desc:'Current weather for a location.', params:'location:str, units:str'},
         {name:'get_report', src:'local', desc:'Fetch a quarterly report by period.', params:'quarter:str'},
-        {name:'send_email', src:'remote', desc:'Declared in agentflow.json; executed by the client.', params:'to:str, subject:str, body:str'}
+        {name:'send_email', src:'remote', desc:'Declared in 10xgraph.json; executed by the client.', params:'to:str, subject:str, body:str'}
       ],
       mcp:[{server:'filesystem', tools:['fs.read','fs.write']}] },
     END:{ id:'n_9d40', kind:'sentinel', desc:'Graph exit point. The final state is returned to the caller.',

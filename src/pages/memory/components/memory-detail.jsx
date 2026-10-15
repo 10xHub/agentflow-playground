@@ -1,11 +1,10 @@
-import { Pencil, Search, Trash2 } from "lucide-react"
+import { Search, Trash2 } from "lucide-react"
 import PropTypes from "prop-types"
 import { useState } from "react"
 import { useDispatch } from "react-redux"
 
 import { deleteMemory } from "@/store/memory-slice"
 
-import { embBars } from "../data"
 import styles from "../memory.module.css"
 
 /**
@@ -21,9 +20,7 @@ const MetaJson = ({ meta }) => {
           {"  "}
           <span className={styles.key}>&quot;{k}&quot;</span>
           {": "}
-          <span className={styles.str}>
-            {typeof v === "string" ? `"${v}"` : v}
-          </span>
+          <span className={styles.str}>{JSON.stringify(v)}</span>
           {index < entries.length - 1 ? ",\n" : "\n"}
         </span>
       ))}
@@ -60,8 +57,6 @@ const MemoryDetail = ({ mem, mode, strategy, metric, collection, query }) => {
   }
 
   const search = mode === "search"
-  const bars = embBars(mem.type).map((h, index) => ({ id: `bar-${index}`, h }))
-  const typeColor = `var(--t-${mem.type})`
 
   return (
     <section className={styles.detail}>
@@ -82,10 +77,6 @@ const MemoryDetail = ({ mem, mode, strategy, metric, collection, query }) => {
           </div>
         </div>
         <div className={styles.dActions}>
-          <button className={styles.tbtn}>
-            <Pencil size={14} strokeWidth={1.7} />
-            Edit
-          </button>
           <button
             className={`${styles.tbtn} ${styles.danger} ${delArmed ? styles.armed : ""}`}
             onClick={onDelete}
@@ -156,15 +147,9 @@ const MemoryDetail = ({ mem, mode, strategy, metric, collection, query }) => {
 
           <div className={styles.card}>
             <div className={styles.secH}>Vector</div>
-            <div className={styles.emb}>
-              {bars.map((b) => (
-                <i
-                  key={b.id}
-                  style={{ height: `${b.h}%`, background: typeColor }}
-                />
-              ))}
+            <div className={styles.embMeta}>
+              The store API returns records, not their vectors.
             </div>
-            <div className={styles.embMeta}>1536 dims · cosine</div>
             <div className={styles.kv} style={{ marginTop: 12 }}>
               <span className={styles.k}>collection</span>
               <span className={styles.v}>{collection}</span>

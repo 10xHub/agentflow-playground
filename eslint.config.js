@@ -10,8 +10,8 @@ export default [
     ignores: [
       "**/*.{test,spec}.{js,jsx,ts,tsx}",
       "src/setup-tests.js",
-      // Dead code kept for reference only; nothing outside it imports from it.
-      "src/_legacy/**",
+      // The demo agent is a Python project (with its own virtualenv).
+      "demo/agent/**",
     ],
   },
   ...config,
@@ -21,14 +21,9 @@ export default [
         alias: {
           map: [
             ["@", path.resolve(__dirname, "./src")],
-            ["@hooks", path.resolve(__dirname, "./src/hooks")],
             ["@lib", path.resolve(__dirname, "./src/lib")],
-            ["@context", path.resolve(__dirname, "./src/lib/context")],
             ["@pages", path.resolve(__dirname, "./src/pages")],
             ["@constants", path.resolve(__dirname, "./src/lib/constants")],
-            ["@api", path.resolve(__dirname, "./src/services/api")],
-            ["@query", path.resolve(__dirname, "./src/services/query")],
-            ["@store", path.resolve(__dirname, "./src/services/store")],
             ["@public", path.resolve(__dirname, "./public")],
           ],
           extensions: [".js", ".jsx"],
@@ -49,9 +44,17 @@ export default [
       // React 19 ignores `defaultProps` on function components; destructuring
       // defaults are the only mechanism that actually runs.
       "react/require-default-props": ["error", { functions: "defaultArguments" }],
+      // Vite's ?raw suffix imports a file as text; the node resolver can't follow it.
+      "import/no-unresolved": ["error", { ignore: [String.raw`\?raw$`] }],
     },
     languageOptions: {
       globals: globals.browser,
     },
+  },
+  {
+    // Node scripts (the demo recorder) print progress to the terminal.
+    files: ["demo/**/*.mjs"],
+    languageOptions: { globals: globals.node },
+    rules: { "no-console": "off" },
   },
 ]

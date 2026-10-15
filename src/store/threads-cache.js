@@ -2,11 +2,14 @@
 // Persisted to localStorage so switching threads and refreshing both work — the
 // server (often an in-memory checkpointer) is not the source of truth here.
 
-const KEY = "agentflow.threads"
+import { isDemoActive } from "@/lib/demo/demo-mode"
+
+// The demo never reads or writes the visitor's own thread cache.
+const KEY = "10xgraph.threads"
 const MAX_THREADS = 50
 
 export const loadThreads = () => {
-  if (typeof window === "undefined") {
+  if (typeof window === "undefined" || isDemoActive()) {
     return { order: [], byId: {}, activeId: null }
   }
   try {
@@ -22,7 +25,7 @@ export const loadThreads = () => {
 }
 
 export const saveThreads = ({ order, byId, activeId }) => {
-  if (typeof window === "undefined") return
+  if (typeof window === "undefined" || isDemoActive()) return
   try {
     // Cap the number of cached threads (drop oldest) so storage stays bounded.
     let trimmedOrder = order

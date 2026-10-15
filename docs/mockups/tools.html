@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Agentflow Playground — Tools &amp; MCP</title>
+<title>10xGraph Playground — Tools &amp; MCP</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Fira+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -145,7 +145,7 @@
 <body>
   <!-- CONNECTION BAR -->
   <div class="connbar">
-    <div class="brand"><span class="mark"></span><span class="wordmark">agentflow<span class="dim">/playground</span></span></div>
+    <div class="brand"><span class="mark"></span><span class="wordmark">10xgraph<span class="dim">/playground</span></span></div>
     <div class="sep"></div>
     <div class="conn-pill">
       <span class="dot live"></span><span class="conn-name">Local dev</span><span class="conn-url">localhost:8000</span>
@@ -235,7 +235,7 @@
       desc:'Fetches a quarterly report by period.',
       params:[{n:'quarter',t:'string',r:true,d:'Reporting period, e.g. "Q2"'}] },
     srv_email:{ kind:'server', name:'send_email', node:'tools', src:'remote',
-      desc:'Sends an email. Declared in agentflow.json and executed by a matching client handler.',
+      desc:'Sends an email. Declared in 10xgraph.json and executed by a matching client handler.',
       params:[{n:'to',t:'string',r:true,d:'Recipient address'},{n:'subject',t:'string',r:true,d:'Subject line'},{n:'body',t:'string',r:true,d:'Message body'}] },
     mcp_read:{ kind:'mcp', name:'fs.read', server:'filesystem', transport:'stdio',
       desc:'Reads a file from the workspace. Exposed by the filesystem MCP server.',
@@ -328,7 +328,7 @@
       <div class="editor-actions">
         <button class="reg-btn" onclick="doRegister(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="1.9"><path d="M20 6L9 17l-5-5"/></svg>${t.registered?'Update registration':'Register tool'}</button>
         <button class="test-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M5 3l14 9-14 9V3z"/></svg>Test in Chat</button>
-        <span class="editor-note">agentflow.json schema → client handler → resolves remote_tool_call in the stream/ws loop</span>
+        <span class="editor-note">10xgraph.json schema → client handler → resolves remote_tool_call in the stream/ws loop</span>
       </div>`;
   }
   function paramSchemaObj(params){

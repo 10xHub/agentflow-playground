@@ -1,9 +1,12 @@
-import { AgentFlowClient } from "@10xscale/agentflow-client"
+import { TenxGraphClient } from "10xgraph-client"
 
+import { getDemoClient } from "@/lib/demo/demo-client"
+import { activeScenario } from "@/lib/demo/demo-mode"
+import { getLoadedFixture } from "@/lib/demo/fixtures"
 import { getCurrentSettings } from "@/lib/settings-utils"
 
-let agentFlowClientInstance = null
-let agentFlowClientConfigKey = null
+let tenxGraphClientInstance = null
+let tenxGraphClientConfigKey = null
 
 const resolveAuthConfig = (auth, authToken) => {
   if (auth?.type === "basic") {
@@ -72,31 +75,39 @@ const buildClientConfig = () => {
 }
 
 /**
- * Get or create an AgentFlowClient instance from localStorage settings
- * @returns {AgentFlowClient} - Configured client instance
+ * Get or create an TenxGraphClient instance from localStorage settings
+ * @returns {TenxGraphClient} - Configured client instance
  * @throws {Error} - If backend URL is not set
  */
-export const getAgentFlowClient = () => {
+export const getTenxGraphClient = () => {
+  // Demo mode answers from recorded fixtures and never builds a real client.
+  const scenario = activeScenario()
+  if (scenario) {
+    const fixture = getLoadedFixture(scenario)
+    if (!fixture) throw new Error("Demo data is still loading")
+    return getDemoClient(scenario, fixture)
+  }
+
   const config = buildClientConfig()
   const configKey = JSON.stringify(config)
 
-  if (agentFlowClientInstance && agentFlowClientConfigKey === configKey) {
-    return agentFlowClientInstance
+  if (tenxGraphClientInstance && tenxGraphClientConfigKey === configKey) {
+    return tenxGraphClientInstance
   }
 
-  agentFlowClientInstance = new AgentFlowClient(config)
-  agentFlowClientConfigKey = configKey
+  tenxGraphClientInstance = new TenxGraphClient(config)
+  tenxGraphClientConfigKey = configKey
 
-  return agentFlowClientInstance
+  return tenxGraphClientInstance
 }
 
 /**
- * Reset the cached AgentFlowClient instance.
+ * Reset the cached TenxGraphClient instance.
  * Useful for tests and when the environment is reinitialized.
  */
-export const resetAgentFlowClient = () => {
-  agentFlowClientInstance = null
-  agentFlowClientConfigKey = null
+export const resetTenxGraphClient = () => {
+  tenxGraphClientInstance = null
+  tenxGraphClientConfigKey = null
 }
 
 /**

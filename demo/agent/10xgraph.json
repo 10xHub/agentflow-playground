@@ -1,0 +1,5 @@
+{
+  "agent": "graph:app",
+  "store": "graph:store",
+  "auth": null
+}

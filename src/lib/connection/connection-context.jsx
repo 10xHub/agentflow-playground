@@ -1,4 +1,4 @@
-import { AgentFlowClient } from "@10xscale/agentflow-client"
+import { TenxGraphClient } from "10xgraph-client"
 import PropTypes from "prop-types"
 import {
   createContext,
@@ -9,9 +9,23 @@ import {
   useRef,
   useState,
 } from "react"
+import { useDispatch } from "react-redux"
 
-import { validateAndNormalizeUrl } from "@/lib/agentflow-client"
+import { resetDemoClient } from "@/lib/demo/demo-client"
+import {
+  activeScenario,
+  enterDemo,
+  exitDemo,
+  isDemoActive,
+} from "@/lib/demo/demo-mode"
+import { loadFixture } from "@/lib/demo/fixtures"
 import { getCurrentSettings, saveCurrentSettings } from "@/lib/settings-utils"
+import {
+  getTenxGraphClient,
+  validateAndNormalizeUrl,
+} from "@/lib/tenxgraph-client"
+import { demoSwitched } from "@/store/app-actions"
+import { abortActiveRun } from "@/store/chat-thunks"
 
 import { deriveCapabilities } from "./capabilities"
 import {
@@ -35,7 +49,7 @@ export const useConnection = () => {
 
 // status: "idle" | "connecting" | "connected" | "error"
 
-// Map the form's auth mode onto the SDK's AgentFlowAuth union (bearer/basic).
+// Map the form's auth mode onto the SDK's TenxGraphAuth union (bearer/basic).
 // bearer stays on the simpler authToken field; basic uses the structured `auth`.
 /**
  *
@@ -90,7 +104,7 @@ const buildClient = (conn) => {
     const headers = buildHeaders(conn)
     if (headers) config.headers = headers
   }
-  return { client: new AgentFlowClient(config), baseUrl }
+  return { client: new TenxGraphClient(config), baseUrl }
 }
 
 const isRejected = (error, message) =>
@@ -163,6 +177,23 @@ const probeCounts = (graph) => {
   }
 }
 
+// Ping + graph against a real backend. Returns null when the tab entered the demo
+// while the probe was in flight (a saved backend re-probing on load, then /demo):
+// the demo owns the connection from then on, so the result is dropped unsaved.
+const probeBackend = async (client) => {
+  const started = performance.now()
+  try {
+    await client.ping()
+    if (isDemoActive()) return null
+    const graph = await client.graph()
+    if (isDemoActive()) return null
+    return { graph, latencyMs: Math.round(performance.now() - started) }
+  } catch (e) {
+    if (isDemoActive()) return null
+    throw e
+  }
+}
+
 /**
  *
  */
@@ -175,6 +206,7 @@ export const ConnectionProvider = ({ children }) => {
   const [probe, setProbe] = useState(null) // {latencyMs, nodes, edges}
   const [saved, setSaved] = useState(() => listConnections())
   const clientReference = useRef(null)
+  const dispatch = useDispatch()
 
   // On load: if a backend was saved, show it immediately AND silently re-verify
   // it in the background. The connection status lives only in React memory, so a
@@ -182,6 +214,12 @@ export const ConnectionProvider = ({ children }) => {
   // though the server is still up. We re-probe instead of forcing the user back
   // to the connect page. A failed re-probe just leaves status idle — no error.
   useEffect(() => {
+    // A tab in demo mode reconnects to the recorded demo, never the saved backend.
+    const scenario = activeScenario()
+    if (scenario) {
+      connectDemo(scenario)
+      return
+    }
     const s = getCurrentSettings()
     if (!s.backendUrl) return
     const conn = connFromSettings(s)
@@ -191,9 +229,67 @@ export const ConnectionProvider = ({ children }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Demo mode: the same probe against the recorded fixture. Nothing is persisted, so
+  // the visitor's saved connections and settings stay exactly as they were.
+  const connectDemo = useCallback(async (scenario) => {
+    setStatus("connecting")
+    setError(null)
+    try {
+      const fixture = await loadFixture(scenario)
+      const client = getTenxGraphClient()
+      const started = performance.now()
+      await client.ping()
+      const graph = await client.graph()
+      const latencyMs = Math.round(performance.now() - started)
+      const { graphInfo, nodes, edges } = probeCounts(graph)
+
+      clientReference.current = client
+      setActive({
+        id: "demo",
+        name: fixture.title,
+        backendUrl: "recorded demo",
+        authMode: "none",
+      })
+      setInfo(graphInfo)
+      setCapabilities(deriveCapabilities(graphInfo))
+      setProbe({ latencyMs, nodes, edges })
+      setStatus("connected")
+      return { ok: true, info: graphInfo }
+    } catch (e) {
+      clientReference.current = null
+      setStatus("error")
+      setError(e?.message || "Could not load the demo")
+      return { ok: false, error: e }
+    }
+  }, [])
+
+  // Every way out of the demo: abandon its run, clear the flag, reset every
+  // slice so the visitor's own threads and tools come back, and show their saved
+  // connection again.
+  const leaveDemo = useCallback(() => {
+    abortActiveRun()
+    exitDemo()
+    resetDemoClient()
+    dispatch(demoSwitched())
+    const s = getCurrentSettings()
+    setActive(s.backendUrl ? connFromSettings(s) : null)
+  }, [dispatch])
+
+  // The /demo link: same reset in the other direction, then load the recording.
+  const startDemo = useCallback(
+    (scenario) => {
+      abortActiveRun()
+      const id = enterDemo(scenario)
+      resetDemoClient()
+      dispatch(demoSwitched())
+      return connectDemo(id)
+    },
+    [connectDemo, dispatch]
+  )
+
   // `silent` (used by the on-load re-verify): on failure fall back to idle instead
   // of a red error state, since the user didn't just click Connect.
-  const connect = useCallback(
+  const connectBackend = useCallback(
     async (conn, { remember = true, silent = false } = {}) => {
       setStatus("connecting")
       setError(null)
@@ -207,11 +303,10 @@ export const ConnectionProvider = ({ children }) => {
         return { ok: false, error: e }
       }
 
-      const started = performance.now()
       try {
-        await client.ping()
-        const graph = await client.graph()
-        const latencyMs = Math.round(performance.now() - started)
+        const probed = await probeBackend(client)
+        if (!probed) return { ok: false }
+        const { graph, latencyMs } = probed
         const { graphInfo, nodes, edges } = probeCounts(graph)
 
         clientReference.current = client
@@ -240,14 +335,33 @@ export const ConnectionProvider = ({ children }) => {
     []
   )
 
+  const connect = useCallback(
+    (conn, options) => {
+      // Settings' re-verify inside the demo re-probes the recording.
+      if (conn?.id === "demo") {
+        return isDemoActive()
+          ? connectDemo(activeScenario())
+          : Promise.resolve({ ok: false })
+      }
+      // Connecting to a real server is a deliberate way out of the demo.
+      if (isDemoActive()) {
+        leaveDemo()
+        setActive(conn)
+      }
+      return connectBackend(conn, options)
+    },
+    [connectBackend, connectDemo, leaveDemo]
+  )
+
   const disconnect = useCallback(() => {
+    if (isDemoActive()) leaveDemo()
     clientReference.current = null
     setStatus("idle")
     setError(null)
     setCapabilities(null)
     setInfo(null)
     setProbe(null)
-  }, [])
+  }, [leaveDemo])
 
   const removeSaved = useCallback((id) => setSaved(removeConnection(id)), [])
 
@@ -263,10 +377,13 @@ export const ConnectionProvider = ({ children }) => {
       probe,
       saved,
       connect,
+      connectDemo,
+      startDemo,
       disconnect,
       removeSaved,
       getClient,
       isConnected: status === "connected",
+      isDemo: active?.id === "demo",
     }),
     [
       status,
@@ -277,6 +394,8 @@ export const ConnectionProvider = ({ children }) => {
       probe,
       saved,
       connect,
+      connectDemo,
+      startDemo,
       disconnect,
       removeSaved,
       getClient,

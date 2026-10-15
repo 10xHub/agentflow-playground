@@ -1,7 +1,8 @@
 import { createSlice } from "@reduxjs/toolkit"
 
-import { getAgentFlowClient } from "@/lib/agentflow-client"
+import { isDemoActive } from "@/lib/demo/demo-mode"
 import { getCurrentSettings } from "@/lib/settings-utils"
+import { getTenxGraphClient } from "@/lib/tenxgraph-client"
 
 // Live eval-report inspector state. The eval endpoints aren't on the SDK yet, so
 // we call them over raw fetch against the connected backend:
@@ -79,10 +80,23 @@ const evalHeaders = (s) => {
 
 // Resolve the base URL + auth header from the persisted connection (the SDK has
 // no eval methods, so we hit the endpoints with fetch directly).
+// Demo mode: the recorded eval report, never the network.
+const RUN_DETAIL_PREFIX = "/v1/evals/runs/"
+const demoEvalFetch = (path) => {
+  const client = getTenxGraphClient()
+  if (path.startsWith(RUN_DETAIL_PREFIX)) {
+    return client.evalRun(
+      decodeURIComponent(path.slice(RUN_DETAIL_PREFIX.length))
+    )
+  }
+  return client.evalRuns()
+}
+
 const evalFetch = async (path) => {
+  if (isDemoActive()) return demoEvalFetch(path)
   const s = getCurrentSettings()
   // Ensures we're actually connected (throws a clear error otherwise).
-  getAgentFlowClient()
+  getTenxGraphClient()
   const base = (s.backendUrl || "").replace(/\/$/, "")
 
   const res = await fetch(`${base}${path}`, { headers: evalHeaders(s) })

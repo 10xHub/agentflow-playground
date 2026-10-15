@@ -1,6 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit"
 
-import { getAgentFlowClient } from "@/lib/agentflow-client"
+import { getTenxGraphClient } from "@/lib/tenxgraph-client"
 
 // Observability state — a reconstructed run trace (spans + events + cost) for the
 // active thread, fetched from GET /v1/observability/{thread_id}.
@@ -57,7 +57,7 @@ export const loadObservability = (threadId, runId) => async (dispatch) => {
   }
   let client
   try {
-    client = getAgentFlowClient()
+    client = getTenxGraphClient()
   } catch (e) {
     dispatch(obsError(e?.message || "Not connected to a backend"))
     return

@@ -1,8 +1,9 @@
-import { Message } from "@10xscale/agentflow-client"
+import { Message } from "10xgraph-client"
 
-import { getAgentFlowClient } from "@/lib/agentflow-client"
+import { isDemoActive } from "@/lib/demo/demo-mode"
 import { resolveRunOptions } from "@/lib/run-options"
 import { getCurrentSettings } from "@/lib/settings-utils"
+import { getTenxGraphClient } from "@/lib/tenxgraph-client"
 
 import {
   addUsage,
@@ -10,6 +11,7 @@ import {
   appendErrorAnswer,
   beginRun,
   finishAgentTurn,
+  newThread,
   pushEvent,
   pushFrame,
   setAgentNode,
@@ -17,6 +19,7 @@ import {
   setError,
   setGenerating,
   setGraphInfo,
+  setMode,
   setThreadId,
   startAgentTurn,
   upsertBlock,
@@ -25,6 +28,17 @@ import {
 // The active run's AbortController lives outside Redux (non-serializable). Stop
 // aborts it; the stream loop checks signal.aborted and bails.
 let activeAbort = null
+
+/**
+ * Abandon the in-flight run without touching chat state. Used when the app
+ * enters or leaves the demo, right before every slice is reset: the old run's
+ * remaining chunks must not land in (or be saved from) the new session.
+ */
+export const abortActiveRun = () => {
+  if (!activeAbort) return
+  activeAbort.abandoned = true
+  activeAbort.abort()
+}
 
 const nowTime = () =>
   new Date().toLocaleTimeString([], {
@@ -193,8 +207,14 @@ const redactedAuthHeaders = (settings) => {
 }
 
 // Build the { method, url, headers, body } snapshot the cURL pane renders from.
+// The demo's cURL targets a local `10xgraph api` (default port), never the
+// visitor's own saved server or its auth.
+const DEMO_BASE_URL = "http://localhost:8000"
+
 const buildRequestSnapshot = (mode, messages, run, granularity) => {
-  const settings = getCurrentSettings()
+  const settings = isDemoActive()
+    ? { backendUrl: DEMO_BASE_URL }
+    : getCurrentSettings()
   const base = (settings.backendUrl || "").replace(/\/$/, "")
   const path = mode === "invoke" ? "/v1/graph/invoke" : "/v1/graph/stream"
   const headers = redactedAuthHeaders(settings)
@@ -329,7 +349,7 @@ const normalizeGraphInfo = (res) => {
 export const loadGraphInfo = () => async (dispatch) => {
   let client
   try {
-    client = getAgentFlowClient()
+    client = getTenxGraphClient()
   } catch {
     return
   }
@@ -349,7 +369,7 @@ export const stopGeneration = () => async (dispatch, getState) => {
   const { threadId } = getState().chat
   if (threadId) {
     try {
-      const client = getAgentFlowClient()
+      const client = getTenxGraphClient()
       if (typeof client.stopGraph === "function") {
         await client.stopGraph(threadId)
       }
@@ -365,7 +385,7 @@ export const fixThread = () => async (dispatch, getState) => {
   const { threadId } = getState().chat
   if (!threadId) return
   try {
-    const client = getAgentFlowClient()
+    const client = getTenxGraphClient()
     if (typeof client.fixGraph !== "function") {
       dispatch(setError("Fix thread requires a newer 10xGraph client build."))
       return
@@ -521,6 +541,32 @@ const failRun = (dispatch, e, { agentId, mode, signal, startedAt }) => {
  * Send a user message and stream the assistant's reply into the store, honoring
  * the selected mode (invoke | stream | ws) and response_granularity.
  */
+// Run under a fresh AbortController and close the turn out. An abandoned run
+// (abortActiveRun) dispatches nothing more: its state has already been reset.
+const runAndSettle = async (client, mode, outgoing, clientOptions, base) => {
+  const { dispatch, agentId, startedAt } = base
+  const controller = new AbortController()
+  activeAbort = controller
+  const { signal } = controller
+  try {
+    const sawText = await executeRun(client, mode, outgoing, clientOptions, {
+      ...base,
+      signal,
+    })
+    if (!controller.abandoned) {
+      finishRun(dispatch, { agentId, mode, sawText, signal })
+    }
+  } catch (e) {
+    if (!controller.abandoned) {
+      failRun(dispatch, e, { agentId, mode, signal, startedAt })
+    }
+  } finally {
+    // A newer run may own activeAbort by now (after an abandon).
+    if (activeAbort === controller) activeAbort = null
+    if (!controller.abandoned) dispatch(setGenerating(false))
+  }
+}
+
 export const sendMessage = (text) => async (dispatch, getState) => {
   const trimmed = (text || "").trim()
   if (!trimmed) return
@@ -528,7 +574,7 @@ export const sendMessage = (text) => async (dispatch, getState) => {
 
   let client
   try {
-    client = getAgentFlowClient()
+    client = getTenxGraphClient()
   } catch (e) {
     dispatch(setError(e?.message || "Not connected to a backend"))
     return
@@ -559,17 +605,23 @@ export const sendMessage = (text) => async (dispatch, getState) => {
     trimmed,
   })
 
-  activeAbort = new AbortController()
-  const { signal } = activeAbort
-  const ctx = { dispatch, getState, agentId, startedAt, signal }
+  await runAndSettle(client, mode, outgoing, clientOptions, {
+    dispatch,
+    getState,
+    agentId,
+    startedAt,
+  })
+}
 
-  try {
-    const sawText = await executeRun(client, mode, outgoing, clientOptions, ctx)
-    finishRun(dispatch, { agentId, mode, sawText, signal })
-  } catch (e) {
-    failRun(dispatch, e, { agentId, mode, signal, startedAt })
-  } finally {
-    activeAbort = null
-    dispatch(setGenerating(false))
-  }
+/**
+ * Demo mode: replay a recorded run through the normal send path, so frames,
+ * events, the inspector and Stop behave exactly as they do on a live server.
+ * A run from a different recorded thread starts a new chat thread.
+ */
+export const sendDemoRun = (run) => async (dispatch, getState) => {
+  const { threadId, messages } = getState().chat
+  if (messages.length > 0 && threadId !== run.threadId) dispatch(newThread())
+  getTenxGraphClient().queueRun(run.id)
+  dispatch(setMode("stream"))
+  await dispatch(sendMessage(run.prompt))
 }

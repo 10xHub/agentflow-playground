@@ -9,6 +9,7 @@ import { useConnection } from "@/lib/connection/connection-context"
 import styles from "./chat.module.css"
 import ChatHeader from "./components/chat-header"
 import Composer from "./components/composer"
+import DemoPrompts from "./components/demo-prompts"
 import Inspector from "./components/inspector"
 import Message from "./components/message"
 import RealtimeGate from "./components/realtime-gate"
@@ -24,13 +25,18 @@ const TRANSPORT = {
   stream: "POST /v1/graph/stream",
 }
 
+const emptyNote = (isDemo, transport) =>
+  isDemo
+    ? "Recorded demo · pick a prompt below to replay a real run"
+    : `Send a message to start · ${transport}`
+
 /**
  *
  */
 const ChatPage = () => {
   const [inspectorOpen, setInspectorOpen] = useState(false)
   const { setBarRight } = useConnectionBarSlot()
-  const { isConnected, capabilities, active } = useConnection()
+  const { isConnected, capabilities, active, isDemo } = useConnection()
 
   const isRealtime = isLiveAgent(isConnected, capabilities)
 
@@ -82,7 +88,7 @@ const ChatPage = () => {
         <div className={styles.thread} ref={threadReference}>
           {messages.length === 0 ? (
             <div className={styles.streamingNote}>
-              Send a message to start · {transport}
+              {emptyNote(isDemo, transport)}
             </div>
           ) : (
             messages.map((message) => (
@@ -107,6 +113,7 @@ const ChatPage = () => {
             </div>
           )}
         </div>
+        <DemoPrompts enabled={isDemo} />
         <Composer />
       </div>
 

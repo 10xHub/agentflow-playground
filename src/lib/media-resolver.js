@@ -1,5 +1,5 @@
-import { getAgentFlowClient } from "@/lib/agentflow-client"
 import { getCurrentSettings } from "@/lib/settings-utils"
+import { getTenxGraphClient } from "@/lib/tenxgraph-client"
 
 const isUrlAccessible = async (url) => {
   try {
@@ -18,7 +18,7 @@ const extractUrlFromResponse = (response) => {
 
 const resolveViaClient = async (fileId) => {
   try {
-    const client = getAgentFlowClient()
+    const client = getTenxGraphClient()
     if (typeof client.getFileAccessUrl !== "function") return null
     const response = await client.getFileAccessUrl(fileId)
     return extractUrlFromResponse(response)

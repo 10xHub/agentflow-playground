@@ -40,6 +40,7 @@ const MemoryPage = () => {
     status,
     error,
     query,
+    keywordMatch,
   } = useSelector((s) => s.memory)
 
   // Local facet UI state (client-side filtering over the loaded set).
@@ -160,8 +161,8 @@ const MemoryPage = () => {
         <MemoryDetail
           mem={activeMem}
           mode={mode}
-          strategy={strategy}
-          metric={metric}
+          strategy={keywordMatch ? "keyword match (recorded demo)" : strategy}
+          metric={keywordMatch ? "none" : metric}
           collection={collection}
           query={query}
         />

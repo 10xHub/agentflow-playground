@@ -1,6 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit"
 
-import { getAgentFlowClient } from "@/lib/agentflow-client"
+import { getTenxGraphClient } from "@/lib/tenxgraph-client"
 
 import { loadGraph } from "./graph-slice"
 
@@ -178,7 +178,7 @@ export const fetchThreadState = (threadId) => async (dispatch, getState) => {
   if (!threadId) return
   let client
   try {
-    client = getAgentFlowClient()
+    client = getTenxGraphClient()
   } catch (e) {
     dispatch(stateFailed({ threadId, error: messageOf(e, NOT_CONNECTED) }))
     return
@@ -216,7 +216,7 @@ export const saveThreadState = (threadId) => async (dispatch, getState) => {
 
   let client
   try {
-    client = getAgentFlowClient()
+    client = getTenxGraphClient()
   } catch (error) {
     dispatch(saveFailed({ threadId, error: messageOf(error, NOT_CONNECTED) }))
     return

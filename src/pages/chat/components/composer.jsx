@@ -11,6 +11,15 @@ import styles from "../chat.module.css"
 
 import RunOptionsPopup from "./run-options-popup"
 
+// The recorded demo replays prompts from chips; free text has no recording.
+const canSendText = ({ text, generating, isConnected, isDemo }) =>
+  text.trim().length > 0 && !generating && isConnected && !isDemo
+
+const placeholderFor = (isDemo) =>
+  isDemo
+    ? "Recorded demo: pick a prompt above"
+    : "Message the agent…  (⌘↵ to send)"
+
 /**
  *
  */
@@ -18,12 +27,12 @@ const Composer = () => {
   const dispatch = useDispatch()
   const generating = useSelector((s) => s.chat.generating)
   const runOptions = useSelector((s) => s.chat.runOptions)
-  const { isConnected } = useConnection()
+  const { isConnected, isDemo } = useConnection()
   const [text, setText] = useState("")
   const [popup, setPopup] = useState(null) // null | "initialState" | "config"
 
   const summary = summariseRunOptions(runOptions)
-  const canSend = text.trim().length > 0 && !generating && isConnected
+  const canSend = canSendText({ text, generating, isConnected, isDemo })
 
   const submit = () => {
     if (!canSend) return
@@ -49,11 +58,11 @@ const Composer = () => {
       <div className={styles.composer}>
         <textarea
           rows={1}
-          placeholder="Message the agent…  (⌘↵ to send)"
+          placeholder={placeholderFor(isDemo)}
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={onKeyDown}
-          disabled={generating}
+          disabled={generating || isDemo}
         />
         <div className={styles.composerFoot}>
           <button className={styles.attach} type="button" title="Attach file">

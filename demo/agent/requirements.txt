@@ -1,0 +1,6 @@
+-e ../../../agentflow[pg_checkpoint,qdrant]
+-e ../../../agentflow-api
+# Core QdrantStore calls AsyncQdrantClient.search, which newer clients removed.
+qdrant-client==1.15.1
+pytest
+pytest-asyncio

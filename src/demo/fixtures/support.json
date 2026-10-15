@@ -1,0 +1,5114 @@
+{
+  "id": "support",
+  "title": "Acme order support agent",
+  "recordedAt": "2026-10-15T11:31:03.531Z",
+  "versions": {
+    "10xgraph-client": "0.6.0",
+    "model": "scripted (no LLM; see demo/agent/script.py)"
+  },
+  "ping": {
+    "data": "pong",
+    "metadata": {
+      "request_id": "cef1768d-cae6-4ee1-8625-11d71a86f545",
+      "timestamp": "2026-10-15T17:31:03.531841",
+      "message": "OK"
+    }
+  },
+  "graph": {
+    "data": {
+      "info": {
+        "node_count": 4,
+        "edge_count": 4,
+        "is_realtime": false,
+        "checkpointer": true,
+        "checkpointer_type": "PgCheckpointer",
+        "publisher": false,
+        "store": true,
+        "interrupt_before": [],
+        "interrupt_after": [],
+        "context_type": "NoneType",
+        "id_generator": "DefaultIDGenerator",
+        "id_type": "string",
+        "state_type": "AgentState",
+        "state_fields": [
+          "context",
+          "context_summary",
+          "execution_meta"
+        ]
+      },
+      "nodes": [
+        {
+          "id": "b1695e18-b381-4373-918b-006f92dae42b",
+          "name": "__start__"
+        },
+        {
+          "id": "de907a67-736e-458e-ad87-96a5dda71e3a",
+          "name": "__end__"
+        },
+        {
+          "id": "be4d5140-a3e8-4dc3-97cc-36bb35eb1ab9",
+          "name": "MAIN"
+        },
+        {
+          "id": "b556c4a6-ca12-48d3-b8d6-54a464400b28",
+          "name": "TOOL"
+        }
+      ],
+      "edges": [
+        {
+          "id": "f84ee124-236b-4a17-8dce-898832066639",
+          "source": "MAIN",
+          "target": "TOOL"
+        },
+        {
+          "id": "dbaf465b-6695-42a7-acf6-f5e155ffde7a",
+          "source": "MAIN",
+          "target": "__end__"
+        },
+        {
+          "id": "32b7881f-bd71-4bbb-9878-194a54382c1a",
+          "source": "TOOL",
+          "target": "MAIN"
+        },
+        {
+          "id": "b0ad26eb-83f7-40d1-8980-da586afb7754",
+          "source": "__start__",
+          "target": "MAIN"
+        }
+      ]
+    },
+    "metadata": {
+      "request_id": "06f9c636-64b9-4a97-a7b3-877a5ab1876d",
+      "timestamp": "2026-10-15T17:31:03.532806",
+      "message": "OK"
+    }
+  },
+  "graphTools": {
+    "data": {
+      "node_count": 1,
+      "tool_count": 6,
+      "nodes": [
+        {
+          "node_name": "TOOL",
+          "tool_count": 6,
+          "tools": [
+            {
+              "name": "lookup_order",
+              "description": "Look up an order by id: item, total, delivery status and customer.",
+              "source": "local",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "order_id": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "order_id"
+                ]
+              }
+            },
+            {
+              "name": "get_customer_history",
+              "description": "Get a customer's profile, past orders and open support tickets.",
+              "source": "local",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "customer_id": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "customer_id"
+                ]
+              }
+            },
+            {
+              "name": "issue_refund",
+              "description": "Refund an order to the original payment method. Moves real money: call once.",
+              "source": "local",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "order_id": {
+                    "type": "string"
+                  },
+                  "amount": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "order_id",
+                  "amount"
+                ]
+              }
+            },
+            {
+              "name": "send_email",
+              "description": "Send an email to the customer.",
+              "source": "local",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "to": {
+                    "type": "string"
+                  },
+                  "subject": {
+                    "type": "string"
+                  },
+                  "body": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "to",
+                  "subject",
+                  "body"
+                ]
+              }
+            },
+            {
+              "name": "list_refunds",
+              "description": "List every refund issued for an order, read from the payments system.",
+              "source": "local",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "order_id": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "order_id"
+                ]
+              }
+            },
+            {
+              "name": "memory_tool",
+              "description": "Search, store, update or delete long-term memories. Use action='search' with a query to recall relevant memories. Use action='store' with content and a short snake_case memory_key (e.g. 'user_name', 'favorite_language') to save new memories. The system uses memory_key to detect duplicates — if a memory with the same key already exists it will be updated automatically. Use action='delete' with memory_id to remove memories.",
+              "source": "local",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "action": {
+                    "type": "string",
+                    "enum": [
+                      "search",
+                      "store",
+                      "update",
+                      "delete"
+                    ],
+                    "default": "search"
+                  },
+                  "content": {
+                    "type": "string",
+                    "default": ""
+                  },
+                  "memory_key": {
+                    "type": "string",
+                    "default": ""
+                  },
+                  "memory_id": {
+                    "type": "string",
+                    "default": ""
+                  },
+                  "query": {
+                    "type": "string",
+                    "default": ""
+                  },
+                  "memory_type": {
+                    "type": "string"
+                  },
+                  "category": {
+                    "type": "string"
+                  },
+                  "metadata": {
+                    "type": "object"
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "default": 5
+                  },
+                  "score_threshold": {
+                    "type": "number"
+                  },
+                  "write_mode": {
+                    "type": "string",
+                    "enum": [
+                      "merge",
+                      "replace"
+                    ],
+                    "default": "merge"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "metadata": {
+      "request_id": "5ba5bc1c-14d7-405f-868c-11a1ea40b679",
+      "timestamp": "2026-10-15T17:31:03.534937",
+      "message": "OK"
+    }
+  },
+  "graphStateSchema": {
+    "data": {
+      "$defs": {
+        "AnnotationBlock": {
+          "description": "Annotation content block for messages.\n\nAttributes:\n    type (Literal[\"annotation\"]): Block type discriminator.\n    kind (Literal[\"citation\", \"note\"]): Kind of annotation.\n    refs (list[AnnotationRef]): List of annotation references.\n    spans (list[tuple[int, int]] | None): Spans covered by the annotation.",
+          "properties": {
+            "type": {
+              "const": "annotation",
+              "default": "annotation",
+              "title": "Type",
+              "type": "string"
+            },
+            "kind": {
+              "default": "citation",
+              "enum": [
+                "citation",
+                "note"
+              ],
+              "title": "Kind",
+              "type": "string"
+            },
+            "refs": {
+              "items": {
+                "$ref": "#/$defs/AnnotationRef"
+              },
+              "title": "Refs",
+              "type": "array"
+            },
+            "spans": {
+              "anyOf": [
+                {
+                  "items": {
+                    "maxItems": 2,
+                    "minItems": 2,
+                    "prefixItems": [
+                      {
+                        "type": "integer"
+                      },
+                      {
+                        "type": "integer"
+                      }
+                    ],
+                    "type": "array"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Spans"
+            }
+          },
+          "title": "AnnotationBlock",
+          "type": "object"
+        },
+        "AnnotationRef": {
+          "description": "Reference to annotation metadata (e.g., citation, note).\n\nAttributes:\n    url (str | None): URL to annotation source.\n    file_id (str | None): Provider-managed file ID.\n    page (int | None): Page number (if applicable).\n    index (int | None): Index within the annotation source.\n    title (str | None): Title of the annotation.",
+          "properties": {
+            "url": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Url"
+            },
+            "file_id": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "File Id"
+            },
+            "page": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Page"
+            },
+            "index": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Index"
+            },
+            "title": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Title"
+            }
+          },
+          "title": "AnnotationRef",
+          "type": "object"
+        },
+        "AudioBlock": {
+          "description": "Audio content block for messages.\n\nAttributes:\n    type (Literal[\"audio\"]): Block type discriminator.\n    media (MediaRef): Reference to audio media.\n    transcript (str | None): Transcript of audio.\n    sample_rate (int | None): Sample rate in Hz.\n    channels (int | None): Number of audio channels.",
+          "properties": {
+            "type": {
+              "const": "audio",
+              "default": "audio",
+              "title": "Type",
+              "type": "string"
+            },
+            "media": {
+              "$ref": "#/$defs/MediaRef"
+            },
+            "transcript": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Transcript"
+            },
+            "sample_rate": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Sample Rate"
+            },
+            "channels": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Channels"
+            }
+          },
+          "required": [
+            "media"
+          ],
+          "title": "AudioBlock",
+          "type": "object"
+        },
+        "BaseModel": {
+          "properties": {},
+          "title": "BaseModel",
+          "type": "object"
+        },
+        "DataBlock": {
+          "description": "Data content block for messages.\n\nAttributes:\n    type (Literal[\"data\"]): Block type discriminator.\n    mime_type (str): MIME type of the data.\n    data_base64 (str | None): Base64-encoded data.\n    media (MediaRef | None): Reference to associated media.",
+          "properties": {
+            "type": {
+              "const": "data",
+              "default": "data",
+              "title": "Type",
+              "type": "string"
+            },
+            "mime_type": {
+              "title": "Mime Type",
+              "type": "string"
+            },
+            "data_base64": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Data Base64"
+            },
+            "media": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/MediaRef"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            }
+          },
+          "required": [
+            "mime_type"
+          ],
+          "title": "DataBlock",
+          "type": "object"
+        },
+        "DocumentBlock": {
+          "description": "Document content block for messages.\n\nAttributes:\n    type (Literal[\"document\"]): Block type discriminator.\n    media (MediaRef): Reference to document media.\n    text (str | None): Extracted or provided document text content.\n    pages (list[int] | None): List of page numbers.\n    excerpt (str | None): Short excerpt/preview from the document.",
+          "properties": {
+            "type": {
+              "const": "document",
+              "default": "document",
+              "title": "Type",
+              "type": "string"
+            },
+            "media": {
+              "$ref": "#/$defs/MediaRef"
+            },
+            "text": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Text"
+            },
+            "pages": {
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "integer"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Pages"
+            },
+            "excerpt": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Excerpt"
+            }
+          },
+          "required": [
+            "media"
+          ],
+          "title": "DocumentBlock",
+          "type": "object"
+        },
+        "ErrorBlock": {
+          "description": "Error content block for messages.\n\nAttributes:\n    type (Literal[\"error\"]): Block type discriminator.\n    message (str): Error message.\n    code (str | None): Error code.\n    data (dict[str, Any] | None): Additional error data.",
+          "properties": {
+            "type": {
+              "const": "error",
+              "default": "error",
+              "title": "Type",
+              "type": "string"
+            },
+            "message": {
+              "title": "Message",
+              "type": "string"
+            },
+            "code": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Code"
+            },
+            "data": {
+              "anyOf": [
+                {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Data"
+            }
+          },
+          "required": [
+            "message"
+          ],
+          "title": "ErrorBlock",
+          "type": "object"
+        },
+        "ExecutionState": {
+          "description": "Tracks the internal execution state of a graph.\n\nThis class manages the execution progress, interrupt status, and internal\ndata that should not be exposed to users.",
+          "properties": {
+            "current_node": {
+              "title": "Current Node",
+              "type": "string"
+            },
+            "step": {
+              "default": 0,
+              "title": "Step",
+              "type": "integer"
+            },
+            "status": {
+              "$ref": "#/$defs/ExecutionStatus",
+              "default": "running"
+            },
+            "interrupted_node": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Interrupted Node"
+            },
+            "interrupt_reason": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Interrupt Reason"
+            },
+            "interrupt_data": {
+              "anyOf": [
+                {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Interrupt Data"
+            },
+            "thread_id": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Thread Id"
+            },
+            "stop_current_execution": {
+              "$ref": "#/$defs/StopRequestStatus",
+              "default": "none"
+            },
+            "internal_data": {
+              "additionalProperties": true,
+              "title": "Internal Data",
+              "type": "object"
+            }
+          },
+          "required": [
+            "current_node"
+          ],
+          "title": "ExecutionState",
+          "type": "object"
+        },
+        "ExecutionStatus": {
+          "description": "Status of graph execution.",
+          "enum": [
+            "running",
+            "interrupted_before",
+            "interrupted_after",
+            "completed",
+            "error"
+          ],
+          "title": "ExecutionStatus",
+          "type": "string"
+        },
+        "ImageBlock": {
+          "description": "Image content block for messages.\n\nAttributes:\n    type (Literal[\"image\"]): Block type discriminator.\n    media (MediaRef): Reference to image media.\n    alt_text (str | None): Alternative text for accessibility.\n    bbox (list[float] | None): Bounding box coordinates [x1, y1, x2, y2].",
+          "properties": {
+            "type": {
+              "const": "image",
+              "default": "image",
+              "title": "Type",
+              "type": "string"
+            },
+            "media": {
+              "$ref": "#/$defs/MediaRef"
+            },
+            "alt_text": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Alt Text"
+            },
+            "bbox": {
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "number"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Bbox"
+            }
+          },
+          "required": [
+            "media"
+          ],
+          "title": "ImageBlock",
+          "type": "object"
+        },
+        "MediaRef": {
+          "description": "Reference to media content (image/audio/video/document/data).\n\nPrefer referencing by URL or provider file_id over inlining base64 for large payloads.\n\nAttributes:\n    kind (Literal[\"url\", \"file_id\", \"data\"]): Type of reference.\n    url (str | None): URL to media content.\n    file_id (str | None): Provider-managed file ID.\n    data_base64 (str | None): Base64-encoded data (small payloads only).\n    mime_type (str | None): MIME type of the media.\n    size_bytes (int | None): Size in bytes.\n    sha256 (str | None): SHA256 hash of the media.\n    filename (str | None): Filename of the media.\n    width (int | None): Image width (if applicable).\n    height (int | None): Image height (if applicable).\n    duration_ms (int | None): Duration in milliseconds (if applicable).\n    page (int | None): Page number (if applicable).",
+          "properties": {
+            "kind": {
+              "default": "url",
+              "enum": [
+                "url",
+                "file_id",
+                "data"
+              ],
+              "title": "Kind",
+              "type": "string"
+            },
+            "url": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Url"
+            },
+            "file_id": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "File Id"
+            },
+            "data_base64": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Data Base64"
+            },
+            "mime_type": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Mime Type"
+            },
+            "size_bytes": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Size Bytes"
+            },
+            "sha256": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Sha256"
+            },
+            "filename": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Filename"
+            },
+            "width": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Width"
+            },
+            "height": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Height"
+            },
+            "duration_ms": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Duration Ms"
+            },
+            "page": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Page"
+            }
+          },
+          "title": "MediaRef",
+          "type": "object"
+        },
+        "Message": {
+          "description": "Represents a message in a conversation, including content, role, metadata, and token usage.\n\nAttributes:\n    message_id (str | int): Unique identifier for the message.\n    role (Literal[\"user\", \"assistant\", \"system\", \"tool\"]): The role of the message sender.\n    content (Sequence[ContentBlock]): The message content blocks.\n    delta (bool): Indicates if this is a delta/partial message.\n    tools_calls (list[dict[str, Any]] | None): Tool call information, if any.\n    reasoning (str | None): Reasoning or explanation, if any.\n    timestamp (datetime | None): Timestamp of the message.\n    metadata (dict[str, Any]): Additional metadata.\n    usages (TokenUsages | None): Token usage statistics.\n    raw (dict[str, Any] | None): Raw data, if any.\n\nExample:\n    >>> msg = Message(message_id=\"abc123\", role=\"user\", content=[TextBlock(text=\"Hello!\")])\n    {'message_id': 'abc123', 'role': 'user', 'content': [...], ...}",
+          "properties": {
+            "message_id": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ],
+              "title": "Message Id"
+            },
+            "role": {
+              "enum": [
+                "user",
+                "assistant",
+                "system",
+                "tool"
+              ],
+              "title": "Role",
+              "type": "string"
+            },
+            "content": {
+              "items": {
+                "discriminator": {
+                  "mapping": {
+                    "annotation": "#/$defs/AnnotationBlock",
+                    "audio": "#/$defs/AudioBlock",
+                    "data": "#/$defs/DataBlock",
+                    "document": "#/$defs/DocumentBlock",
+                    "error": "#/$defs/ErrorBlock",
+                    "image": "#/$defs/ImageBlock",
+                    "reasoning": "#/$defs/ReasoningBlock",
+                    "remote_tool_call": "#/$defs/RemoteToolCallBlock",
+                    "text": "#/$defs/TextBlock",
+                    "tool_call": "#/$defs/ToolCallBlock",
+                    "tool_result": "#/$defs/ToolResultBlock",
+                    "video": "#/$defs/VideoBlock"
+                  },
+                  "propertyName": "type"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/TextBlock"
+                  },
+                  {
+                    "$ref": "#/$defs/ImageBlock"
+                  },
+                  {
+                    "$ref": "#/$defs/AudioBlock"
+                  },
+                  {
+                    "$ref": "#/$defs/VideoBlock"
+                  },
+                  {
+                    "$ref": "#/$defs/DocumentBlock"
+                  },
+                  {
+                    "$ref": "#/$defs/DataBlock"
+                  },
+                  {
+                    "$ref": "#/$defs/ToolCallBlock"
+                  },
+                  {
+                    "$ref": "#/$defs/RemoteToolCallBlock"
+                  },
+                  {
+                    "$ref": "#/$defs/ToolResultBlock"
+                  },
+                  {
+                    "$ref": "#/$defs/ReasoningBlock"
+                  },
+                  {
+                    "$ref": "#/$defs/AnnotationBlock"
+                  },
+                  {
+                    "$ref": "#/$defs/ErrorBlock"
+                  }
+                ]
+              },
+              "title": "Content",
+              "type": "array"
+            },
+            "delta": {
+              "default": false,
+              "title": "Delta",
+              "type": "boolean"
+            },
+            "tools_calls": {
+              "anyOf": [
+                {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Tools Calls"
+            },
+            "reasoning": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Reasoning"
+            },
+            "timestamp": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Timestamp"
+            },
+            "metadata": {
+              "additionalProperties": true,
+              "title": "Metadata",
+              "type": "object"
+            },
+            "usages": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/TokenUsages"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "raw": {
+              "anyOf": [
+                {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Raw"
+            },
+            "parsed_content": {
+              "anyOf": [
+                {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                {
+                  "$ref": "#/$defs/BaseModel"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Parsed Content"
+            }
+          },
+          "required": [
+            "role",
+            "content"
+          ],
+          "title": "Message",
+          "type": "object"
+        },
+        "ReasoningBlock": {
+          "description": "Reasoning content block for messages.\n\nAttributes:\n    type (Literal[\"reasoning\"]): Block type discriminator.\n    summary (str): Summary of reasoning.\n    details (list[str] | None): Detailed reasoning steps.",
+          "properties": {
+            "type": {
+              "const": "reasoning",
+              "default": "reasoning",
+              "title": "Type",
+              "type": "string"
+            },
+            "summary": {
+              "title": "Summary",
+              "type": "string"
+            },
+            "details": {
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Details"
+            }
+          },
+          "required": [
+            "summary"
+          ],
+          "title": "ReasoningBlock",
+          "type": "object"
+        },
+        "RemoteToolCallBlock": {
+          "description": "Remote Tool call content block for messages.\n\nAttributes:\n    type (Literal[\"remote_tool_call\"]): Block type discriminator.\n    id (str): Tool call ID.\n    name (str): Tool name.\n    args (dict[str, Any]): Arguments for the tool call.\n    tool_type (str | None): Type of tool (e.g., web_search, file_search).",
+          "properties": {
+            "type": {
+              "const": "remote_tool_call",
+              "default": "remote_tool_call",
+              "title": "Type",
+              "type": "string"
+            },
+            "id": {
+              "title": "Id",
+              "type": "string"
+            },
+            "name": {
+              "title": "Name",
+              "type": "string"
+            },
+            "args": {
+              "additionalProperties": true,
+              "title": "Args",
+              "type": "object"
+            },
+            "tool_type": {
+              "default": "remote",
+              "title": "Tool Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "name"
+          ],
+          "title": "RemoteToolCallBlock",
+          "type": "object"
+        },
+        "StopRequestStatus": {
+          "description": "Status of graph execution.",
+          "enum": [
+            "none",
+            "stop_requested",
+            "stopped"
+          ],
+          "title": "StopRequestStatus",
+          "type": "string"
+        },
+        "TextBlock": {
+          "description": "Text content block for messages.\n\nAttributes:\n    type (Literal[\"text\"]): Block type discriminator.\n    text (str): Text content.\n    annotations (list[AnnotationRef]): List of annotation references.",
+          "properties": {
+            "type": {
+              "const": "text",
+              "default": "text",
+              "title": "Type",
+              "type": "string"
+            },
+            "text": {
+              "title": "Text",
+              "type": "string"
+            },
+            "annotations": {
+              "items": {
+                "$ref": "#/$defs/AnnotationRef"
+              },
+              "title": "Annotations",
+              "type": "array"
+            }
+          },
+          "required": [
+            "text"
+          ],
+          "title": "TextBlock",
+          "type": "object"
+        },
+        "TokenUsages": {
+          "description": "Tracks token usage statistics for a message or model response.\n\nAttributes:\n    completion_tokens (int): Number of completion tokens used.\n    prompt_tokens (int): Number of prompt tokens used.\n    total_tokens (int): Total tokens used.\n    reasoning_tokens (int): Reasoning tokens used (optional).\n    cache_creation_input_tokens (int): Cache creation input tokens (optional).\n    cache_read_input_tokens (int): Cache read input tokens (optional).\n    image_tokens (int | None): Image tokens for multimodal models (optional).\n    audio_tokens (int | None): Audio tokens for multimodal models (optional).\n\nExample:\n    >>> usage = TokenUsages(completion_tokens=10, prompt_tokens=20, total_tokens=30)\n    {'completion_tokens': 10, 'prompt_tokens': 20, 'total_tokens': 30, ...}",
+          "properties": {
+            "completion_tokens": {
+              "title": "Completion Tokens",
+              "type": "integer"
+            },
+            "prompt_tokens": {
+              "title": "Prompt Tokens",
+              "type": "integer"
+            },
+            "total_tokens": {
+              "title": "Total Tokens",
+              "type": "integer"
+            },
+            "reasoning_tokens": {
+              "default": 0,
+              "title": "Reasoning Tokens",
+              "type": "integer"
+            },
+            "cache_creation_input_tokens": {
+              "default": 0,
+              "title": "Cache Creation Input Tokens",
+              "type": "integer"
+            },
+            "cache_read_input_tokens": {
+              "default": 0,
+              "title": "Cache Read Input Tokens",
+              "type": "integer"
+            },
+            "image_tokens": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": 0,
+              "title": "Image Tokens"
+            },
+            "audio_tokens": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": 0,
+              "title": "Audio Tokens"
+            }
+          },
+          "required": [
+            "completion_tokens",
+            "prompt_tokens",
+            "total_tokens"
+          ],
+          "title": "TokenUsages",
+          "type": "object"
+        },
+        "ToolCallBlock": {
+          "description": "Tool call content block for messages.\n\nAttributes:\n    type (Literal[\"tool_call\"]): Block type discriminator.\n    id (str): Tool call ID.\n    name (str): Tool name.\n    args (dict[str, Any]): Arguments for the tool call.\n    tool_type (str | None): Type of tool (e.g., web_search, file_search).",
+          "properties": {
+            "type": {
+              "const": "tool_call",
+              "default": "tool_call",
+              "title": "Type",
+              "type": "string"
+            },
+            "id": {
+              "title": "Id",
+              "type": "string"
+            },
+            "name": {
+              "title": "Name",
+              "type": "string"
+            },
+            "args": {
+              "additionalProperties": true,
+              "title": "Args",
+              "type": "object"
+            },
+            "tool_type": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Tool Type"
+            }
+          },
+          "required": [
+            "id",
+            "name"
+          ],
+          "title": "ToolCallBlock",
+          "type": "object"
+        },
+        "ToolResultBlock": {
+          "description": "Tool result content block for messages.\n\nAttributes:\n    type (Literal[\"tool_result\"]): Block type discriminator.\n    call_id (str): Tool call ID.\n    output (Any): Output from the tool (str, dict, MediaRef, or list of blocks).\n    is_error (bool): Whether the result is an error.\n    status (Literal[\"completed\", \"failed\"] | None): Status of the tool call.",
+          "properties": {
+            "type": {
+              "const": "tool_result",
+              "default": "tool_result",
+              "title": "Type",
+              "type": "string"
+            },
+            "call_id": {
+              "title": "Call Id",
+              "type": "string"
+            },
+            "output": {
+              "default": null,
+              "title": "Output"
+            },
+            "is_error": {
+              "default": false,
+              "title": "Is Error",
+              "type": "boolean"
+            },
+            "status": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "completed",
+                    "failed"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Status"
+            }
+          },
+          "required": [
+            "call_id"
+          ],
+          "title": "ToolResultBlock",
+          "type": "object"
+        },
+        "VideoBlock": {
+          "description": "Video content block for messages.\n\nAttributes:\n    type (Literal[\"video\"]): Block type discriminator.\n    media (MediaRef): Reference to video media.\n    thumbnail (MediaRef | None): Reference to thumbnail image.",
+          "properties": {
+            "type": {
+              "const": "video",
+              "default": "video",
+              "title": "Type",
+              "type": "string"
+            },
+            "media": {
+              "$ref": "#/$defs/MediaRef"
+            },
+            "thumbnail": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/MediaRef"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            }
+          },
+          "required": [
+            "media"
+          ],
+          "title": "VideoBlock",
+          "type": "object"
+        }
+      },
+      "description": "Common state schema that includes messages, context and internal execution metadata.\n\nThis class can be subclassed to add application-specific fields while maintaining\ncompatibility with the TAF framework. All internal execution metadata\nis preserved through subclassing.\n\nNotes:\n- `execution_meta` contains internal-only execution progress and interrupt info.\n- Users may subclass `AgentState` to add application fields; internal exec meta remains\n  available to the runtime and will be persisted with the state.\n- When subclassing, add your fields but keep the core fields intact.\n\nExample:\n    class MyCustomState(AgentState):\n        user_data: dict = Field(default_factory=dict)\n        custom_field: str = \"default\"",
+      "properties": {
+        "context": {
+          "items": {
+            "$ref": "#/$defs/Message"
+          },
+          "title": "Context",
+          "type": "array"
+        },
+        "context_summary": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Context Summary"
+        },
+        "execution_meta": {
+          "$ref": "#/$defs/ExecutionState"
+        }
+      },
+      "title": "AgentState",
+      "type": "object"
+    },
+    "metadata": {
+      "request_id": "eaeaf1fc-951e-424c-97d3-508976fbee8e",
+      "timestamp": "2026-10-15T17:31:03.537475",
+      "message": "OK"
+    }
+  },
+  "threads": {
+    "data": {
+      "threads": [
+        {
+          "thread_id": "demo-refund",
+          "thread_name": null,
+          "user_id": "anonymous",
+          "metadata": {
+            "run_id": null
+          },
+          "updated_at": "2026-10-15T11:31:01.654032+00:00",
+          "run_id": null
+        },
+        {
+          "thread_id": "demo-prefs",
+          "thread_name": null,
+          "user_id": "anonymous",
+          "metadata": {
+            "run_id": null
+          },
+          "updated_at": "2026-10-15T11:30:56.898083+00:00",
+          "run_id": null
+        },
+        {
+          "thread_id": "demo-history",
+          "thread_name": null,
+          "user_id": "anonymous",
+          "metadata": {
+            "run_id": null
+          },
+          "updated_at": "2026-10-15T11:30:54.799054+00:00",
+          "run_id": null
+        }
+      ]
+    },
+    "metadata": {
+      "request_id": "35141993-7b66-41f2-a6a5-c4b32bd2045a",
+      "timestamp": "2026-10-15T17:31:03.548277",
+      "message": "OK"
+    }
+  },
+  "threadState": {
+    "demo-history": {
+      "data": {
+        "state": {
+          "context": [
+            {
+              "message_id": "03de0b38-8e3d-4e12-a4df-fd6dc6f9ff7f",
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "What do you know about customer c_88, and where is order 1043?",
+                  "annotations": []
+                }
+              ],
+              "delta": false,
+              "tools_calls": null,
+              "reasoning": null,
+              "timestamp": 1792063854.780808,
+              "metadata": {},
+              "usages": null,
+              "raw": null,
+              "parsed_content": null
+            },
+            {
+              "message_id": "42ae6ec4-3707-4bfe-b88b-4b1505a62f6f",
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Checking the customer record and the order together.",
+                  "annotations": []
+                },
+                {
+                  "type": "tool_call",
+                  "id": "call_6cf3f42eac32",
+                  "name": "get_customer_history",
+                  "args": {
+                    "customer_id": "c_88"
+                  },
+                  "tool_type": null
+                },
+                {
+                  "type": "tool_call",
+                  "id": "call_51e6683b282b",
+                  "name": "lookup_order",
+                  "args": {
+                    "order_id": "1043"
+                  },
+                  "tool_type": null
+                }
+              ],
+              "delta": false,
+              "tools_calls": [
+                {
+                  "id": "call_6cf3f42eac32",
+                  "type": "function",
+                  "function": {
+                    "name": "get_customer_history",
+                    "arguments": "{\"customer_id\": \"c_88\"}"
+                  }
+                },
+                {
+                  "id": "call_51e6683b282b",
+                  "type": "function",
+                  "function": {
+                    "name": "lookup_order",
+                    "arguments": "{\"order_id\": \"1043\"}"
+                  }
+                }
+              ],
+              "reasoning": null,
+              "timestamp": 1792063855.615671,
+              "metadata": {},
+              "usages": null,
+              "raw": null,
+              "parsed_content": null
+            },
+            {
+              "message_id": "5b5e1357-58a4-425d-b6a7-d16f9a8c3f95",
+              "role": "tool",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "call_id": "call_51e6683b282b",
+                  "output": [
+                    {
+                      "item": "Paper filters, pack of 200",
+                      "total": 18,
+                      "order_id": "1043",
+                      "shipping": "in transit",
+                      "customer_id": "c_88",
+                      "delivered_on": null
+                    }
+                  ],
+                  "is_error": false,
+                  "status": "completed"
+                }
+              ],
+              "delta": false,
+              "tools_calls": null,
+              "reasoning": null,
+              "timestamp": 1792063855.969319,
+              "metadata": {
+                "tool_call_id": "call_51e6683b282b",
+                "function_name": "lookup_order",
+                "function_argument": {
+                  "order_id": "1043"
+                }
+              },
+              "usages": null,
+              "raw": null,
+              "parsed_content": null
+            },
+            {
+              "message_id": "c79e5e1a-809c-4bbc-86a5-98126ce5ff4d",
+              "role": "tool",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "call_id": "call_6cf3f42eac32",
+                  "output": [
+                    {
+                      "name": "Maya Chen",
+                      "email": "maya.chen@example.com",
+                      "orders": [
+                        "1042",
+                        "1043"
+                      ],
+                      "customer_id": "c_88",
+                      "open_tickets": 0,
+                      "customer_since": "2023-04"
+                    }
+                  ],
+                  "is_error": false,
+                  "status": "completed"
+                }
+              ],
+              "delta": false,
+              "tools_calls": null,
+              "reasoning": null,
+              "timestamp": 1792063856.069091,
+              "metadata": {
+                "tool_call_id": "call_6cf3f42eac32",
+                "function_name": "get_customer_history",
+                "function_argument": {
+                  "customer_id": "c_88"
+                }
+              },
+              "usages": null,
+              "raw": null,
+              "parsed_content": null
+            },
+            {
+              "message_id": "8c53baf8-586e-465a-a77b-8fd1afe5c9af",
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Maya Chen has been a customer since 2023-04, with orders 1042, 1043 and no open tickets. Order 1043 (Paper filters, pack of 200) is in transit.",
+                  "annotations": []
+                }
+              ],
+              "delta": false,
+              "tools_calls": null,
+              "reasoning": null,
+              "timestamp": 1792063856.873016,
+              "metadata": {},
+              "usages": null,
+              "raw": null,
+              "parsed_content": null
+            }
+          ],
+          "context_summary": null,
+          "execution_meta": {
+            "current_node": "MAIN",
+            "step": 4,
+            "status": "completed",
+            "interrupted_node": null,
+            "interrupt_reason": null,
+            "interrupt_data": null,
+            "thread_id": "demo-history",
+            "stop_current_execution": "none",
+            "internal_data": {}
+          }
+        }
+      },
+      "metadata": {
+        "request_id": "27924b25-2773-442b-a1a4-61a9514e4374",
+        "timestamp": "2026-10-15T17:31:03.489581",
+        "message": "OK"
+      }
+    },
+    "demo-prefs": {
+      "data": {
+        "state": {
+          "context": [
+            {
+              "message_id": "52b0a7e7-7b78-4d72-aa71-3546b08947be",
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "c_88 prefers email over phone, please remember that.",
+                  "annotations": []
+                }
+              ],
+              "delta": false,
+              "tools_calls": null,
+              "reasoning": null,
+              "timestamp": 1792063856.897537,
+              "metadata": {},
+              "usages": null,
+              "raw": null,
+              "parsed_content": null
+            },
+            {
+              "message_id": "03d351ea-cbc3-4917-b058-f4b7f9fa4153",
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "",
+                  "annotations": []
+                },
+                {
+                  "type": "tool_call",
+                  "id": "call_13c7ee329385",
+                  "name": "memory_tool",
+                  "args": {
+                    "action": "store",
+                    "content": "Maya Chen (c_88) prefers email over phone.",
+                    "category": "preferences"
+                  },
+                  "tool_type": null
+                }
+              ],
+              "delta": false,
+              "tools_calls": [
+                {
+                  "id": "call_13c7ee329385",
+                  "type": "function",
+                  "function": {
+                    "name": "memory_tool",
+                    "arguments": "{\"action\": \"store\", \"content\": \"Maya Chen (c_88) prefers email over phone.\", \"category\": \"preferences\"}"
+                  }
+                }
+              ],
+              "reasoning": null,
+              "timestamp": 1792063857.706025,
+              "metadata": {},
+              "usages": null,
+              "raw": null,
+              "parsed_content": null
+            },
+            {
+              "message_id": "dcd465e2-8ef4-41d5-b699-79904e235c5f",
+              "role": "tool",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "call_id": "call_13c7ee329385",
+                  "output": "{\"status\": \"scheduled\", \"action\": \"store\"}",
+                  "is_error": false,
+                  "status": "completed"
+                }
+              ],
+              "delta": false,
+              "tools_calls": null,
+              "reasoning": null,
+              "timestamp": 1792063857.709288,
+              "metadata": {
+                "tool_call_id": "call_13c7ee329385",
+                "function_name": "memory_tool",
+                "function_argument": {
+                  "action": "store",
+                  "content": "Maya Chen (c_88) prefers email over phone.",
+                  "category": "preferences"
+                }
+              },
+              "usages": null,
+              "raw": null,
+              "parsed_content": null
+            },
+            {
+              "message_id": "f22f2a77-1569-429e-8d1e-26f34a17a8ca",
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Saved. I will contact Maya Chen (c_88) by email from now on.",
+                  "annotations": []
+                }
+              ],
+              "delta": false,
+              "tools_calls": null,
+              "reasoning": null,
+              "timestamp": 1792063858.544225,
+              "metadata": {},
+              "usages": null,
+              "raw": null,
+              "parsed_content": null
+            }
+          ],
+          "context_summary": null,
+          "execution_meta": {
+            "current_node": "MAIN",
+            "step": 4,
+            "status": "completed",
+            "interrupted_node": null,
+            "interrupt_reason": null,
+            "interrupt_data": null,
+            "thread_id": "demo-prefs",
+            "stop_current_execution": "none",
+            "internal_data": {}
+          }
+        }
+      },
+      "metadata": {
+        "request_id": "4ffe7921-dc8b-401f-b8e3-9b72af3fa362",
+        "timestamp": "2026-10-15T17:31:03.503545",
+        "message": "OK"
+      }
+    },
+    "demo-refund": {
+      "data": {
+        "state": {
+          "context": [
+            {
+              "message_id": "eeaecf2e-ddbd-42e6-8181-a91f611fe9f6",
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Order 1042 arrived broken. Can I get a refund?",
+                  "annotations": []
+                }
+              ],
+              "delta": false,
+              "tools_calls": null,
+              "reasoning": null,
+              "timestamp": 1792063858.555819,
+              "metadata": {},
+              "usages": null,
+              "raw": null,
+              "parsed_content": null
+            },
+            {
+              "message_id": "0210d3b5-716f-408c-9e1b-c5728906233a",
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Let me check the order and how this customer likes to be contacted.",
+                  "annotations": []
+                },
+                {
+                  "type": "tool_call",
+                  "id": "call_73c9f2c318b2",
+                  "name": "lookup_order",
+                  "args": {
+                    "order_id": "1042"
+                  },
+                  "tool_type": null
+                },
+                {
+                  "type": "tool_call",
+                  "id": "call_5aede7b5ff1b",
+                  "name": "memory_tool",
+                  "args": {
+                    "query": "c_88 contact preference",
+                    "action": "search"
+                  },
+                  "tool_type": null
+                }
+              ],
+              "delta": false,
+              "tools_calls": [
+                {
+                  "id": "call_73c9f2c318b2",
+                  "type": "function",
+                  "function": {
+                    "name": "lookup_order",
+                    "arguments": "{\"order_id\": \"1042\"}"
+                  }
+                },
+                {
+                  "id": "call_5aede7b5ff1b",
+                  "type": "function",
+                  "function": {
+                    "name": "memory_tool",
+                    "arguments": "{\"action\": \"search\", \"query\": \"c_88 contact preference\"}"
+                  }
+                }
+              ],
+              "reasoning": null,
+              "timestamp": 1792063859.367223,
+              "metadata": {},
+              "usages": null,
+              "raw": null,
+              "parsed_content": null
+            },
+            {
+              "message_id": "80e1446d-6404-486f-85ff-fe9b21ca15dc",
+              "role": "tool",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "call_id": "call_5aede7b5ff1b",
+                  "output": "[{\"id\": \"1179a1a2-a74a-40a8-9bad-b802ac1ff39c\", \"content\": \"Maya Chen (c_88) prefers email over phone.\", \"score\": 0.3162, \"memory_type\": \"episodic\", \"metadata\": {\"content\": \"Maya Chen (c_88) prefers email over phone.\", \"user_id\": \"anonymous\", \"thread_id\": null, \"memory_type\": \"episodic\", \"category\": \"preferences\", \"timestamp\": \"2026-10-15T17:30:57.726038\"}}]",
+                  "is_error": false,
+                  "status": "completed"
+                }
+              ],
+              "delta": false,
+              "tools_calls": null,
+              "reasoning": null,
+              "timestamp": 1792063859.371025,
+              "metadata": {
+                "tool_call_id": "call_5aede7b5ff1b",
+                "function_name": "memory_tool",
+                "function_argument": {
+                  "query": "c_88 contact preference",
+                  "action": "search"
+                }
+              },
+              "usages": null,
+              "raw": null,
+              "parsed_content": null
+            },
+            {
+              "message_id": "216b8b60-1d24-40ef-9248-e252325dcb03",
+              "role": "tool",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "call_id": "call_73c9f2c318b2",
+                  "output": [
+                    {
+                      "item": "Ceramic pour-over set",
+                      "total": 129,
+                      "order_id": "1042",
+                      "shipping": "delivered",
+                      "customer_id": "c_88",
+                      "delivered_on": "2026-10-11"
+                    }
+                  ],
+                  "is_error": false,
+                  "status": "completed"
+                }
+              ],
+              "delta": false,
+              "tools_calls": null,
+              "reasoning": null,
+              "timestamp": 1792063859.722265,
+              "metadata": {
+                "tool_call_id": "call_73c9f2c318b2",
+                "function_name": "lookup_order",
+                "function_argument": {
+                  "order_id": "1042"
+                }
+              },
+              "usages": null,
+              "raw": null,
+              "parsed_content": null
+            },
+            {
+              "message_id": "9c265689-9ab1-4da5-a2ca-e459cce1b8dd",
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "The order was delivered and is inside the 30-day window, so it qualifies for a full refund. Issuing it and emailing the receipt now.",
+                  "annotations": []
+                },
+                {
+                  "type": "tool_call",
+                  "id": "call_ae46fd0528a7",
+                  "name": "issue_refund",
+                  "args": {
+                    "amount": 129,
+                    "order_id": "1042"
+                  },
+                  "tool_type": null
+                },
+                {
+                  "type": "tool_call",
+                  "id": "call_2636d286188a",
+                  "name": "send_email",
+                  "args": {
+                    "to": "maya.chen@example.com",
+                    "body": "We have refunded $129.00 for order 1042.",
+                    "subject": "Your refund for order 1042"
+                  },
+                  "tool_type": null
+                }
+              ],
+              "delta": false,
+              "tools_calls": [
+                {
+                  "id": "call_ae46fd0528a7",
+                  "type": "function",
+                  "function": {
+                    "name": "issue_refund",
+                    "arguments": "{\"order_id\": \"1042\", \"amount\": 129.0}"
+                  }
+                },
+                {
+                  "id": "call_2636d286188a",
+                  "type": "function",
+                  "function": {
+                    "name": "send_email",
+                    "arguments": "{\"to\": \"maya.chen@example.com\", \"subject\": \"Your refund for order 1042\", \"body\": \"We have refunded $129.00 for order 1042.\"}"
+                  }
+                }
+              ],
+              "reasoning": null,
+              "timestamp": 1792063860.526789,
+              "metadata": {},
+              "usages": null,
+              "raw": null,
+              "parsed_content": null
+            },
+            {
+              "message_id": "97295cf9-46a5-413c-8b9d-dcfa196c348f",
+              "role": "tool",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "call_id": "call_2636d286188a",
+                  "output": [
+                    {
+                      "to": "maya.chen@example.com",
+                      "queued": true,
+                      "subject": "Your refund for order 1042"
+                    }
+                  ],
+                  "is_error": false,
+                  "status": "completed"
+                }
+              ],
+              "delta": false,
+              "tools_calls": null,
+              "reasoning": null,
+              "timestamp": 1792063860.782638,
+              "metadata": {
+                "tool_call_id": "call_2636d286188a",
+                "function_name": "send_email",
+                "function_argument": {
+                  "to": "maya.chen@example.com",
+                  "body": "We have refunded $129.00 for order 1042.",
+                  "subject": "Your refund for order 1042"
+                }
+              },
+              "usages": null,
+              "raw": null,
+              "parsed_content": null
+            },
+            {
+              "message_id": "4333d5a4-513c-4f58-bc42-7ef9feae85dc",
+              "role": "tool",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "call_id": "call_ae46fd0528a7",
+                  "output": [
+                    {
+                      "amount": 129,
+                      "order_id": "1042",
+                      "refunded": true,
+                      "refund_id": "rf_a9c68347"
+                    }
+                  ],
+                  "is_error": false,
+                  "status": "completed"
+                }
+              ],
+              "delta": false,
+              "tools_calls": null,
+              "reasoning": null,
+              "timestamp": 1792063860.832439,
+              "metadata": {
+                "tool_call_id": "call_ae46fd0528a7",
+                "function_name": "issue_refund",
+                "function_argument": {
+                  "amount": 129,
+                  "order_id": "1042"
+                }
+              },
+              "usages": null,
+              "raw": null,
+              "parsed_content": null
+            },
+            {
+              "message_id": "d7b990ae-5461-4ee8-9225-d2d3987ec853",
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Done. I refunded $129.00 for order 1042 to the original payment method (refund rf_a9c68347) and emailed the receipt, since memory says the customer prefers email.",
+                  "annotations": []
+                }
+              ],
+              "delta": false,
+              "tools_calls": null,
+              "reasoning": null,
+              "timestamp": 1792063861.637108,
+              "metadata": {},
+              "usages": null,
+              "raw": null,
+              "parsed_content": null
+            },
+            {
+              "message_id": "cf65af3b-dfc3-469a-b448-2d510c00ea58",
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "How many refunds were issued for order 1042?",
+                  "annotations": []
+                }
+              ],
+              "delta": false,
+              "tools_calls": null,
+              "reasoning": null,
+              "timestamp": 1792063861.653272,
+              "metadata": {},
+              "usages": null,
+              "raw": null,
+              "parsed_content": null
+            },
+            {
+              "message_id": "9abebfad-cff5-4fc6-88fc-40203eab5c7f",
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "",
+                  "annotations": []
+                },
+                {
+                  "type": "tool_call",
+                  "id": "call_5704714d654f",
+                  "name": "list_refunds",
+                  "args": {
+                    "order_id": "1042"
+                  },
+                  "tool_type": null
+                }
+              ],
+              "delta": false,
+              "tools_calls": [
+                {
+                  "id": "call_5704714d654f",
+                  "type": "function",
+                  "function": {
+                    "name": "list_refunds",
+                    "arguments": "{\"order_id\": \"1042\"}"
+                  }
+                }
+              ],
+              "reasoning": null,
+              "timestamp": 1792063862.46568,
+              "metadata": {},
+              "usages": null,
+              "raw": null,
+              "parsed_content": null
+            },
+            {
+              "message_id": "1964cdf8-d043-4ed0-acf4-a873a5c667d4",
+              "role": "tool",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "call_id": "call_5704714d654f",
+                  "output": [
+                    {
+                      "count": 1,
+                      "refunds": [
+                        {
+                          "amount": 129,
+                          "order_id": "1042",
+                          "refund_id": "rf_a9c68347"
+                        }
+                      ],
+                      "order_id": "1042"
+                    }
+                  ],
+                  "is_error": false,
+                  "status": "completed"
+                }
+              ],
+              "delta": false,
+              "tools_calls": null,
+              "reasoning": null,
+              "timestamp": 1792063862.670532,
+              "metadata": {
+                "tool_call_id": "call_5704714d654f",
+                "function_name": "list_refunds",
+                "function_argument": {
+                  "order_id": "1042"
+                }
+              },
+              "usages": null,
+              "raw": null,
+              "parsed_content": null
+            },
+            {
+              "message_id": "9e55fdab-a7a3-4495-a4ce-44e938c5bfe4",
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "The payments system shows 1 refund for order 1042, read from the payments store, not from the conversation.",
+                  "annotations": []
+                }
+              ],
+              "delta": false,
+              "tools_calls": null,
+              "reasoning": null,
+              "timestamp": 1792063863.475753,
+              "metadata": {},
+              "usages": null,
+              "raw": null,
+              "parsed_content": null
+            }
+          ],
+          "context_summary": null,
+          "execution_meta": {
+            "current_node": "MAIN",
+            "step": 4,
+            "status": "completed",
+            "interrupted_node": null,
+            "interrupt_reason": null,
+            "interrupt_data": null,
+            "thread_id": "demo-refund",
+            "stop_current_execution": "none",
+            "internal_data": {}
+          }
+        }
+      },
+      "metadata": {
+        "request_id": "a31d6db8-c9f4-4451-9337-80a3729e8df1",
+        "timestamp": "2026-10-15T17:31:03.512011",
+        "message": "OK"
+      }
+    }
+  },
+  "threadMessages": {
+    "demo-history": {
+      "data": {
+        "messages": [
+          {
+            "message_id": "03de0b38-8e3d-4e12-a4df-fd6dc6f9ff7f",
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "What do you know about customer c_88, and where is order 1043?",
+                "annotations": []
+              }
+            ],
+            "delta": false,
+            "tools_calls": null,
+            "reasoning": null,
+            "timestamp": 1792063856.874881,
+            "metadata": {},
+            "usages": null,
+            "raw": null,
+            "parsed_content": null
+          },
+          {
+            "message_id": "42ae6ec4-3707-4bfe-b88b-4b1505a62f6f",
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "Checking the customer record and the order together.",
+                "annotations": []
+              },
+              {
+                "type": "tool_call",
+                "id": "call_6cf3f42eac32",
+                "name": "get_customer_history",
+                "args": {
+                  "customer_id": "c_88"
+                },
+                "tool_type": null
+              },
+              {
+                "type": "tool_call",
+                "id": "call_51e6683b282b",
+                "name": "lookup_order",
+                "args": {
+                  "order_id": "1043"
+                },
+                "tool_type": null
+              }
+            ],
+            "delta": false,
+            "tools_calls": [
+              {
+                "id": "call_6cf3f42eac32",
+                "type": "function",
+                "function": {
+                  "name": "get_customer_history",
+                  "arguments": "{\"customer_id\": \"c_88\"}"
+                }
+              },
+              {
+                "id": "call_51e6683b282b",
+                "type": "function",
+                "function": {
+                  "name": "lookup_order",
+                  "arguments": "{\"order_id\": \"1043\"}"
+                }
+              }
+            ],
+            "reasoning": null,
+            "timestamp": 1792063856.874881,
+            "metadata": {},
+            "usages": null,
+            "raw": null,
+            "parsed_content": null
+          },
+          {
+            "message_id": "5b5e1357-58a4-425d-b6a7-d16f9a8c3f95",
+            "role": "tool",
+            "content": [
+              {
+                "type": "tool_result",
+                "call_id": "call_51e6683b282b",
+                "output": [
+                  {
+                    "order_id": "1043",
+                    "customer_id": "c_88",
+                    "item": "Paper filters, pack of 200",
+                    "total": 18,
+                    "shipping": "in transit",
+                    "delivered_on": null
+                  }
+                ],
+                "is_error": false,
+                "status": "completed"
+              }
+            ],
+            "delta": false,
+            "tools_calls": null,
+            "reasoning": null,
+            "timestamp": 1792063856.874881,
+            "metadata": {
+              "tool_call_id": "call_51e6683b282b",
+              "function_name": "lookup_order",
+              "function_argument": {
+                "order_id": "1043"
+              }
+            },
+            "usages": null,
+            "raw": null,
+            "parsed_content": null
+          },
+          {
+            "message_id": "c79e5e1a-809c-4bbc-86a5-98126ce5ff4d",
+            "role": "tool",
+            "content": [
+              {
+                "type": "tool_result",
+                "call_id": "call_6cf3f42eac32",
+                "output": [
+                  {
+                    "customer_id": "c_88",
+                    "name": "Maya Chen",
+                    "email": "maya.chen@example.com",
+                    "customer_since": "2023-04",
+                    "orders": [
+                      "1042",
+                      "1043"
+                    ],
+                    "open_tickets": 0
+                  }
+                ],
+                "is_error": false,
+                "status": "completed"
+              }
+            ],
+            "delta": false,
+            "tools_calls": null,
+            "reasoning": null,
+            "timestamp": 1792063856.874881,
+            "metadata": {
+              "tool_call_id": "call_6cf3f42eac32",
+              "function_name": "get_customer_history",
+              "function_argument": {
+                "customer_id": "c_88"
+              }
+            },
+            "usages": null,
+            "raw": null,
+            "parsed_content": null
+          },
+          {
+            "message_id": "8c53baf8-586e-465a-a77b-8fd1afe5c9af",
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "Maya Chen has been a customer since 2023-04, with orders 1042, 1043 and no open tickets. Order 1043 (Paper filters, pack of 200) is in transit.",
+                "annotations": []
+              }
+            ],
+            "delta": false,
+            "tools_calls": null,
+            "reasoning": null,
+            "timestamp": 1792063856.874881,
+            "metadata": {},
+            "usages": null,
+            "raw": null,
+            "parsed_content": null
+          }
+        ]
+      },
+      "metadata": {
+        "request_id": "698611e5-20ed-451e-affd-33385b14a688",
+        "timestamp": "2026-10-15T17:31:03.495175",
+        "message": "OK"
+      }
+    },
+    "demo-prefs": {
+      "data": {
+        "messages": [
+          {
+            "message_id": "52b0a7e7-7b78-4d72-aa71-3546b08947be",
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "c_88 prefers email over phone, please remember that.",
+                "annotations": []
+              }
+            ],
+            "delta": false,
+            "tools_calls": null,
+            "reasoning": null,
+            "timestamp": 1792063858.545773,
+            "metadata": {},
+            "usages": null,
+            "raw": null,
+            "parsed_content": null
+          },
+          {
+            "message_id": "03d351ea-cbc3-4917-b058-f4b7f9fa4153",
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "",
+                "annotations": []
+              },
+              {
+                "type": "tool_call",
+                "id": "call_13c7ee329385",
+                "name": "memory_tool",
+                "args": {
+                  "action": "store",
+                  "content": "Maya Chen (c_88) prefers email over phone.",
+                  "category": "preferences"
+                },
+                "tool_type": null
+              }
+            ],
+            "delta": false,
+            "tools_calls": [
+              {
+                "id": "call_13c7ee329385",
+                "type": "function",
+                "function": {
+                  "name": "memory_tool",
+                  "arguments": "{\"action\": \"store\", \"content\": \"Maya Chen (c_88) prefers email over phone.\", \"category\": \"preferences\"}"
+                }
+              }
+            ],
+            "reasoning": null,
+            "timestamp": 1792063858.545773,
+            "metadata": {},
+            "usages": null,
+            "raw": null,
+            "parsed_content": null
+          },
+          {
+            "message_id": "dcd465e2-8ef4-41d5-b699-79904e235c5f",
+            "role": "tool",
+            "content": [
+              {
+                "type": "tool_result",
+                "call_id": "call_13c7ee329385",
+                "output": "{\"status\": \"scheduled\", \"action\": \"store\"}",
+                "is_error": false,
+                "status": "completed"
+              }
+            ],
+            "delta": false,
+            "tools_calls": null,
+            "reasoning": null,
+            "timestamp": 1792063858.545773,
+            "metadata": {
+              "tool_call_id": "call_13c7ee329385",
+              "function_name": "memory_tool",
+              "function_argument": {
+                "action": "store",
+                "content": "Maya Chen (c_88) prefers email over phone.",
+                "category": "preferences"
+              }
+            },
+            "usages": null,
+            "raw": null,
+            "parsed_content": null
+          },
+          {
+            "message_id": "f22f2a77-1569-429e-8d1e-26f34a17a8ca",
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "Saved. I will contact Maya Chen (c_88) by email from now on.",
+                "annotations": []
+              }
+            ],
+            "delta": false,
+            "tools_calls": null,
+            "reasoning": null,
+            "timestamp": 1792063858.545773,
+            "metadata": {},
+            "usages": null,
+            "raw": null,
+            "parsed_content": null
+          }
+        ]
+      },
+      "metadata": {
+        "request_id": "56472d88-d5fb-497b-ae0e-7ca79aa0c10f",
+        "timestamp": "2026-10-15T17:31:03.505844",
+        "message": "OK"
+      }
+    },
+    "demo-refund": {
+      "data": {
+        "messages": [
+          {
+            "message_id": "eeaecf2e-ddbd-42e6-8181-a91f611fe9f6",
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "Order 1042 arrived broken. Can I get a refund?",
+                "annotations": []
+              }
+            ],
+            "delta": false,
+            "tools_calls": null,
+            "reasoning": null,
+            "timestamp": 1792063861.63967,
+            "metadata": {},
+            "usages": null,
+            "raw": null,
+            "parsed_content": null
+          },
+          {
+            "message_id": "0210d3b5-716f-408c-9e1b-c5728906233a",
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "Let me check the order and how this customer likes to be contacted.",
+                "annotations": []
+              },
+              {
+                "type": "tool_call",
+                "id": "call_73c9f2c318b2",
+                "name": "lookup_order",
+                "args": {
+                  "order_id": "1042"
+                },
+                "tool_type": null
+              },
+              {
+                "type": "tool_call",
+                "id": "call_5aede7b5ff1b",
+                "name": "memory_tool",
+                "args": {
+                  "action": "search",
+                  "query": "c_88 contact preference"
+                },
+                "tool_type": null
+              }
+            ],
+            "delta": false,
+            "tools_calls": [
+              {
+                "id": "call_73c9f2c318b2",
+                "type": "function",
+                "function": {
+                  "name": "lookup_order",
+                  "arguments": "{\"order_id\": \"1042\"}"
+                }
+              },
+              {
+                "id": "call_5aede7b5ff1b",
+                "type": "function",
+                "function": {
+                  "name": "memory_tool",
+                  "arguments": "{\"action\": \"search\", \"query\": \"c_88 contact preference\"}"
+                }
+              }
+            ],
+            "reasoning": null,
+            "timestamp": 1792063861.63967,
+            "metadata": {},
+            "usages": null,
+            "raw": null,
+            "parsed_content": null
+          },
+          {
+            "message_id": "80e1446d-6404-486f-85ff-fe9b21ca15dc",
+            "role": "tool",
+            "content": [
+              {
+                "type": "tool_result",
+                "call_id": "call_5aede7b5ff1b",
+                "output": "[{\"id\": \"1179a1a2-a74a-40a8-9bad-b802ac1ff39c\", \"content\": \"Maya Chen (c_88) prefers email over phone.\", \"score\": 0.3162, \"memory_type\": \"episodic\", \"metadata\": {\"content\": \"Maya Chen (c_88) prefers email over phone.\", \"user_id\": \"anonymous\", \"thread_id\": null, \"memory_type\": \"episodic\", \"category\": \"preferences\", \"timestamp\": \"2026-10-15T17:30:57.726038\"}}]",
+                "is_error": false,
+                "status": "completed"
+              }
+            ],
+            "delta": false,
+            "tools_calls": null,
+            "reasoning": null,
+            "timestamp": 1792063861.63967,
+            "metadata": {
+              "tool_call_id": "call_5aede7b5ff1b",
+              "function_name": "memory_tool",
+              "function_argument": {
+                "query": "c_88 contact preference",
+                "action": "search"
+              }
+            },
+            "usages": null,
+            "raw": null,
+            "parsed_content": null
+          },
+          {
+            "message_id": "216b8b60-1d24-40ef-9248-e252325dcb03",
+            "role": "tool",
+            "content": [
+              {
+                "type": "tool_result",
+                "call_id": "call_73c9f2c318b2",
+                "output": [
+                  {
+                    "order_id": "1042",
+                    "customer_id": "c_88",
+                    "item": "Ceramic pour-over set",
+                    "total": 129,
+                    "shipping": "delivered",
+                    "delivered_on": "2026-10-11"
+                  }
+                ],
+                "is_error": false,
+                "status": "completed"
+              }
+            ],
+            "delta": false,
+            "tools_calls": null,
+            "reasoning": null,
+            "timestamp": 1792063861.63967,
+            "metadata": {
+              "tool_call_id": "call_73c9f2c318b2",
+              "function_name": "lookup_order",
+              "function_argument": {
+                "order_id": "1042"
+              }
+            },
+            "usages": null,
+            "raw": null,
+            "parsed_content": null
+          },
+          {
+            "message_id": "9c265689-9ab1-4da5-a2ca-e459cce1b8dd",
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "The order was delivered and is inside the 30-day window, so it qualifies for a full refund. Issuing it and emailing the receipt now.",
+                "annotations": []
+              },
+              {
+                "type": "tool_call",
+                "id": "call_ae46fd0528a7",
+                "name": "issue_refund",
+                "args": {
+                  "order_id": "1042",
+                  "amount": 129
+                },
+                "tool_type": null
+              },
+              {
+                "type": "tool_call",
+                "id": "call_2636d286188a",
+                "name": "send_email",
+                "args": {
+                  "to": "maya.chen@example.com",
+                  "subject": "Your refund for order 1042",
+                  "body": "We have refunded $129.00 for order 1042."
+                },
+                "tool_type": null
+              }
+            ],
+            "delta": false,
+            "tools_calls": [
+              {
+                "id": "call_ae46fd0528a7",
+                "type": "function",
+                "function": {
+                  "name": "issue_refund",
+                  "arguments": "{\"order_id\": \"1042\", \"amount\": 129.0}"
+                }
+              },
+              {
+                "id": "call_2636d286188a",
+                "type": "function",
+                "function": {
+                  "name": "send_email",
+                  "arguments": "{\"to\": \"maya.chen@example.com\", \"subject\": \"Your refund for order 1042\", \"body\": \"We have refunded $129.00 for order 1042.\"}"
+                }
+              }
+            ],
+            "reasoning": null,
+            "timestamp": 1792063861.63967,
+            "metadata": {},
+            "usages": null,
+            "raw": null,
+            "parsed_content": null
+          },
+          {
+            "message_id": "97295cf9-46a5-413c-8b9d-dcfa196c348f",
+            "role": "tool",
+            "content": [
+              {
+                "type": "tool_result",
+                "call_id": "call_2636d286188a",
+                "output": [
+                  {
+                    "queued": true,
+                    "to": "maya.chen@example.com",
+                    "subject": "Your refund for order 1042"
+                  }
+                ],
+                "is_error": false,
+                "status": "completed"
+              }
+            ],
+            "delta": false,
+            "tools_calls": null,
+            "reasoning": null,
+            "timestamp": 1792063861.63967,
+            "metadata": {
+              "tool_call_id": "call_2636d286188a",
+              "function_name": "send_email",
+              "function_argument": {
+                "to": "maya.chen@example.com",
+                "body": "We have refunded $129.00 for order 1042.",
+                "subject": "Your refund for order 1042"
+              }
+            },
+            "usages": null,
+            "raw": null,
+            "parsed_content": null
+          },
+          {
+            "message_id": "4333d5a4-513c-4f58-bc42-7ef9feae85dc",
+            "role": "tool",
+            "content": [
+              {
+                "type": "tool_result",
+                "call_id": "call_ae46fd0528a7",
+                "output": [
+                  {
+                    "refund_id": "rf_a9c68347",
+                    "order_id": "1042",
+                    "amount": 129,
+                    "refunded": true
+                  }
+                ],
+                "is_error": false,
+                "status": "completed"
+              }
+            ],
+            "delta": false,
+            "tools_calls": null,
+            "reasoning": null,
+            "timestamp": 1792063861.63967,
+            "metadata": {
+              "tool_call_id": "call_ae46fd0528a7",
+              "function_name": "issue_refund",
+              "function_argument": {
+                "amount": 129,
+                "order_id": "1042"
+              }
+            },
+            "usages": null,
+            "raw": null,
+            "parsed_content": null
+          },
+          {
+            "message_id": "d7b990ae-5461-4ee8-9225-d2d3987ec853",
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "Done. I refunded $129.00 for order 1042 to the original payment method (refund rf_a9c68347) and emailed the receipt, since memory says the customer prefers email.",
+                "annotations": []
+              }
+            ],
+            "delta": false,
+            "tools_calls": null,
+            "reasoning": null,
+            "timestamp": 1792063861.63967,
+            "metadata": {},
+            "usages": null,
+            "raw": null,
+            "parsed_content": null
+          },
+          {
+            "message_id": "cf65af3b-dfc3-469a-b448-2d510c00ea58",
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "How many refunds were issued for order 1042?",
+                "annotations": []
+              }
+            ],
+            "delta": false,
+            "tools_calls": null,
+            "reasoning": null,
+            "timestamp": 1792063863.477895,
+            "metadata": {},
+            "usages": null,
+            "raw": null,
+            "parsed_content": null
+          },
+          {
+            "message_id": "9abebfad-cff5-4fc6-88fc-40203eab5c7f",
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "",
+                "annotations": []
+              },
+              {
+                "type": "tool_call",
+                "id": "call_5704714d654f",
+                "name": "list_refunds",
+                "args": {
+                  "order_id": "1042"
+                },
+                "tool_type": null
+              }
+            ],
+            "delta": false,
+            "tools_calls": [
+              {
+                "id": "call_5704714d654f",
+                "type": "function",
+                "function": {
+                  "name": "list_refunds",
+                  "arguments": "{\"order_id\": \"1042\"}"
+                }
+              }
+            ],
+            "reasoning": null,
+            "timestamp": 1792063863.477895,
+            "metadata": {},
+            "usages": null,
+            "raw": null,
+            "parsed_content": null
+          },
+          {
+            "message_id": "1964cdf8-d043-4ed0-acf4-a873a5c667d4",
+            "role": "tool",
+            "content": [
+              {
+                "type": "tool_result",
+                "call_id": "call_5704714d654f",
+                "output": [
+                  {
+                    "order_id": "1042",
+                    "refunds": [
+                      {
+                        "refund_id": "rf_a9c68347",
+                        "order_id": "1042",
+                        "amount": 129
+                      }
+                    ],
+                    "count": 1
+                  }
+                ],
+                "is_error": false,
+                "status": "completed"
+              }
+            ],
+            "delta": false,
+            "tools_calls": null,
+            "reasoning": null,
+            "timestamp": 1792063863.477895,
+            "metadata": {
+              "tool_call_id": "call_5704714d654f",
+              "function_name": "list_refunds",
+              "function_argument": {
+                "order_id": "1042"
+              }
+            },
+            "usages": null,
+            "raw": null,
+            "parsed_content": null
+          },
+          {
+            "message_id": "9e55fdab-a7a3-4495-a4ce-44e938c5bfe4",
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "The payments system shows 1 refund for order 1042, read from the payments store, not from the conversation.",
+                "annotations": []
+              }
+            ],
+            "delta": false,
+            "tools_calls": null,
+            "reasoning": null,
+            "timestamp": 1792063863.477895,
+            "metadata": {},
+            "usages": null,
+            "raw": null,
+            "parsed_content": null
+          }
+        ]
+      },
+      "metadata": {
+        "request_id": "c9ce0403-0852-41bd-a73d-c20cc2627dd2",
+        "timestamp": "2026-10-15T17:31:03.514737",
+        "message": "OK"
+      }
+    }
+  },
+  "observability": {
+    "demo-history": {
+      "latest": {
+        "data": {
+          "thread_id": "demo-history",
+          "run_count": 1,
+          "run_ids": [
+            "d5d1c03d-d5cf-40e7-91e4-575761d2c475"
+          ],
+          "run": {
+            "run_id": "d5d1c03d-d5cf-40e7-91e4-575761d2c475",
+            "thread_id": "demo-history",
+            "status": "done",
+            "started_at": 1792063854.803904,
+            "finished_at": 1792063856.894989,
+            "duration_ms": 2091.0849571228027,
+            "spans": [
+              {
+                "id": "root",
+                "name": "graph",
+                "kind": "root",
+                "parent": null,
+                "start_ms": 0,
+                "duration_ms": 2091.0849571228027,
+                "model": null,
+                "input_tokens": null,
+                "output_tokens": null
+              },
+              {
+                "id": "s1",
+                "name": "node: MAIN",
+                "kind": "node",
+                "parent": "root",
+                "start_ms": 0,
+                "duration_ms": 0,
+                "model": null,
+                "input_tokens": null,
+                "output_tokens": null
+              },
+              {
+                "id": "s2",
+                "name": "tool: get_customer_history",
+                "kind": "tool",
+                "parent": "s1",
+                "start_ms": 0,
+                "duration_ms": 0,
+                "model": null,
+                "input_tokens": null,
+                "output_tokens": null
+              },
+              {
+                "id": "s3",
+                "name": "tool: lookup_order",
+                "kind": "tool",
+                "parent": "s1",
+                "start_ms": 0,
+                "duration_ms": 0,
+                "model": null,
+                "input_tokens": null,
+                "output_tokens": null
+              }
+            ],
+            "events": [
+              {
+                "id": "e4",
+                "type": "message",
+                "node": "MAIN",
+                "offset_ms": 0,
+                "summary": "assistant: text"
+              },
+              {
+                "id": "e3",
+                "type": "message",
+                "node": "",
+                "offset_ms": 0,
+                "summary": "tool: tool_result"
+              },
+              {
+                "id": "e2",
+                "type": "message",
+                "node": "",
+                "offset_ms": 0,
+                "summary": "tool: tool_result"
+              },
+              {
+                "id": "e1",
+                "type": "message",
+                "node": "MAIN",
+                "offset_ms": 0,
+                "summary": "tool_call get_customer_history, lookup_order"
+              },
+              {
+                "id": "e0",
+                "type": "message",
+                "node": "",
+                "offset_ms": 0,
+                "summary": "user: text"
+              }
+            ],
+            "usage": {
+              "prompt_tokens": 0,
+              "completion_tokens": 0,
+              "reasoning_tokens": 0,
+              "total_tokens": 0
+            },
+            "llm_calls": 0,
+            "tool_calls": 2,
+            "iterations": 1
+          }
+        },
+        "metadata": {
+          "request_id": "a9cc9027-ed80-4ad2-89d3-fdf6e34d9780",
+          "timestamp": "2026-10-15T17:31:03.499606",
+          "message": "OK"
+        }
+      },
+      "runs": {
+        "d5d1c03d-d5cf-40e7-91e4-575761d2c475": {
+          "data": {
+            "thread_id": "demo-history",
+            "run_count": 1,
+            "run_ids": [
+              "d5d1c03d-d5cf-40e7-91e4-575761d2c475"
+            ],
+            "run": {
+              "run_id": "d5d1c03d-d5cf-40e7-91e4-575761d2c475",
+              "thread_id": "demo-history",
+              "status": "done",
+              "started_at": 1792063854.803904,
+              "finished_at": 1792063856.894989,
+              "duration_ms": 2091.0849571228027,
+              "spans": [
+                {
+                  "id": "root",
+                  "name": "graph",
+                  "kind": "root",
+                  "parent": null,
+                  "start_ms": 0,
+                  "duration_ms": 2091.0849571228027,
+                  "model": null,
+                  "input_tokens": null,
+                  "output_tokens": null
+                },
+                {
+                  "id": "s1",
+                  "name": "node: MAIN",
+                  "kind": "node",
+                  "parent": "root",
+                  "start_ms": 0,
+                  "duration_ms": 0,
+                  "model": null,
+                  "input_tokens": null,
+                  "output_tokens": null
+                },
+                {
+                  "id": "s2",
+                  "name": "tool: get_customer_history",
+                  "kind": "tool",
+                  "parent": "s1",
+                  "start_ms": 0,
+                  "duration_ms": 0,
+                  "model": null,
+                  "input_tokens": null,
+                  "output_tokens": null
+                },
+                {
+                  "id": "s3",
+                  "name": "tool: lookup_order",
+                  "kind": "tool",
+                  "parent": "s1",
+                  "start_ms": 0,
+                  "duration_ms": 0,
+                  "model": null,
+                  "input_tokens": null,
+                  "output_tokens": null
+                }
+              ],
+              "events": [
+                {
+                  "id": "e4",
+                  "type": "message",
+                  "node": "MAIN",
+                  "offset_ms": 0,
+                  "summary": "assistant: text"
+                },
+                {
+                  "id": "e3",
+                  "type": "message",
+                  "node": "",
+                  "offset_ms": 0,
+                  "summary": "tool: tool_result"
+                },
+                {
+                  "id": "e2",
+                  "type": "message",
+                  "node": "",
+                  "offset_ms": 0,
+                  "summary": "tool: tool_result"
+                },
+                {
+                  "id": "e1",
+                  "type": "message",
+                  "node": "MAIN",
+                  "offset_ms": 0,
+                  "summary": "tool_call get_customer_history, lookup_order"
+                },
+                {
+                  "id": "e0",
+                  "type": "message",
+                  "node": "",
+                  "offset_ms": 0,
+                  "summary": "user: text"
+                }
+              ],
+              "usage": {
+                "prompt_tokens": 0,
+                "completion_tokens": 0,
+                "reasoning_tokens": 0,
+                "total_tokens": 0
+              },
+              "llm_calls": 0,
+              "tool_calls": 2,
+              "iterations": 1
+            }
+          },
+          "metadata": {
+            "request_id": "4f0cfd14-999b-4d3f-a960-be46a4897381",
+            "timestamp": "2026-10-15T17:31:03.501799",
+            "message": "OK"
+          }
+        }
+      }
+    },
+    "demo-prefs": {
+      "latest": {
+        "data": {
+          "thread_id": "demo-prefs",
+          "run_count": 1,
+          "run_ids": [
+            "5c5a9058-6c78-4df9-a2fa-34e61d61f0e3"
+          ],
+          "run": {
+            "run_id": "5c5a9058-6c78-4df9-a2fa-34e61d61f0e3",
+            "thread_id": "demo-prefs",
+            "status": "done",
+            "started_at": 1792063856.900339,
+            "finished_at": 1792063858.550596,
+            "duration_ms": 1650.2571105957031,
+            "spans": [
+              {
+                "id": "root",
+                "name": "graph",
+                "kind": "root",
+                "parent": null,
+                "start_ms": 0,
+                "duration_ms": 1650.2571105957031,
+                "model": null,
+                "input_tokens": null,
+                "output_tokens": null
+              },
+              {
+                "id": "s1",
+                "name": "node: MAIN",
+                "kind": "node",
+                "parent": "root",
+                "start_ms": 0,
+                "duration_ms": 0,
+                "model": null,
+                "input_tokens": null,
+                "output_tokens": null
+              },
+              {
+                "id": "s2",
+                "name": "tool: memory_tool",
+                "kind": "tool",
+                "parent": "s1",
+                "start_ms": 0,
+                "duration_ms": 0,
+                "model": null,
+                "input_tokens": null,
+                "output_tokens": null
+              }
+            ],
+            "events": [
+              {
+                "id": "e3",
+                "type": "message",
+                "node": "MAIN",
+                "offset_ms": 0,
+                "summary": "assistant: text"
+              },
+              {
+                "id": "e2",
+                "type": "message",
+                "node": "",
+                "offset_ms": 0,
+                "summary": "tool: tool_result"
+              },
+              {
+                "id": "e1",
+                "type": "message",
+                "node": "MAIN",
+                "offset_ms": 0,
+                "summary": "tool_call memory_tool"
+              },
+              {
+                "id": "e0",
+                "type": "message",
+                "node": "",
+                "offset_ms": 0,
+                "summary": "user: text"
+              }
+            ],
+            "usage": {
+              "prompt_tokens": 0,
+              "completion_tokens": 0,
+              "reasoning_tokens": 0,
+              "total_tokens": 0
+            },
+            "llm_calls": 0,
+            "tool_calls": 1,
+            "iterations": 1
+          }
+        },
+        "metadata": {
+          "request_id": "5729708e-c1cb-4887-994a-2ec221200d1a",
+          "timestamp": "2026-10-15T17:31:03.508388",
+          "message": "OK"
+        }
+      },
+      "runs": {
+        "5c5a9058-6c78-4df9-a2fa-34e61d61f0e3": {
+          "data": {
+            "thread_id": "demo-prefs",
+            "run_count": 1,
+            "run_ids": [
+              "5c5a9058-6c78-4df9-a2fa-34e61d61f0e3"
+            ],
+            "run": {
+              "run_id": "5c5a9058-6c78-4df9-a2fa-34e61d61f0e3",
+              "thread_id": "demo-prefs",
+              "status": "done",
+              "started_at": 1792063856.900339,
+              "finished_at": 1792063858.550596,
+              "duration_ms": 1650.2571105957031,
+              "spans": [
+                {
+                  "id": "root",
+                  "name": "graph",
+                  "kind": "root",
+                  "parent": null,
+                  "start_ms": 0,
+                  "duration_ms": 1650.2571105957031,
+                  "model": null,
+                  "input_tokens": null,
+                  "output_tokens": null
+                },
+                {
+                  "id": "s1",
+                  "name": "node: MAIN",
+                  "kind": "node",
+                  "parent": "root",
+                  "start_ms": 0,
+                  "duration_ms": 0,
+                  "model": null,
+                  "input_tokens": null,
+                  "output_tokens": null
+                },
+                {
+                  "id": "s2",
+                  "name": "tool: memory_tool",
+                  "kind": "tool",
+                  "parent": "s1",
+                  "start_ms": 0,
+                  "duration_ms": 0,
+                  "model": null,
+                  "input_tokens": null,
+                  "output_tokens": null
+                }
+              ],
+              "events": [
+                {
+                  "id": "e3",
+                  "type": "message",
+                  "node": "MAIN",
+                  "offset_ms": 0,
+                  "summary": "assistant: text"
+                },
+                {
+                  "id": "e2",
+                  "type": "message",
+                  "node": "",
+                  "offset_ms": 0,
+                  "summary": "tool: tool_result"
+                },
+                {
+                  "id": "e1",
+                  "type": "message",
+                  "node": "MAIN",
+                  "offset_ms": 0,
+                  "summary": "tool_call memory_tool"
+                },
+                {
+                  "id": "e0",
+                  "type": "message",
+                  "node": "",
+                  "offset_ms": 0,
+                  "summary": "user: text"
+                }
+              ],
+              "usage": {
+                "prompt_tokens": 0,
+                "completion_tokens": 0,
+                "reasoning_tokens": 0,
+                "total_tokens": 0
+              },
+              "llm_calls": 0,
+              "tool_calls": 1,
+              "iterations": 1
+            }
+          },
+          "metadata": {
+            "request_id": "ada94baf-3fb8-4b9d-8406-3409e988d467",
+            "timestamp": "2026-10-15T17:31:03.510224",
+            "message": "OK"
+          }
+        }
+      }
+    },
+    "demo-refund": {
+      "latest": {
+        "data": {
+          "thread_id": "demo-refund",
+          "run_count": 2,
+          "run_ids": [
+            "f3ef247a-aa80-454a-a9b3-946d00ce2f2a",
+            "9a6e964a-6087-49e9-8492-bd5def931648"
+          ],
+          "run": {
+            "run_id": "9a6e964a-6087-49e9-8492-bd5def931648",
+            "thread_id": "demo-refund",
+            "status": "done",
+            "started_at": 1792063861.65976,
+            "finished_at": 1792063863.488318,
+            "duration_ms": 1828.5579681396484,
+            "spans": [
+              {
+                "id": "root",
+                "name": "graph",
+                "kind": "root",
+                "parent": null,
+                "start_ms": 0,
+                "duration_ms": 1828.5579681396484,
+                "model": null,
+                "input_tokens": null,
+                "output_tokens": null
+              },
+              {
+                "id": "s1",
+                "name": "node: MAIN",
+                "kind": "node",
+                "parent": "root",
+                "start_ms": 0,
+                "duration_ms": 0,
+                "model": null,
+                "input_tokens": null,
+                "output_tokens": null
+              },
+              {
+                "id": "s2",
+                "name": "tool: list_refunds",
+                "kind": "tool",
+                "parent": "s1",
+                "start_ms": 0,
+                "duration_ms": 0,
+                "model": null,
+                "input_tokens": null,
+                "output_tokens": null
+              }
+            ],
+            "events": [
+              {
+                "id": "e3",
+                "type": "message",
+                "node": "MAIN",
+                "offset_ms": 0,
+                "summary": "assistant: text"
+              },
+              {
+                "id": "e2",
+                "type": "message",
+                "node": "",
+                "offset_ms": 0,
+                "summary": "tool: tool_result"
+              },
+              {
+                "id": "e1",
+                "type": "message",
+                "node": "MAIN",
+                "offset_ms": 0,
+                "summary": "tool_call list_refunds"
+              },
+              {
+                "id": "e0",
+                "type": "message",
+                "node": "",
+                "offset_ms": 0,
+                "summary": "user: text"
+              }
+            ],
+            "usage": {
+              "prompt_tokens": 0,
+              "completion_tokens": 0,
+              "reasoning_tokens": 0,
+              "total_tokens": 0
+            },
+            "llm_calls": 0,
+            "tool_calls": 1,
+            "iterations": 1
+          }
+        },
+        "metadata": {
+          "request_id": "c1e8f6a0-1457-4672-ab20-cde9d3eddb35",
+          "timestamp": "2026-10-15T17:31:03.517683",
+          "message": "OK"
+        }
+      },
+      "runs": {
+        "f3ef247a-aa80-454a-a9b3-946d00ce2f2a": {
+          "data": {
+            "thread_id": "demo-refund",
+            "run_count": 2,
+            "run_ids": [
+              "f3ef247a-aa80-454a-a9b3-946d00ce2f2a",
+              "9a6e964a-6087-49e9-8492-bd5def931648"
+            ],
+            "run": {
+              "run_id": "f3ef247a-aa80-454a-a9b3-946d00ce2f2a",
+              "thread_id": "demo-refund",
+              "status": "done",
+              "started_at": 1792063858.56205,
+              "finished_at": 1792063861.65121,
+              "duration_ms": 3089.1599655151367,
+              "spans": [
+                {
+                  "id": "root",
+                  "name": "graph",
+                  "kind": "root",
+                  "parent": null,
+                  "start_ms": 0,
+                  "duration_ms": 3089.1599655151367,
+                  "model": null,
+                  "input_tokens": null,
+                  "output_tokens": null
+                },
+                {
+                  "id": "s1",
+                  "name": "node: MAIN",
+                  "kind": "node",
+                  "parent": "root",
+                  "start_ms": 0,
+                  "duration_ms": 0,
+                  "model": null,
+                  "input_tokens": null,
+                  "output_tokens": null
+                },
+                {
+                  "id": "s2",
+                  "name": "tool: lookup_order",
+                  "kind": "tool",
+                  "parent": "s1",
+                  "start_ms": 0,
+                  "duration_ms": 0,
+                  "model": null,
+                  "input_tokens": null,
+                  "output_tokens": null
+                },
+                {
+                  "id": "s3",
+                  "name": "tool: memory_tool",
+                  "kind": "tool",
+                  "parent": "s1",
+                  "start_ms": 0,
+                  "duration_ms": 0,
+                  "model": null,
+                  "input_tokens": null,
+                  "output_tokens": null
+                },
+                {
+                  "id": "s4",
+                  "name": "tool: issue_refund",
+                  "kind": "tool",
+                  "parent": "s1",
+                  "start_ms": 0,
+                  "duration_ms": 0,
+                  "model": null,
+                  "input_tokens": null,
+                  "output_tokens": null
+                },
+                {
+                  "id": "s5",
+                  "name": "tool: send_email",
+                  "kind": "tool",
+                  "parent": "s1",
+                  "start_ms": 0,
+                  "duration_ms": 0,
+                  "model": null,
+                  "input_tokens": null,
+                  "output_tokens": null
+                }
+              ],
+              "events": [
+                {
+                  "id": "e7",
+                  "type": "message",
+                  "node": "MAIN",
+                  "offset_ms": 0,
+                  "summary": "assistant: text"
+                },
+                {
+                  "id": "e6",
+                  "type": "message",
+                  "node": "",
+                  "offset_ms": 0,
+                  "summary": "tool: tool_result"
+                },
+                {
+                  "id": "e5",
+                  "type": "message",
+                  "node": "",
+                  "offset_ms": 0,
+                  "summary": "tool: tool_result"
+                },
+                {
+                  "id": "e4",
+                  "type": "message",
+                  "node": "MAIN",
+                  "offset_ms": 0,
+                  "summary": "tool_call issue_refund, send_email"
+                },
+                {
+                  "id": "e3",
+                  "type": "message",
+                  "node": "",
+                  "offset_ms": 0,
+                  "summary": "tool: tool_result"
+                },
+                {
+                  "id": "e2",
+                  "type": "message",
+                  "node": "",
+                  "offset_ms": 0,
+                  "summary": "tool: tool_result"
+                },
+                {
+                  "id": "e1",
+                  "type": "message",
+                  "node": "MAIN",
+                  "offset_ms": 0,
+                  "summary": "tool_call lookup_order, memory_tool"
+                },
+                {
+                  "id": "e0",
+                  "type": "message",
+                  "node": "",
+                  "offset_ms": 0,
+                  "summary": "user: text"
+                }
+              ],
+              "usage": {
+                "prompt_tokens": 0,
+                "completion_tokens": 0,
+                "reasoning_tokens": 0,
+                "total_tokens": 0
+              },
+              "llm_calls": 0,
+              "tool_calls": 4,
+              "iterations": 1
+            }
+          },
+          "metadata": {
+            "request_id": "0db68dee-91fb-4bea-b433-d43861f1bc97",
+            "timestamp": "2026-10-15T17:31:03.519596",
+            "message": "OK"
+          }
+        },
+        "9a6e964a-6087-49e9-8492-bd5def931648": {
+          "data": {
+            "thread_id": "demo-refund",
+            "run_count": 2,
+            "run_ids": [
+              "f3ef247a-aa80-454a-a9b3-946d00ce2f2a",
+              "9a6e964a-6087-49e9-8492-bd5def931648"
+            ],
+            "run": {
+              "run_id": "9a6e964a-6087-49e9-8492-bd5def931648",
+              "thread_id": "demo-refund",
+              "status": "done",
+              "started_at": 1792063861.65976,
+              "finished_at": 1792063863.488318,
+              "duration_ms": 1828.5579681396484,
+              "spans": [
+                {
+                  "id": "root",
+                  "name": "graph",
+                  "kind": "root",
+                  "parent": null,
+                  "start_ms": 0,
+                  "duration_ms": 1828.5579681396484,
+                  "model": null,
+                  "input_tokens": null,
+                  "output_tokens": null
+                },
+                {
+                  "id": "s1",
+                  "name": "node: MAIN",
+                  "kind": "node",
+                  "parent": "root",
+                  "start_ms": 0,
+                  "duration_ms": 0,
+                  "model": null,
+                  "input_tokens": null,
+                  "output_tokens": null
+                },
+                {
+                  "id": "s2",
+                  "name": "tool: list_refunds",
+                  "kind": "tool",
+                  "parent": "s1",
+                  "start_ms": 0,
+                  "duration_ms": 0,
+                  "model": null,
+                  "input_tokens": null,
+                  "output_tokens": null
+                }
+              ],
+              "events": [
+                {
+                  "id": "e3",
+                  "type": "message",
+                  "node": "MAIN",
+                  "offset_ms": 0,
+                  "summary": "assistant: text"
+                },
+                {
+                  "id": "e2",
+                  "type": "message",
+                  "node": "",
+                  "offset_ms": 0,
+                  "summary": "tool: tool_result"
+                },
+                {
+                  "id": "e1",
+                  "type": "message",
+                  "node": "MAIN",
+                  "offset_ms": 0,
+                  "summary": "tool_call list_refunds"
+                },
+                {
+                  "id": "e0",
+                  "type": "message",
+                  "node": "",
+                  "offset_ms": 0,
+                  "summary": "user: text"
+                }
+              ],
+              "usage": {
+                "prompt_tokens": 0,
+                "completion_tokens": 0,
+                "reasoning_tokens": 0,
+                "total_tokens": 0
+              },
+              "llm_calls": 0,
+              "tool_calls": 1,
+              "iterations": 1
+            }
+          },
+          "metadata": {
+            "request_id": "e8bd15e1-638c-4d39-a616-4bf04bc42f45",
+            "timestamp": "2026-10-15T17:31:03.521208",
+            "message": "OK"
+          }
+        }
+      }
+    }
+  },
+  "memories": {
+    "list": {
+      "data": {
+        "memories": [
+          {
+            "id": "1179a1a2-a74a-40a8-9bad-b802ac1ff39c",
+            "content": "Maya Chen (c_88) prefers email over phone.",
+            "score": 1,
+            "memory_type": "episodic",
+            "metadata": {
+              "content": "Maya Chen (c_88) prefers email over phone.",
+              "user_id": "anonymous",
+              "thread_id": null,
+              "memory_type": "episodic",
+              "category": "preferences",
+              "timestamp": "2026-10-15T17:30:57.726038"
+            },
+            "vector": null,
+            "user_id": "anonymous",
+            "thread_id": null,
+            "timestamp": "2026-10-15T17:30:57.726038"
+          }
+        ]
+      },
+      "metadata": {
+        "request_id": "832b0aeb-1bfc-4dce-9801-54a2b730ab8d",
+        "timestamp": "2026-10-15T17:31:03.550929",
+        "message": "OK"
+      }
+    },
+    "search": {
+      "contact preference": {
+        "data": {
+          "results": [
+            {
+              "id": "1179a1a2-a74a-40a8-9bad-b802ac1ff39c",
+              "content": "Maya Chen (c_88) prefers email over phone.",
+              "score": 0.1767767071723938,
+              "memory_type": "episodic",
+              "metadata": {
+                "content": "Maya Chen (c_88) prefers email over phone.",
+                "user_id": "anonymous",
+                "thread_id": null,
+                "memory_type": "episodic",
+                "category": "preferences",
+                "timestamp": "2026-10-15T17:30:57.726038"
+              },
+              "vector": null,
+              "user_id": "anonymous",
+              "thread_id": null,
+              "timestamp": "2026-10-15T17:30:57.726038"
+            }
+          ]
+        },
+        "metadata": {
+          "request_id": "7ee3b5b8-7884-4719-ba19-a8f81f4dc977",
+          "timestamp": "2026-10-15T17:31:03.523192",
+          "message": "OK"
+        }
+      },
+      "email": {
+        "data": {
+          "results": [
+            {
+              "id": "1179a1a2-a74a-40a8-9bad-b802ac1ff39c",
+              "content": "Maya Chen (c_88) prefers email over phone.",
+              "score": 0.3535534143447876,
+              "memory_type": "episodic",
+              "metadata": {
+                "content": "Maya Chen (c_88) prefers email over phone.",
+                "user_id": "anonymous",
+                "thread_id": null,
+                "memory_type": "episodic",
+                "category": "preferences",
+                "timestamp": "2026-10-15T17:30:57.726038"
+              },
+              "vector": null,
+              "user_id": "anonymous",
+              "thread_id": null,
+              "timestamp": "2026-10-15T17:30:57.726038"
+            }
+          ]
+        },
+        "metadata": {
+          "request_id": "88f72b18-1fc0-4590-b57e-9cd084a9b2f2",
+          "timestamp": "2026-10-15T17:31:03.525313",
+          "message": "OK"
+        }
+      },
+      "c_88": {
+        "data": {
+          "results": [
+            {
+              "id": "1179a1a2-a74a-40a8-9bad-b802ac1ff39c",
+              "content": "Maya Chen (c_88) prefers email over phone.",
+              "score": 0.3535534143447876,
+              "memory_type": "episodic",
+              "metadata": {
+                "content": "Maya Chen (c_88) prefers email over phone.",
+                "user_id": "anonymous",
+                "thread_id": null,
+                "memory_type": "episodic",
+                "category": "preferences",
+                "timestamp": "2026-10-15T17:30:57.726038"
+              },
+              "vector": null,
+              "user_id": "anonymous",
+              "thread_id": null,
+              "timestamp": "2026-10-15T17:30:57.726038"
+            }
+          ]
+        },
+        "metadata": {
+          "request_id": "ae983541-5370-4a82-b8b9-172b7b766356",
+          "timestamp": "2026-10-15T17:31:03.526989",
+          "message": "OK"
+        }
+      }
+    }
+  },
+  "evals": {
+    "runs": {
+      "runs": [
+        {
+          "id": "8f443ee6-282e-4224-b496-877100f335ec_20261015_173042",
+          "name": "acme-support-regression",
+          "run": "#1",
+          "rate": 80,
+          "status": "fail",
+          "cases": 5,
+          "ago": "just now"
+        }
+      ]
+    },
+    "detail": {
+      "8f443ee6-282e-4224-b496-877100f335ec_20261015_173042": {
+        "title": "acme-support-regression · run #1",
+        "sub": "8f443ee6-282e-4224-b496-877100f335ec · 2026-10-15 11:30 · 9.7s",
+        "rate": 80,
+        "status": "fail",
+        "threshold": 100,
+        "stats": [
+          {
+            "label": "cases",
+            "value": "5"
+          },
+          {
+            "label": "passed",
+            "value": "4",
+            "tone": "ok"
+          },
+          {
+            "label": "failed",
+            "value": "1",
+            "tone": "bad"
+          },
+          {
+            "label": "avg score",
+            "value": "0.80"
+          },
+          {
+            "label": "avg latency",
+            "value": "1.9s"
+          },
+          {
+            "label": "total tokens",
+            "value": "0 tok"
+          }
+        ],
+        "cases": [
+          {
+            "id": "refund_broken_order",
+            "name": "refund_broken_order",
+            "type": "eval",
+            "score": 1,
+            "status": "pass",
+            "lat": "3.2s",
+            "cost": "0 tok",
+            "input": "Order 1042 arrived broken. Can I get a refund?",
+            "expected": "—",
+            "actual": "Done. I refunded $129.00 for order 1042 to the original payment method (refund rf_b0f40324) and emailed the receipt.",
+            "rubric": [
+              {
+                "key": "tool_name_match_score",
+                "value": 1,
+                "tone": "accent"
+              },
+              {
+                "key": "tool_trajectory_avg_score",
+                "value": 1,
+                "tone": "accent"
+              },
+              {
+                "key": "weighted score",
+                "value": 1,
+                "tone": "accent"
+              }
+            ],
+            "conversation": null
+          },
+          {
+            "id": "customer_history",
+            "name": "customer_history",
+            "type": "eval",
+            "score": 1,
+            "status": "pass",
+            "lat": "2.1s",
+            "cost": "0 tok",
+            "input": "What do you know about customer c_88, and where is order 1043?",
+            "expected": "—",
+            "actual": "Maya Chen has been a customer since 2023-04, with orders 1042, 1043 and no open tickets. Order 1043 (Paper filters, pack of 200) is in transit.",
+            "rubric": [
+              {
+                "key": "tool_name_match_score",
+                "value": 1,
+                "tone": "accent"
+              },
+              {
+                "key": "tool_trajectory_avg_score",
+                "value": 1,
+                "tone": "accent"
+              },
+              {
+                "key": "weighted score",
+                "value": 1,
+                "tone": "accent"
+              }
+            ],
+            "conversation": null
+          },
+          {
+            "id": "remember_preference",
+            "name": "remember_preference",
+            "type": "eval",
+            "score": 1,
+            "status": "pass",
+            "lat": "1.7s",
+            "cost": "0 tok",
+            "input": "c_88 prefers email over phone, please remember that.",
+            "expected": "—",
+            "actual": "Saved. I will contact Maya Chen (c_88) by email from now on.",
+            "rubric": [
+              {
+                "key": "tool_name_match_score",
+                "value": 1,
+                "tone": "accent"
+              },
+              {
+                "key": "tool_trajectory_avg_score",
+                "value": 1,
+                "tone": "accent"
+              },
+              {
+                "key": "weighted score",
+                "value": 1,
+                "tone": "accent"
+              }
+            ],
+            "conversation": null
+          },
+          {
+            "id": "count_refunds",
+            "name": "count_refunds",
+            "type": "eval",
+            "score": 1,
+            "status": "pass",
+            "lat": "1.9s",
+            "cost": "0 tok",
+            "input": "How many refunds were issued for order 1042?",
+            "expected": "—",
+            "actual": "The payments system shows 3 refunds for order 1042, read from the payments store, not from the conversation.",
+            "rubric": [
+              {
+                "key": "tool_name_match_score",
+                "value": 1,
+                "tone": "accent"
+              },
+              {
+                "key": "tool_trajectory_avg_score",
+                "value": 1,
+                "tone": "accent"
+              },
+              {
+                "key": "weighted score",
+                "value": 1,
+                "tone": "accent"
+              }
+            ],
+            "conversation": null
+          },
+          {
+            "id": "cancel_unshipped_order",
+            "name": "cancel_unshipped_order",
+            "type": "eval",
+            "score": 0,
+            "status": "fail",
+            "lat": "0.8s",
+            "cost": "0 tok",
+            "input": "Please cancel order 1043, it has not shipped yet.",
+            "expected": "—",
+            "actual": "In this demo I can look up orders, check a customer's history, issue refunds and remember preferences. Try one of the suggested prompts.",
+            "rubric": [
+              {
+                "key": "tool_name_match_score",
+                "value": 0,
+                "tone": "danger"
+              },
+              {
+                "key": "tool_trajectory_avg_score",
+                "value": 0,
+                "tone": "danger"
+              },
+              {
+                "key": "weighted score",
+                "value": 0,
+                "tone": "danger"
+              }
+            ],
+            "conversation": null
+          }
+        ],
+        "regression": null
+      }
+    }
+  },
+  "runs": [
+    {
+      "id": "history",
+      "label": "Look up a customer and an order",
+      "prompt": "What do you know about customer c_88, and where is order 1043?",
+      "pillar": 4,
+      "after": null,
+      "threadId": "demo-history",
+      "ended": "complete",
+      "chunks": [
+        {
+          "t": 43,
+          "chunk": {
+            "event": "message",
+            "message": {
+              "message_id": "03de0b38-8e3d-4e12-a4df-fd6dc6f9ff7f",
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "What do you know about customer c_88, and where is order 1043?",
+                  "annotations": []
+                }
+              ],
+              "delta": false,
+              "tools_calls": null,
+              "reasoning": null,
+              "timestamp": 1792063854.780808,
+              "metadata": {},
+              "usages": null,
+              "raw": null,
+              "parsed_content": null
+            },
+            "state": null,
+            "data": null,
+            "thread_id": "demo-history",
+            "run_id": "d5d1c03d-d5cf-40e7-91e4-575761d2c475",
+            "metadata": {
+              "status": "invoking_graph",
+              "reason": "initial human message",
+              "is_new_thread": true,
+              "thread_id": "demo-history"
+            },
+            "timestamp": 1792063853.913709
+          }
+        },
+        {
+          "t": 848,
+          "chunk": {
+            "event": "message",
+            "message": {
+              "message_id": "42ae6ec4-3707-4bfe-b88b-4b1505a62f6f",
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Checking the customer record and the order together.",
+                  "annotations": []
+                },
+                {
+                  "type": "tool_call",
+                  "id": "call_6cf3f42eac32",
+                  "name": "get_customer_history",
+                  "args": {
+                    "customer_id": "c_88"
+                  },
+                  "tool_type": null
+                },
+                {
+                  "type": "tool_call",
+                  "id": "call_51e6683b282b",
+                  "name": "lookup_order",
+                  "args": {
+                    "order_id": "1043"
+                  },
+                  "tool_type": null
+                }
+              ],
+              "delta": false,
+              "tools_calls": [
+                {
+                  "id": "call_6cf3f42eac32",
+                  "type": "function",
+                  "function": {
+                    "name": "get_customer_history",
+                    "arguments": "{\"customer_id\": \"c_88\"}"
+                  }
+                },
+                {
+                  "id": "call_51e6683b282b",
+                  "type": "function",
+                  "function": {
+                    "name": "lookup_order",
+                    "arguments": "{\"order_id\": \"1043\"}"
+                  }
+                }
+              ],
+              "reasoning": null,
+              "timestamp": 1792063855.615671,
+              "metadata": {},
+              "usages": null,
+              "raw": null,
+              "parsed_content": null
+            },
+            "state": null,
+            "data": null,
+            "thread_id": "demo-history",
+            "run_id": "d5d1c03d-d5cf-40e7-91e4-575761d2c475",
+            "metadata": {
+              "node": "MAIN",
+              "function_name": "MAIN",
+              "is_new_thread": true,
+              "thread_id": "demo-history"
+            },
+            "timestamp": 1792063853.913709
+          }
+        },
+        {
+          "t": 1202,
+          "chunk": {
+            "event": "message",
+            "message": {
+              "message_id": "5b5e1357-58a4-425d-b6a7-d16f9a8c3f95",
+              "role": "tool",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "call_id": "call_51e6683b282b",
+                  "output": [
+                    {
+                      "order_id": "1043",
+                      "customer_id": "c_88",
+                      "item": "Paper filters, pack of 200",
+                      "total": 18,
+                      "shipping": "in transit",
+                      "delivered_on": null
+                    }
+                  ],
+                  "is_error": false,
+                  "status": "completed"
+                }
+              ],
+              "delta": false,
+              "tools_calls": null,
+              "reasoning": null,
+              "timestamp": 1792063855.969319,
+              "metadata": {
+                "function_name": "lookup_order",
+                "function_argument": {
+                  "order_id": "1043"
+                },
+                "tool_call_id": "call_51e6683b282b"
+              },
+              "usages": null,
+              "raw": null,
+              "parsed_content": null
+            },
+            "state": null,
+            "data": {
+              "status": "tool_result",
+              "tool_name": "lookup_order",
+              "args": {
+                "order_id": "1043"
+              },
+              "tool_call_id": "call_51e6683b282b",
+              "node": "TOOL"
+            },
+            "thread_id": "demo-history",
+            "run_id": "d5d1c03d-d5cf-40e7-91e4-575761d2c475",
+            "metadata": {
+              "is_new_thread": true,
+              "thread_id": "demo-history"
+            },
+            "timestamp": 1792063853.913709
+          }
+        },
+        {
+          "t": 1301,
+          "chunk": {
+            "event": "message",
+            "message": {
+              "message_id": "c79e5e1a-809c-4bbc-86a5-98126ce5ff4d",
+              "role": "tool",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "call_id": "call_6cf3f42eac32",
+                  "output": [
+                    {
+                      "customer_id": "c_88",
+                      "name": "Maya Chen",
+                      "email": "maya.chen@example.com",
+                      "customer_since": "2023-04",
+                      "orders": [
+                        "1042",
+                        "1043"
+                      ],
+                      "open_tickets": 0
+                    }
+                  ],
+                  "is_error": false,
+                  "status": "completed"
+                }
+              ],
+              "delta": false,
+              "tools_calls": null,
+              "reasoning": null,
+              "timestamp": 1792063856.069091,
+              "metadata": {
+                "function_name": "get_customer_history",
+                "function_argument": {
+                  "customer_id": "c_88"
+                },
+                "tool_call_id": "call_6cf3f42eac32"
+              },
+              "usages": null,
+              "raw": null,
+              "parsed_content": null
+            },
+            "state": null,
+            "data": {
+              "status": "tool_result",
+              "tool_name": "get_customer_history",
+              "args": {
+                "customer_id": "c_88"
+              },
+              "tool_call_id": "call_6cf3f42eac32",
+              "node": "TOOL"
+            },
+            "thread_id": "demo-history",
+            "run_id": "d5d1c03d-d5cf-40e7-91e4-575761d2c475",
+            "metadata": {
+              "is_new_thread": true,
+              "thread_id": "demo-history"
+            },
+            "timestamp": 1792063853.913709
+          }
+        },
+        {
+          "t": 2105,
+          "chunk": {
+            "event": "message",
+            "message": {
+              "message_id": "8c53baf8-586e-465a-a77b-8fd1afe5c9af",
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Maya Chen has been a customer since 2023-04, with orders 1042, 1043 and no open tickets. Order 1043 (Paper filters, pack of 200) is in transit.",
+                  "annotations": []
+                }
+              ],
+              "delta": false,
+              "tools_calls": null,
+              "reasoning": null,
+              "timestamp": 1792063856.873016,
+              "metadata": {},
+              "usages": null,
+              "raw": null,
+              "parsed_content": null
+            },
+            "state": null,
+            "data": null,
+            "thread_id": "demo-history",
+            "run_id": "d5d1c03d-d5cf-40e7-91e4-575761d2c475",
+            "metadata": {
+              "node": "MAIN",
+              "function_name": "MAIN",
+              "is_new_thread": true,
+              "thread_id": "demo-history"
+            },
+            "timestamp": 1792063853.913709
+          }
+        }
+      ]
+    },
+    {
+      "id": "prefs",
+      "label": "Save a contact preference to memory",
+      "prompt": "c_88 prefers email over phone, please remember that.",
+      "pillar": 3,
+      "after": null,
+      "threadId": "demo-prefs",
+      "writesMemory": true,
+      "ended": "complete",
+      "chunks": [
+        {
+          "t": 7,
+          "chunk": {
+            "event": "message",
+            "message": {
+              "message_id": "52b0a7e7-7b78-4d72-aa71-3546b08947be",
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "c_88 prefers email over phone, please remember that.",
+                  "annotations": []
+                }
+              ],
+              "delta": false,
+              "tools_calls": null,
+              "reasoning": null,
+              "timestamp": 1792063856.897537,
+              "metadata": {},
+              "usages": null,
+              "raw": null,
+              "parsed_content": null
+            },
+            "state": null,
+            "data": null,
+            "thread_id": "demo-prefs",
+            "run_id": "5c5a9058-6c78-4df9-a2fa-34e61d61f0e3",
+            "metadata": {
+              "status": "invoking_graph",
+              "reason": "initial human message",
+              "is_new_thread": true,
+              "thread_id": "demo-prefs"
+            },
+            "timestamp": 1792063853.913709
+          }
+        },
+        {
+          "t": 811,
+          "chunk": {
+            "event": "message",
+            "message": {
+              "message_id": "03d351ea-cbc3-4917-b058-f4b7f9fa4153",
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "",
+                  "annotations": []
+                },
+                {
+                  "type": "tool_call",
+                  "id": "call_13c7ee329385",
+                  "name": "memory_tool",
+                  "args": {
+                    "action": "store",
+                    "content": "Maya Chen (c_88) prefers email over phone.",
+                    "category": "preferences"
+                  },
+                  "tool_type": null
+                }
+              ],
+              "delta": false,
+              "tools_calls": [
+                {
+                  "id": "call_13c7ee329385",
+                  "type": "function",
+                  "function": {
+                    "name": "memory_tool",
+                    "arguments": "{\"action\": \"store\", \"content\": \"Maya Chen (c_88) prefers email over phone.\", \"category\": \"preferences\"}"
+                  }
+                }
+              ],
+              "reasoning": null,
+              "timestamp": 1792063857.706025,
+              "metadata": {},
+              "usages": null,
+              "raw": null,
+              "parsed_content": null
+            },
+            "state": null,
+            "data": null,
+            "thread_id": "demo-prefs",
+            "run_id": "5c5a9058-6c78-4df9-a2fa-34e61d61f0e3",
+            "metadata": {
+              "node": "MAIN",
+              "function_name": "MAIN",
+              "is_new_thread": true,
+              "thread_id": "demo-prefs"
+            },
+            "timestamp": 1792063853.913709
+          }
+        },
+        {
+          "t": 846,
+          "chunk": {
+            "event": "message",
+            "message": {
+              "message_id": "dcd465e2-8ef4-41d5-b699-79904e235c5f",
+              "role": "tool",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "call_id": "call_13c7ee329385",
+                  "output": "{\"status\": \"scheduled\", \"action\": \"store\"}",
+                  "is_error": false,
+                  "status": "completed"
+                }
+              ],
+              "delta": false,
+              "tools_calls": null,
+              "reasoning": null,
+              "timestamp": 1792063857.709288,
+              "metadata": {
+                "function_name": "memory_tool",
+                "function_argument": {
+                  "action": "store",
+                  "content": "Maya Chen (c_88) prefers email over phone.",
+                  "category": "preferences"
+                },
+                "tool_call_id": "call_13c7ee329385"
+              },
+              "usages": null,
+              "raw": null,
+              "parsed_content": null
+            },
+            "state": null,
+            "data": {
+              "status": "tool_result",
+              "tool_name": "memory_tool",
+              "args": {
+                "action": "store",
+                "content": "Maya Chen (c_88) prefers email over phone.",
+                "category": "preferences"
+              },
+              "tool_call_id": "call_13c7ee329385",
+              "node": "TOOL"
+            },
+            "thread_id": "demo-prefs",
+            "run_id": "5c5a9058-6c78-4df9-a2fa-34e61d61f0e3",
+            "metadata": {
+              "is_new_thread": true,
+              "thread_id": "demo-prefs"
+            },
+            "timestamp": 1792063853.913709
+          }
+        },
+        {
+          "t": 1649,
+          "chunk": {
+            "event": "message",
+            "message": {
+              "message_id": "f22f2a77-1569-429e-8d1e-26f34a17a8ca",
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Saved. I will contact Maya Chen (c_88) by email from now on.",
+                  "annotations": []
+                }
+              ],
+              "delta": false,
+              "tools_calls": null,
+              "reasoning": null,
+              "timestamp": 1792063858.544225,
+              "metadata": {},
+              "usages": null,
+              "raw": null,
+              "parsed_content": null
+            },
+            "state": null,
+            "data": null,
+            "thread_id": "demo-prefs",
+            "run_id": "5c5a9058-6c78-4df9-a2fa-34e61d61f0e3",
+            "metadata": {
+              "node": "MAIN",
+              "function_name": "MAIN",
+              "is_new_thread": true,
+              "thread_id": "demo-prefs"
+            },
+            "timestamp": 1792063853.913709
+          }
+        }
+      ]
+    },
+    {
+      "id": "refund",
+      "label": "Refund a broken order",
+      "prompt": "Order 1042 arrived broken. Can I get a refund?",
+      "pillar": 1,
+      "after": "prefs",
+      "threadId": "demo-refund",
+      "ended": "complete",
+      "chunks": [
+        {
+          "t": 9,
+          "chunk": {
+            "event": "message",
+            "message": {
+              "message_id": "eeaecf2e-ddbd-42e6-8181-a91f611fe9f6",
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Order 1042 arrived broken. Can I get a refund?",
+                  "annotations": []
+                }
+              ],
+              "delta": false,
+              "tools_calls": null,
+              "reasoning": null,
+              "timestamp": 1792063858.555819,
+              "metadata": {},
+              "usages": null,
+              "raw": null,
+              "parsed_content": null
+            },
+            "state": null,
+            "data": null,
+            "thread_id": "demo-refund",
+            "run_id": "f3ef247a-aa80-454a-a9b3-946d00ce2f2a",
+            "metadata": {
+              "status": "invoking_graph",
+              "reason": "initial human message",
+              "is_new_thread": true,
+              "thread_id": "demo-refund"
+            },
+            "timestamp": 1792063853.913709
+          }
+        },
+        {
+          "t": 813,
+          "chunk": {
+            "event": "message",
+            "message": {
+              "message_id": "0210d3b5-716f-408c-9e1b-c5728906233a",
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Let me check the order and how this customer likes to be contacted.",
+                  "annotations": []
+                },
+                {
+                  "type": "tool_call",
+                  "id": "call_73c9f2c318b2",
+                  "name": "lookup_order",
+                  "args": {
+                    "order_id": "1042"
+                  },
+                  "tool_type": null
+                },
+                {
+                  "type": "tool_call",
+                  "id": "call_5aede7b5ff1b",
+                  "name": "memory_tool",
+                  "args": {
+                    "action": "search",
+                    "query": "c_88 contact preference"
+                  },
+                  "tool_type": null
+                }
+              ],
+              "delta": false,
+              "tools_calls": [
+                {
+                  "id": "call_73c9f2c318b2",
+                  "type": "function",
+                  "function": {
+                    "name": "lookup_order",
+                    "arguments": "{\"order_id\": \"1042\"}"
+                  }
+                },
+                {
+                  "id": "call_5aede7b5ff1b",
+                  "type": "function",
+                  "function": {
+                    "name": "memory_tool",
+                    "arguments": "{\"action\": \"search\", \"query\": \"c_88 contact preference\"}"
+                  }
+                }
+              ],
+              "reasoning": null,
+              "timestamp": 1792063859.367223,
+              "metadata": {},
+              "usages": null,
+              "raw": null,
+              "parsed_content": null
+            },
+            "state": null,
+            "data": null,
+            "thread_id": "demo-refund",
+            "run_id": "f3ef247a-aa80-454a-a9b3-946d00ce2f2a",
+            "metadata": {
+              "node": "MAIN",
+              "function_name": "MAIN",
+              "is_new_thread": true,
+              "thread_id": "demo-refund"
+            },
+            "timestamp": 1792063853.913709
+          }
+        },
+        {
+          "t": 817,
+          "chunk": {
+            "event": "message",
+            "message": {
+              "message_id": "80e1446d-6404-486f-85ff-fe9b21ca15dc",
+              "role": "tool",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "call_id": "call_5aede7b5ff1b",
+                  "output": "[{\"id\": \"1179a1a2-a74a-40a8-9bad-b802ac1ff39c\", \"content\": \"Maya Chen (c_88) prefers email over phone.\", \"score\": 0.3162, \"memory_type\": \"episodic\", \"metadata\": {\"content\": \"Maya Chen (c_88) prefers email over phone.\", \"user_id\": \"anonymous\", \"thread_id\": null, \"memory_type\": \"episodic\", \"category\": \"preferences\", \"timestamp\": \"2026-10-15T17:30:57.726038\"}}]",
+                  "is_error": false,
+                  "status": "completed"
+                }
+              ],
+              "delta": false,
+              "tools_calls": null,
+              "reasoning": null,
+              "timestamp": 1792063859.371025,
+              "metadata": {
+                "function_name": "memory_tool",
+                "function_argument": {
+                  "action": "search",
+                  "query": "c_88 contact preference"
+                },
+                "tool_call_id": "call_5aede7b5ff1b"
+              },
+              "usages": null,
+              "raw": null,
+              "parsed_content": null
+            },
+            "state": null,
+            "data": {
+              "status": "tool_result",
+              "tool_name": "memory_tool",
+              "args": {
+                "action": "search",
+                "query": "c_88 contact preference"
+              },
+              "tool_call_id": "call_5aede7b5ff1b",
+              "node": "TOOL"
+            },
+            "thread_id": "demo-refund",
+            "run_id": "f3ef247a-aa80-454a-a9b3-946d00ce2f2a",
+            "metadata": {
+              "is_new_thread": true,
+              "thread_id": "demo-refund"
+            },
+            "timestamp": 1792063853.913709
+          }
+        },
+        {
+          "t": 1168,
+          "chunk": {
+            "event": "message",
+            "message": {
+              "message_id": "216b8b60-1d24-40ef-9248-e252325dcb03",
+              "role": "tool",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "call_id": "call_73c9f2c318b2",
+                  "output": [
+                    {
+                      "order_id": "1042",
+                      "customer_id": "c_88",
+                      "item": "Ceramic pour-over set",
+                      "total": 129,
+                      "shipping": "delivered",
+                      "delivered_on": "2026-10-11"
+                    }
+                  ],
+                  "is_error": false,
+                  "status": "completed"
+                }
+              ],
+              "delta": false,
+              "tools_calls": null,
+              "reasoning": null,
+              "timestamp": 1792063859.722265,
+              "metadata": {
+                "function_name": "lookup_order",
+                "function_argument": {
+                  "order_id": "1042"
+                },
+                "tool_call_id": "call_73c9f2c318b2"
+              },
+              "usages": null,
+              "raw": null,
+              "parsed_content": null
+            },
+            "state": null,
+            "data": {
+              "status": "tool_result",
+              "tool_name": "lookup_order",
+              "args": {
+                "order_id": "1042"
+              },
+              "tool_call_id": "call_73c9f2c318b2",
+              "node": "TOOL"
+            },
+            "thread_id": "demo-refund",
+            "run_id": "f3ef247a-aa80-454a-a9b3-946d00ce2f2a",
+            "metadata": {
+              "is_new_thread": true,
+              "thread_id": "demo-refund"
+            },
+            "timestamp": 1792063853.913709
+          }
+        },
+        {
+          "t": 1973,
+          "chunk": {
+            "event": "message",
+            "message": {
+              "message_id": "9c265689-9ab1-4da5-a2ca-e459cce1b8dd",
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "The order was delivered and is inside the 30-day window, so it qualifies for a full refund. Issuing it and emailing the receipt now.",
+                  "annotations": []
+                },
+                {
+                  "type": "tool_call",
+                  "id": "call_ae46fd0528a7",
+                  "name": "issue_refund",
+                  "args": {
+                    "order_id": "1042",
+                    "amount": 129
+                  },
+                  "tool_type": null
+                },
+                {
+                  "type": "tool_call",
+                  "id": "call_2636d286188a",
+                  "name": "send_email",
+                  "args": {
+                    "to": "maya.chen@example.com",
+                    "subject": "Your refund for order 1042",
+                    "body": "We have refunded $129.00 for order 1042."
+                  },
+                  "tool_type": null
+                }
+              ],
+              "delta": false,
+              "tools_calls": [
+                {
+                  "id": "call_ae46fd0528a7",
+                  "type": "function",
+                  "function": {
+                    "name": "issue_refund",
+                    "arguments": "{\"order_id\": \"1042\", \"amount\": 129.0}"
+                  }
+                },
+                {
+                  "id": "call_2636d286188a",
+                  "type": "function",
+                  "function": {
+                    "name": "send_email",
+                    "arguments": "{\"to\": \"maya.chen@example.com\", \"subject\": \"Your refund for order 1042\", \"body\": \"We have refunded $129.00 for order 1042.\"}"
+                  }
+                }
+              ],
+              "reasoning": null,
+              "timestamp": 1792063860.526789,
+              "metadata": {},
+              "usages": null,
+              "raw": null,
+              "parsed_content": null
+            },
+            "state": null,
+            "data": null,
+            "thread_id": "demo-refund",
+            "run_id": "f3ef247a-aa80-454a-a9b3-946d00ce2f2a",
+            "metadata": {
+              "node": "MAIN",
+              "function_name": "MAIN",
+              "is_new_thread": true,
+              "thread_id": "demo-refund"
+            },
+            "timestamp": 1792063853.913709
+          }
+        },
+        {
+          "t": 2229,
+          "chunk": {
+            "event": "message",
+            "message": {
+              "message_id": "97295cf9-46a5-413c-8b9d-dcfa196c348f",
+              "role": "tool",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "call_id": "call_2636d286188a",
+                  "output": [
+                    {
+                      "queued": true,
+                      "to": "maya.chen@example.com",
+                      "subject": "Your refund for order 1042"
+                    }
+                  ],
+                  "is_error": false,
+                  "status": "completed"
+                }
+              ],
+              "delta": false,
+              "tools_calls": null,
+              "reasoning": null,
+              "timestamp": 1792063860.782638,
+              "metadata": {
+                "function_name": "send_email",
+                "function_argument": {
+                  "to": "maya.chen@example.com",
+                  "subject": "Your refund for order 1042",
+                  "body": "We have refunded $129.00 for order 1042."
+                },
+                "tool_call_id": "call_2636d286188a"
+              },
+              "usages": null,
+              "raw": null,
+              "parsed_content": null
+            },
+            "state": null,
+            "data": {
+              "status": "tool_result",
+              "tool_name": "send_email",
+              "args": {
+                "to": "maya.chen@example.com",
+                "subject": "Your refund for order 1042",
+                "body": "We have refunded $129.00 for order 1042."
+              },
+              "tool_call_id": "call_2636d286188a",
+              "node": "TOOL"
+            },
+            "thread_id": "demo-refund",
+            "run_id": "f3ef247a-aa80-454a-a9b3-946d00ce2f2a",
+            "metadata": {
+              "is_new_thread": true,
+              "thread_id": "demo-refund"
+            },
+            "timestamp": 1792063853.913709
+          }
+        },
+        {
+          "t": 2278,
+          "chunk": {
+            "event": "message",
+            "message": {
+              "message_id": "4333d5a4-513c-4f58-bc42-7ef9feae85dc",
+              "role": "tool",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "call_id": "call_ae46fd0528a7",
+                  "output": [
+                    {
+                      "refund_id": "rf_a9c68347",
+                      "order_id": "1042",
+                      "amount": 129,
+                      "refunded": true
+                    }
+                  ],
+                  "is_error": false,
+                  "status": "completed"
+                }
+              ],
+              "delta": false,
+              "tools_calls": null,
+              "reasoning": null,
+              "timestamp": 1792063860.832439,
+              "metadata": {
+                "function_name": "issue_refund",
+                "function_argument": {
+                  "order_id": "1042",
+                  "amount": 129
+                },
+                "tool_call_id": "call_ae46fd0528a7"
+              },
+              "usages": null,
+              "raw": null,
+              "parsed_content": null
+            },
+            "state": null,
+            "data": {
+              "status": "tool_result",
+              "tool_name": "issue_refund",
+              "args": {
+                "order_id": "1042",
+                "amount": 129
+              },
+              "tool_call_id": "call_ae46fd0528a7",
+              "node": "TOOL"
+            },
+            "thread_id": "demo-refund",
+            "run_id": "f3ef247a-aa80-454a-a9b3-946d00ce2f2a",
+            "metadata": {
+              "is_new_thread": true,
+              "thread_id": "demo-refund"
+            },
+            "timestamp": 1792063853.913709
+          }
+        },
+        {
+          "t": 3083,
+          "chunk": {
+            "event": "message",
+            "message": {
+              "message_id": "d7b990ae-5461-4ee8-9225-d2d3987ec853",
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Done. I refunded $129.00 for order 1042 to the original payment method (refund rf_a9c68347) and emailed the receipt, since memory says the customer prefers email.",
+                  "annotations": []
+                }
+              ],
+              "delta": false,
+              "tools_calls": null,
+              "reasoning": null,
+              "timestamp": 1792063861.637108,
+              "metadata": {},
+              "usages": null,
+              "raw": null,
+              "parsed_content": null
+            },
+            "state": null,
+            "data": null,
+            "thread_id": "demo-refund",
+            "run_id": "f3ef247a-aa80-454a-a9b3-946d00ce2f2a",
+            "metadata": {
+              "node": "MAIN",
+              "function_name": "MAIN",
+              "is_new_thread": true,
+              "thread_id": "demo-refund"
+            },
+            "timestamp": 1792063853.913709
+          }
+        }
+      ]
+    },
+    {
+      "id": "count",
+      "label": "Check how many refunds went out",
+      "prompt": "How many refunds were issued for order 1042?",
+      "pillar": 2,
+      "after": "refund",
+      "threadId": "demo-refund",
+      "ended": "complete",
+      "chunks": [
+        {
+          "t": 9,
+          "chunk": {
+            "event": "message",
+            "message": {
+              "message_id": "cf65af3b-dfc3-469a-b448-2d510c00ea58",
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "How many refunds were issued for order 1042?",
+                  "annotations": []
+                }
+              ],
+              "delta": false,
+              "tools_calls": null,
+              "reasoning": null,
+              "timestamp": 1792063861.653272,
+              "metadata": {},
+              "usages": null,
+              "raw": null,
+              "parsed_content": null
+            },
+            "state": null,
+            "data": null,
+            "thread_id": "demo-refund",
+            "run_id": "9a6e964a-6087-49e9-8492-bd5def931648",
+            "metadata": {
+              "status": "invoking_graph",
+              "reason": "initial human message",
+              "is_new_thread": false,
+              "thread_id": "demo-refund"
+            },
+            "timestamp": 1792063853.913709
+          }
+        },
+        {
+          "t": 815,
+          "chunk": {
+            "event": "message",
+            "message": {
+              "message_id": "9abebfad-cff5-4fc6-88fc-40203eab5c7f",
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "",
+                  "annotations": []
+                },
+                {
+                  "type": "tool_call",
+                  "id": "call_5704714d654f",
+                  "name": "list_refunds",
+                  "args": {
+                    "order_id": "1042"
+                  },
+                  "tool_type": null
+                }
+              ],
+              "delta": false,
+              "tools_calls": [
+                {
+                  "id": "call_5704714d654f",
+                  "type": "function",
+                  "function": {
+                    "name": "list_refunds",
+                    "arguments": "{\"order_id\": \"1042\"}"
+                  }
+                }
+              ],
+              "reasoning": null,
+              "timestamp": 1792063862.46568,
+              "metadata": {},
+              "usages": null,
+              "raw": null,
+              "parsed_content": null
+            },
+            "state": null,
+            "data": null,
+            "thread_id": "demo-refund",
+            "run_id": "9a6e964a-6087-49e9-8492-bd5def931648",
+            "metadata": {
+              "node": "MAIN",
+              "function_name": "MAIN",
+              "is_new_thread": false,
+              "thread_id": "demo-refund"
+            },
+            "timestamp": 1792063853.913709
+          }
+        },
+        {
+          "t": 1020,
+          "chunk": {
+            "event": "message",
+            "message": {
+              "message_id": "1964cdf8-d043-4ed0-acf4-a873a5c667d4",
+              "role": "tool",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "call_id": "call_5704714d654f",
+                  "output": [
+                    {
+                      "order_id": "1042",
+                      "refunds": [
+                        {
+                          "refund_id": "rf_a9c68347",
+                          "order_id": "1042",
+                          "amount": 129
+                        }
+                      ],
+                      "count": 1
+                    }
+                  ],
+                  "is_error": false,
+                  "status": "completed"
+                }
+              ],
+              "delta": false,
+              "tools_calls": null,
+              "reasoning": null,
+              "timestamp": 1792063862.670532,
+              "metadata": {
+                "function_name": "list_refunds",
+                "function_argument": {
+                  "order_id": "1042"
+                },
+                "tool_call_id": "call_5704714d654f"
+              },
+              "usages": null,
+              "raw": null,
+              "parsed_content": null
+            },
+            "state": null,
+            "data": {
+              "status": "tool_result",
+              "tool_name": "list_refunds",
+              "args": {
+                "order_id": "1042"
+              },
+              "tool_call_id": "call_5704714d654f",
+              "node": "TOOL"
+            },
+            "thread_id": "demo-refund",
+            "run_id": "9a6e964a-6087-49e9-8492-bd5def931648",
+            "metadata": {
+              "is_new_thread": false,
+              "thread_id": "demo-refund"
+            },
+            "timestamp": 1792063853.913709
+          }
+        },
+        {
+          "t": 1825,
+          "chunk": {
+            "event": "message",
+            "message": {
+              "message_id": "9e55fdab-a7a3-4495-a4ce-44e938c5bfe4",
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "The payments system shows 1 refund for order 1042, read from the payments store, not from the conversation.",
+                  "annotations": []
+                }
+              ],
+              "delta": false,
+              "tools_calls": null,
+              "reasoning": null,
+              "timestamp": 1792063863.475753,
+              "metadata": {},
+              "usages": null,
+              "raw": null,
+              "parsed_content": null
+            },
+            "state": null,
+            "data": null,
+            "thread_id": "demo-refund",
+            "run_id": "9a6e964a-6087-49e9-8492-bd5def931648",
+            "metadata": {
+              "node": "MAIN",
+              "function_name": "MAIN",
+              "is_new_thread": false,
+              "thread_id": "demo-refund"
+            },
+            "timestamp": 1792063853.913709
+          }
+        }
+      ]
+    }
+  ]
+}

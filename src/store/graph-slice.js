@@ -1,6 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit"
 
-import { getAgentFlowClient } from "@/lib/agentflow-client"
+import { getTenxGraphClient } from "@/lib/tenxgraph-client"
 
 // Real graph structure + state schema from the backend, shared by the Graph page
 // and the chat Inspector's Graph tab.
@@ -78,7 +78,7 @@ export const loadGraph =
   async (dispatch, getState) => {
     let client
     try {
-      client = getAgentFlowClient()
+      client = getTenxGraphClient()
     } catch (e) {
       dispatch(graphError(e?.message || "Not connected to a backend"))
       return

@@ -1,9 +1,9 @@
 // Saved-connections list persisted to localStorage. The single *active* connection
-// is stored separately via settings-utils (pyagenity-settings) for SDK reuse.
+// is stored separately via settings-utils (10xgraph.settings) for SDK reuse.
 
-const KEY = "agentflow.connections"
+const KEY = "10xgraph.connections"
 
-// Seed shown on first run. Only `local` is a real reachable default (agentflow api/play).
+// Seed shown on first run. Only `local` is a real reachable default (10xgraph api/play).
 export const DEFAULT_CONNECTIONS = [
   {
     id: "local",

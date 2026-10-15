@@ -10,10 +10,12 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <script>
       // Apply the saved theme before first paint to avoid a flash.
-      // Mirrors lib/use-theme.js (key "agentflow.theme", default dark).
+      // Mirrors lib/use-theme.js (key "10xgraph.theme", default dark). Falls back to the
+      // pre-rename "agentflow.theme" key, which lib/storage-migration.js moves on load.
       (function () {
         try {
-          var m = localStorage.getItem("agentflow.theme")
+          var m =
+            localStorage.getItem("10xgraph.theme") || localStorage.getItem("agentflow.theme")
           if (["light", "dark", "system"].indexOf(m) === -1) m = "dark"
           var dark =
             m === "system"

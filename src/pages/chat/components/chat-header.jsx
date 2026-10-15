@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
 
 import { track } from "@/lib/analytics"
+import { useConnection } from "@/lib/connection/connection-context"
 import {
   newThread,
   removeThread,
@@ -14,13 +15,20 @@ import { fixThread, stopGeneration } from "@/store/chat-thunks"
 
 import styles from "../chat.module.css"
 
-// ws works via the local client but is gated "coming soon" until the client is
-// published to npm (see README). Flip `soon:false` to enable it.
+// ws works with 10xgraph-client >= 0.6.0 and 10xgraph-api >= 0.7.0, but stays gated
+// "coming soon" until the next playground release. Flip `soon:false` to enable it.
 const MODES = [
   { id: "invoke", soon: false },
   { id: "stream", soon: false },
   { id: "ws", soon: true },
 ]
+
+// The recorded demo holds streamed runs only, so invoke needs a live server.
+const modeTitle = (m, isDemo) => {
+  if (m.soon) return "WebSocket transport — coming soon"
+  if (isDemo && m.id === "invoke") return "Live servers only"
+  return undefined
+}
 
 /**
  *
@@ -138,6 +146,7 @@ const ChatHeader = () => {
   const granularity = useSelector((s) => s.chat.granularity)
   const generating = useSelector((s) => s.chat.generating)
   const threadId = useSelector((s) => s.chat.threadId)
+  const { isDemo } = useConnection()
 
   return (
     <div className={styles.head}>
@@ -149,8 +158,8 @@ const ChatHeader = () => {
             key={m.id}
             className={`${mode === m.id ? styles.on : ""} ${m.soon ? styles.soon : ""}`}
             onClick={() => !m.soon && dispatch(setMode(m.id))}
-            disabled={generating || m.soon}
-            title={m.soon ? "WebSocket transport — coming soon" : undefined}
+            disabled={generating || m.soon || (isDemo && m.id === "invoke")}
+            title={modeTitle(m, isDemo)}
           >
             {m.id}
             {m.soon && <span className={styles.soonBadge}>soon</span>}
