@@ -134,6 +134,7 @@ const toolCallBlock = (block, index) => ({
   key: `tool_call:${block.id || block.name || index}`,
   block: {
     kind: "tool_call",
+    callId: block.id,
     name: block.name,
     code: pretty(block.args ?? {}),
     collapsed: false,
@@ -144,8 +145,10 @@ const toolResultBlock = (block, index) => ({
   key: `tool_result:${block.call_id || block.id || index}`,
   block: {
     kind: "tool_result",
+    callId: block.call_id,
     name: block.name || "result",
     code: pretty(block.output ?? block.content ?? {}),
+    isError: Boolean(block.is_error),
     collapsed: true,
   },
 })
@@ -180,6 +183,7 @@ const emitToolMessage = (dispatch, agentId, message) => {
       key: `tool_result:${message.message_id || message.id || "tool"}`,
       block: {
         kind: "tool_result",
+        callId: message.metadata?.tool_call_id,
         name: message.name || "result",
         code: pretty(message.content ?? {}),
         collapsed: true,

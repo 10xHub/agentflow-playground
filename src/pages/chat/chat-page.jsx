@@ -1,9 +1,18 @@
-import { PanelRight } from "lucide-react"
-import { useEffect, useRef, useState } from "react"
+import { MessageSquareDashed, PanelRight } from "lucide-react"
+import PropTypes from "prop-types"
+import { useEffect, useState } from "react"
 import { useSelector } from "react-redux"
 
 import { useConnectionBarSlot } from "@/components/shell/app-shell"
 import { BarButton } from "@/components/shell/connection-bar"
+import {
+  MessageScroller,
+  MessageScrollerButton,
+  MessageScrollerContent,
+  MessageScrollerItem,
+  MessageScrollerProvider,
+  MessageScrollerViewport,
+} from "@/components/ui/message-scroller"
 import { useConnection } from "@/lib/connection/connection-context"
 
 import styles from "./chat.module.css"
@@ -30,6 +39,77 @@ const emptyNote = (isDemo, transport) =>
     ? "Recorded demo · pick a prompt below to replay a real run"
     : `Send a message to start · ${transport}`
 
+/** The empty thread: what to do first, and which endpoint it will hit. */
+const EmptyThread = ({ note }) => (
+  <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
+    <div className="flex size-10 items-center justify-center rounded-xl border bg-card text-muted-foreground">
+      <MessageSquareDashed className="size-5" />
+    </div>
+    <p className="font-mono text-xs text-muted-foreground">{note}</p>
+  </div>
+)
+
+EmptyThread.propTypes = { note: PropTypes.string.isRequired }
+
+/** The live run line under the last turn, or the run's error. */
+const RunStatus = ({ generating, error = null, label }) => {
+  if (error) {
+    return (
+      <p role="alert" className="font-mono text-xs text-destructive">
+        {error}
+      </p>
+    )
+  }
+  if (!generating) return null
+  return (
+    <p className="flex items-center gap-2 font-mono text-xs text-muted-foreground">
+      <span className={styles.sp} /> {label}
+    </p>
+  )
+}
+
+RunStatus.propTypes = {
+  generating: PropTypes.bool.isRequired,
+  error: PropTypes.string,
+  label: PropTypes.string.isRequired,
+}
+
+/**
+ * The conversation. The user's turn is the scroll anchor, so a new question
+ * settles near the top and the reply streams in under it.
+ */
+const Thread = ({ messages, generating, error = null, label }) => (
+  <MessageScroller>
+    <MessageScrollerViewport aria-label="Conversation">
+      <MessageScrollerContent
+        aria-busy={generating}
+        className="mx-auto w-full max-w-190 gap-7 px-6 py-6"
+      >
+        {messages.map((message) => (
+          <MessageScrollerItem
+            key={message.id}
+            messageId={message.id}
+            scrollAnchor={message.role === "user"}
+          >
+            <Message msg={message} />
+          </MessageScrollerItem>
+        ))}
+        <RunStatus generating={generating} error={error} label={label} />
+      </MessageScrollerContent>
+    </MessageScrollerViewport>
+    <MessageScrollerButton />
+  </MessageScroller>
+)
+
+Thread.propTypes = {
+  messages: PropTypes.arrayOf(
+    PropTypes.shape({ id: PropTypes.string, role: PropTypes.string })
+  ).isRequired,
+  generating: PropTypes.bool.isRequired,
+  error: PropTypes.string,
+  label: PropTypes.string.isRequired,
+}
+
 /**
  *
  */
@@ -44,9 +124,9 @@ const ChatPage = () => {
   const generating = useSelector((s) => s.chat.generating)
   const error = useSelector((s) => s.chat.error)
   const mode = useSelector((s) => s.chat.mode)
-  const threadReference = useRef(null)
 
   const transport = TRANSPORT[mode] || TRANSPORT.stream
+  const runLabel = `${mode === "invoke" ? "awaiting response" : "receiving stream"} · ${transport}`
 
   // Publish the inspector toggle into the shared connection bar; clear on leave.
   // A realtime agent has no turn-based inspector, so don't offer it in that state.
@@ -67,12 +147,6 @@ const ChatPage = () => {
     return () => setBarRight(null)
   }, [inspectorOpen, setBarRight, isRealtime])
 
-  // Keep the newest message in view as it streams in.
-  useEffect(() => {
-    const element = threadReference.current
-    if (element) element.scrollTop = element.scrollHeight
-  }, [messages])
-
   if (isRealtime) {
     return (
       <div className={styles.main}>
@@ -85,34 +159,20 @@ const ChatPage = () => {
     <>
       <div className={styles.main}>
         <ChatHeader />
-        <div className={styles.thread} ref={threadReference}>
-          {messages.length === 0 ? (
-            <div className={styles.streamingNote}>
-              {emptyNote(isDemo, transport)}
-            </div>
-          ) : (
-            messages.map((message) => (
-              <Message key={message.id} msg={message} />
-            ))
-          )}
-
-          {generating && (
-            <div className={styles.streamingNote}>
-              <span className={styles.sp} />{" "}
-              {mode === "invoke" ? "awaiting response" : "receiving stream"} ·{" "}
-              {transport}
-            </div>
-          )}
-
-          {error && (
-            <div
-              className={styles.streamingNote}
-              style={{ color: "var(--danger, #e5484d)" }}
-            >
-              {error}
-            </div>
-          )}
-        </div>
+        <MessageScrollerProvider autoScroll>
+          <div className="relative min-h-0 flex-1">
+            {messages.length === 0 ? (
+              <EmptyThread note={emptyNote(isDemo, transport)} />
+            ) : (
+              <Thread
+                messages={messages}
+                generating={generating}
+                error={error}
+                label={runLabel}
+              />
+            )}
+          </div>
+        </MessageScrollerProvider>
         <DemoPrompts enabled={isDemo} />
         <Composer />
       </div>

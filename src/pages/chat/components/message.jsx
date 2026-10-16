@@ -1,8 +1,17 @@
 import PropTypes from "prop-types"
 
+import { Bubble, BubbleContent } from "@/components/ui/bubble"
+import {
+  Message as MessageRoot,
+  MessageContent,
+  MessageFooter,
+  MessageHeader,
+} from "@/components/ui/message"
+import { cn } from "@/lib/utils"
+
 import styles from "../chat.module.css"
 
-import ContentBlock from "./content-block"
+import AgentSteps from "./agent-steps"
 import RichText from "./rich-text"
 
 const usageShape = PropTypes.shape({
@@ -19,93 +28,95 @@ const runMetaShape = PropTypes.shape({
   status: PropTypes.string,
 })
 
+const STATUS_TONE = {
+  done: "text-(--ok)",
+  stopped: "text-(--warn)",
+  error: "text-destructive",
+}
+
 /** Token / call / path footer under an agent turn. */
-const RunMeta = ({ runMeta }) => (
-  <div className={styles.runmeta}>
-    {runMeta.usage ? (
-      <span title="prompt in · completion out · reasoning">
-        <b>tokens</b> {runMeta.usage.prompt_tokens} in ·{" "}
-        {runMeta.usage.completion_tokens} out
-        {runMeta.usage.reasoning_tokens
-          ? ` · ${runMeta.usage.reasoning_tokens} reason`
-          : ""}{" "}
-        <span className={styles.tokTotal}>
-          ({runMeta.usage.total_tokens} total)
+const RunMeta = ({ runMeta }) => {
+  const { usage, path, status } = runMeta
+  return (
+    <MessageFooter className="flex-wrap gap-x-3 gap-y-1 px-0 font-mono text-[10.5px] font-normal">
+      {usage ? (
+        <span title="prompt in · completion out · reasoning">
+          {usage.prompt_tokens} in · {usage.completion_tokens} out
+          {usage.reasoning_tokens
+            ? ` · ${usage.reasoning_tokens} reason`
+            : ""}{" "}
+          <span className="opacity-70">({usage.total_tokens} tokens)</span>
         </span>
-      </span>
-    ) : null}
-    {runMeta.usage?.calls ? (
-      <span>
-        <b>llm calls</b> {runMeta.usage.calls}
-      </span>
-    ) : null}
-    <span>
-      <b>path</b> {runMeta.path}
-    </span>
-    {runMeta.status ? (
-      <span className={styles.ok}>{runMeta.status}</span>
-    ) : null}
-  </div>
-)
+      ) : null}
+      {usage?.calls ? <span>{usage.calls} llm calls</span> : null}
+      {path ? <span>{path}</span> : null}
+      {status ? (
+        <span className={STATUS_TONE[status] ?? ""}>{status}</span>
+      ) : null}
+    </MessageFooter>
+  )
+}
 
 RunMeta.propTypes = {
   runMeta: runMetaShape.isRequired,
 }
 
-/** A user turn: plain text, no blocks. */
+/** A user turn: a right-aligned bubble. */
 const UserMessage = ({ msg }) => (
-  <div className={styles.msgWrap}>
-    <div className={styles.msg}>
-      <div className={`${styles.avatar} ${styles.user}`}>YOU</div>
-      <div className={styles.msgBody}>
-        <div className={styles.msgRole}>
-          <span className={styles.who}>{msg.who}</span> · {msg.time}
-        </div>
-        <div className={styles.prose}>
-          <p>{msg.text}</p>
-        </div>
-      </div>
-    </div>
-  </div>
+  <MessageRoot align="end">
+    <MessageContent>
+      <Bubble align="end" variant="muted">
+        <BubbleContent className="whitespace-pre-wrap">
+          {msg.text}
+        </BubbleContent>
+      </Bubble>
+      {msg.time ? (
+        <MessageFooter className="font-normal opacity-0 transition-opacity group-hover/message:opacity-100">
+          {msg.time}
+        </MessageFooter>
+      ) : null}
+    </MessageContent>
+  </MessageRoot>
 )
 
 UserMessage.propTypes = {
   msg: PropTypes.shape({
-    who: PropTypes.string,
     time: PropTypes.string,
     text: PropTypes.string,
   }).isRequired,
 }
 
-/** An agent turn: reasoning / tool blocks, the answer, then the run footer. */
-const AgentMessage = ({ msg }) => (
-  <div className={styles.msgWrap}>
-    <div className={styles.msg}>
-      <div className={`${styles.avatar} ${styles.agent}`}>AG</div>
-      <div className={styles.msgBody}>
-        <div className={styles.msgRole}>
-          <span className={styles.who}>{msg.who}</span> · node{" "}
-          <span className="mono">{msg.node}</span>
-        </div>
+/** An agent turn: the node, reasoning and tool steps, the answer, the run footer. */
+const AgentMessage = ({ msg }) => {
+  const text = msg.answer?.join("\n\n") || ""
+  return (
+    <MessageRoot>
+      <MessageContent className="gap-3">
+        <MessageHeader className="gap-1.5 px-0 font-normal">
+          <span className="text-foreground/80">{msg.who}</span>
+          <span aria-hidden="true">·</span>
+          <span className="font-mono">{msg.node}</span>
+        </MessageHeader>
 
-        {msg.blocks?.map((block) => (
-          <ContentBlock key={block._key} block={block} />
-        ))}
+        <AgentSteps
+          blocks={msg.blocks}
+          streaming={msg.streaming}
+          answering={text.length > 0}
+        />
 
-        <div className={styles.prose} style={{ marginTop: 12 }}>
-          <RichText
-            text={msg.answer?.join("\n\n") || ""}
-            streaming={msg.streaming}
-          >
-            {msg.streaming ? <span className={styles.caret} /> : null}
-          </RichText>
-        </div>
+        {text || msg.streaming ? (
+          <div className={cn(styles.prose, "min-w-0")}>
+            <RichText text={text} streaming={msg.streaming}>
+              {msg.streaming ? <span className={styles.caret} /> : null}
+            </RichText>
+          </div>
+        ) : null}
 
         {msg.runMeta ? <RunMeta runMeta={msg.runMeta} /> : null}
-      </div>
-    </div>
-  </div>
-)
+      </MessageContent>
+    </MessageRoot>
+  )
+}
 
 AgentMessage.propTypes = {
   msg: PropTypes.shape({

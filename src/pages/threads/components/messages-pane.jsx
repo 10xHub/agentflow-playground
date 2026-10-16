@@ -2,29 +2,71 @@ import { Trash2 } from "lucide-react"
 import PropTypes from "prop-types"
 import { useDispatch, useSelector } from "react-redux"
 
+import { Trace } from "@/components/ui/trace"
+import chatStyles from "@/pages/chat/chat.module.css"
+import { ReasoningStep, ToolStep } from "@/pages/chat/components/agent-steps"
+import RichText from "@/pages/chat/components/rich-text"
 import { removeMessage } from "@/store/threads-slice"
 
 import styles from "../threads.module.css"
 
-// Per-block-type renderers; unknown types fall back to a `[type]` placeholder.
+const pretty = (value) =>
+  typeof value === "string" ? value : JSON.stringify(value ?? {}, null, 2)
+
+// A stored tool result has no name of its own; the message metadata carries it.
+const toolResult = (block, msg) => ({
+  name: msg.metadata?.function_name ?? "tool",
+  code: pretty(block.output ?? block.content),
+  isError: Boolean(block.is_error),
+})
+
+// Per-block-type renderers, shared with Chat; unknown types show as `[type]`.
 const BLOCK_RENDERERS = {
-  text: (b) => b.text,
-  reasoning: (b) => `🧠 ${b.summary || b.details || ""}`,
-  tool_call: (b) => `tool_call · ${b.name}(${JSON.stringify(b.args ?? {})})`,
-  tool_result: (b) =>
-    `tool_result · ${JSON.stringify(b.output ?? b.content ?? {})}`,
+  text: (b) => (
+    <div className={chatStyles.prose}>
+      <RichText text={b.text || ""} />
+    </div>
+  ),
+  reasoning: (b) => <ReasoningStep text={b.summary || b.details || ""} />,
+  tool_call: (b) => <ToolStep call={{ name: b.name, code: pretty(b.args) }} />,
+  tool_result: (b, msg) => <ToolStep result={toolResult(b, msg)} />,
 }
 
-const renderBlock = (b) => {
-  const render = BLOCK_RENDERERS[b?.type]
-  return render ? render(b) : `[${b?.type || "block"}]`
+const renderBlock = (block, msg) => {
+  const render = BLOCK_RENDERERS[block?.type]
+  return render ? (
+    render(block, msg)
+  ) : (
+    <span className="font-mono text-xs text-muted-foreground">
+      [{block?.type || "block"}]
+    </span>
+  )
 }
 
-// Flatten a message's content blocks into a readable summary.
-const renderContent = (content) => {
-  if (typeof content === "string") return content
-  if (!Array.isArray(content)) return ""
-  return content.map((b) => renderBlock(b)).join("\n")
+/** A message's content: plain text, or its blocks as Chat renders them. */
+const MessageBody = ({ msg }) => {
+  const { content } = msg
+  if (typeof content === "string") {
+    return content ? BLOCK_RENDERERS.text({ text: content }) : <em>(empty)</em>
+  }
+  if (!Array.isArray(content) || content.length === 0) return <em>(empty)</em>
+  return (
+    <Trace>
+      {content.map((block, index) => (
+        // Stored blocks have no id; their order in the message is fixed.
+        // eslint-disable-next-line react/no-array-index-key
+        <div key={index} className="min-w-0">
+          {renderBlock(block, msg)}
+        </div>
+      ))}
+    </Trace>
+  )
+}
+
+MessageBody.propTypes = {
+  msg: PropTypes.shape({
+    content: PropTypes.oneOfType([PropTypes.string, PropTypes.array]),
+  }).isRequired,
 }
 
 const timeOf = (m) => {
@@ -40,8 +82,6 @@ const timeOf = (m) => {
  */
 const MessageRow = ({ threadId = null, msg, onDelete }) => {
   const roleClass = styles[msg.role] || ""
-  const body = renderContent(msg.content)
-  const isMono = /tool_call|tool_result|🧠/.test(body) || msg.role === "tool"
   return (
     <div className={styles.mrow}>
       <div className={styles.mrowH}>
@@ -60,7 +100,7 @@ const MessageRow = ({ threadId = null, msg, onDelete }) => {
         </button>
       </div>
       <div className={styles.mrowBody}>
-        {isMono ? <pre>{body}</pre> : body || <em>(empty)</em>}
+        <MessageBody msg={msg} />
       </div>
     </div>
   )
@@ -73,6 +113,7 @@ MessageRow.propTypes = {
     content: PropTypes.oneOfType([PropTypes.string, PropTypes.array]),
     message_id: PropTypes.string,
     timestamp: PropTypes.number,
+    metadata: PropTypes.shape({ function_name: PropTypes.string }),
   }).isRequired,
   onDelete: PropTypes.func.isRequired,
 }

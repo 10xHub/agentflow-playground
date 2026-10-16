@@ -12,6 +12,10 @@ export default [
       "src/setup-tests.js",
       // The demo agent is a Python project (with its own virtualenv).
       "demo/agent/**",
+      // Vendored from the shadcn registry with src/components/ui (the
+      // code-block highlighter), kept as published.
+      "src/lib/highlighter.jsx",
+      "src/hooks/use-highlighted-code.js",
     ],
   },
   ...config,
