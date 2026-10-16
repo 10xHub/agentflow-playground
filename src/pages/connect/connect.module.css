@@ -1,8 +1,10 @@
 /* Standalone connection/entry page — ported verbatim from docs/mockups/entry.html.
    Rendered at "/" WITHOUT AppShell: its own centered layout on the app background. */
 
+/* #root is a fixed-height, overflow-hidden shell, so this page scrolls itself. */
 .page {
-  min-height: 100vh;
+  height: 100%;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   background: var(--bg);
@@ -26,7 +28,12 @@
   align-items: center;
   gap: 6px;
 }
+/* Shared by the theme <button> and the Docs <a>; inline-flex so the link
+   takes the same height and baseline as the button. */
 .ghost {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
   background: transparent;
   border: 1px solid transparent;
   color: var(--text-secondary);
@@ -36,37 +43,13 @@
   font-family: var(--sans);
   font-size: 12px;
   cursor: pointer;
-  transition: color 0.15s, border-color 0.15s;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
 }
 .ghost:hover {
   color: var(--text);
   border-color: var(--border-strong);
-}
-
-/* ---- stage ---- */
-.stage {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 40px 24px;
-}
-.card {
-  width: 100%;
-  max-width: 920px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  overflow: hidden;
-  display: grid;
-  grid-template-columns: 1.1fr 1fr;
-  box-shadow: 0 16px 40px -24px rgba(0, 0, 0, 0.6);
-}
-
-/* ---- left: form ---- */
-.form {
-  padding: 32px 30px;
-  border-right: 1px solid var(--border);
 }
 .eyebrow {
   font-size: 11px;
@@ -112,7 +95,9 @@
   font-size: 13px;
   font-family: var(--mono);
   outline: none;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
 }
 .select {
   font-family: var(--sans);
@@ -287,7 +272,9 @@
   align-items: center;
   justify-content: center;
   gap: 9px;
-  transition: filter 0.15s, opacity 0.15s;
+  transition:
+    filter 0.15s,
+    opacity 0.15s;
 }
 .btnPrimary:hover {
   filter: brightness(1.06);
@@ -305,14 +292,6 @@
   border-top-color: var(--btn-text);
   border-radius: 50%;
   animation: af-spin 0.7s linear infinite;
-}
-
-/* ---- right: status ---- */
-.side {
-  padding: 32px 26px;
-  background: var(--surface-2);
-  display: flex;
-  flex-direction: column;
 }
 .sideH {
   font-size: 11px;
@@ -404,18 +383,144 @@
   color: var(--text-secondary);
 }
 
+.cmdCopy:focus-visible,
+.docsLink:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+.cmd {
+  position: relative;
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.cmd pre {
+  margin: 0;
+  padding: 10px 40px 10px 12px;
+  overflow-x: auto;
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--text);
+}
+.cmdPrompt {
+  color: var(--text-muted);
+  user-select: none;
+}
+.cmdCopy {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.cmdCopy:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.docsLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+  border-radius: 4px;
+  font-size: 12.5px;
+  color: var(--accent);
+  text-decoration: none;
+}
+.docsLink:hover {
+  text-decoration: underline;
+}
+
+/* the resume illustration */
+.trace {
+  margin: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+.traceBar {
+  display: flex;
+  justify-content: space-between;
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 11px;
+}
+.traceRows {
+  list-style: none;
+  margin: 0;
+  padding: 10px 0;
+}
+.traceRows li {
+  display: grid;
+  grid-template-columns: 18px 1fr auto;
+  gap: 8px;
+  padding: 3px 14px;
+  color: var(--text-secondary);
+}
+.traceMark {
+  color: var(--ok);
+}
+.traceNote {
+  color: var(--text-muted);
+}
+.traceRows li.bad,
+.traceRows li.bad .traceMark {
+  color: var(--danger);
+}
+.traceRows li.muted,
+.traceRows li.muted .traceMark {
+  color: var(--text-muted);
+}
+.traceRows li.key {
+  background: color-mix(in srgb, var(--brand-amber) 10%, transparent);
+  color: var(--text);
+}
+.traceRows li.key .traceMark,
+.traceRows li.key .traceNote {
+  color: var(--brand-amber);
+}
+.trace figcaption {
+  padding: 10px 14px 12px;
+  border-top: 1px solid var(--border);
+  font-family: var(--sans);
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
 /* probe result */
 .probe {
   display: flex;
   flex-direction: column;
-  flex: 1;
+  margin-top: 24px;
   opacity: 0;
   transform: translateY(8px);
 }
 .probe.show {
   opacity: 1;
   transform: none;
-  transition: opacity 0.18s ease-out, transform 0.18s ease-out;
+  transition:
+    opacity 0.18s ease-out,
+    transform 0.18s ease-out;
 }
 .caps {
   display: grid;
@@ -490,7 +595,9 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  transition: border-color 0.15s, background 0.15s;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
 }
 .btnEnter:hover {
   border-color: var(--accent);
@@ -508,7 +615,7 @@
 }
 
 .connecting {
-  flex: 1;
+  padding: 24px 0 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -554,31 +661,8 @@
   font-family: var(--mono);
 }
 
-.empty {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  gap: 12px;
-  color: var(--text-muted);
-  padding: 24px 8px;
-}
-.empty svg {
-  opacity: 0.55;
-  stroke: var(--text-muted);
-}
-.empty p {
-  margin: 0;
-  font-size: 12.5px;
-  max-width: 210px;
-  line-height: 1.55;
-}
-
 .footer {
-  text-align: center;
-  padding: 16px;
+  padding: 24px 0 0;
   font-size: 11.5px;
   color: var(--text-muted);
 }
@@ -599,13 +683,151 @@
   color: var(--text-secondary);
 }
 
-@media (max-width: 820px) {
-  .card {
-    grid-template-columns: 1fr;
-    max-width: 440px;
+/* ---- gateway: the task on the left, one brand panel on the right ---- */
+.gateway {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+.gateway.solo {
+  grid-template-columns: minmax(0, 1fr);
+}
+.task {
+  display: flex;
+  justify-content: center;
+  padding: 40px 48px 24px;
+}
+.taskInner {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+}
+.taskInner > section {
+  margin-top: 28px;
+}
+.taskInner .profiles {
+  margin-bottom: 0;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  padding: 56px;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+}
+.brandInner {
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.brandTitle {
+  font-family: var(--display);
+  font-size: clamp(24px, 2.6vw, 32px);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+  margin: -12px 0 0;
+}
+.points {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.points li {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  color: var(--text-secondary);
+  line-height: 1.55;
+}
+.points svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--ok);
+}
+.brandFoot {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+.brandFoot p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* "No server yet?" under the form: outlined, so Connect stays the one filled button */
+.noServer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.btnOutline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font-family: var(--sans);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+.btnOutline:hover {
+  border-color: var(--border-strong);
+  background: var(--surface);
+}
+.btnOutline span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.btnOutline b {
+  font-size: 13px;
+  font-weight: 500;
+}
+.btnOutline small {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.btnOutline svg {
+  flex: none;
+  color: var(--text-muted);
+}
+.btnOutline:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+@media (max-width: 960px) {
+  .gateway {
+    grid-template-columns: minmax(0, 1fr);
   }
-  .form {
-    border-right: none;
-    border-bottom: 1px solid var(--border);
+  .task {
+    padding: 32px 16px 24px;
+  }
+  .brand {
+    padding: 40px 16px;
+    border-left: none;
+    border-top: 1px solid var(--border);
+  }
+  .brandInner {
+    max-width: 420px;
+    margin: 0 auto;
   }
 }

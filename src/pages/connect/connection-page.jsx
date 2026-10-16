@@ -1,7 +1,7 @@
-import { AlertTriangle, Clock, Eye, EyeOff, Plus, Trash2 } from "lucide-react"
+import { AlertTriangle, Eye, EyeOff, Plus, Trash2 } from "lucide-react"
 import PropTypes from "prop-types"
 import { useEffect, useRef, useState } from "react"
-import { useNavigate, useSearchParams } from "react-router-dom"
+import { Link, useNavigate, useSearchParams } from "react-router-dom"
 
 import { Brand } from "@/components/shell/brand"
 import { track } from "@/lib/analytics"
@@ -10,6 +10,11 @@ import { newConnectionId } from "@/lib/connection/connections-store"
 import { useTheme } from "@/lib/use-theme"
 
 import styles from "./connect.module.css"
+import { BrandPanel, NoServer } from "./get-started"
+
+// The brand panel and the "no server yet" row show until the visitor has more
+// saved connections than this; regulars only need the form.
+const PITCH_MAX_SAVED = 2
 
 // Every auth mode the installed SDK transmits (TenxGraphAuth union: bearer/basic/header).
 // "header" is how you reach a backend guarded by a custom BaseAuth that reads an
@@ -18,17 +23,17 @@ const AUTH_MODES = [
   { value: "none", label: "None (open backend)" },
   { value: "bearer", label: "Bearer token / JWT" },
   { value: "basic", label: "Basic (user + password)" },
-  { value: "header", label: "Custom header — for a custom BaseAuth backend" },
+  { value: "header", label: "Custom header, for a custom BaseAuth backend" },
 ]
 
 const AUTH_NOTES = {
-  none: "Local dev servers run auth-disabled — leave this on “None”.",
+  none: "Local dev servers run with auth off, so leave this on “None”.",
   header:
-    "Sends these as custom request headers on every call — use for a backend guarded by a custom BaseAuth (e.g. an X-API-Key check), or to pass extra data your backend reads off the request.",
+    "Sends these as custom request headers on every call. Use them for a backend guarded by a custom BaseAuth (e.g. an X-API-Key check), or to pass extra data your backend reads off the request.",
   basic:
     "Sends an Authorization: Basic header. Your custom BaseAuth backend must decode it server-side.",
   bearer:
-    "Sends an Authorization: Bearer header — matches the built-in “jwt” auth or any BaseAuth that reads a bearer token.",
+    "Sends an Authorization: Bearer header. It matches the built-in “jwt” auth or any BaseAuth that reads a bearer token.",
 }
 
 // Header rows carry a client-only key so React can track them across edits —
@@ -83,6 +88,9 @@ const TopBar = ({ theme, onToggle }) => (
   <div className={styles.topbar}>
     <Brand size={22} />
     <div className={styles.topActions}>
+      <Link className={styles.ghost} to="/demo">
+        Demo
+      </Link>
       <button className={styles.ghost} onClick={onToggle} type="button">
         {theme === "light" ? "Dark" : "Light"}
       </button>
@@ -433,15 +441,6 @@ const StatusPanel = ({
         <div className={styles.errMsg}>{error}</div>
       </div>
     )}
-
-    {status === "idle" && (
-      <div className={styles.empty}>
-        <Clock size={30} strokeWidth={1.5} />
-        <p>
-          Connect to probe the backend and detect what this deployment supports.
-        </p>
-      </div>
-    )}
   </>
 )
 
@@ -702,18 +701,19 @@ const ConnectionPage = () => {
     status,
   ])
 
+  const pitch = saved.length <= PITCH_MAX_SAVED
+
   return (
     <div className={styles.page}>
       <TopBar theme={theme} onToggle={toggle} />
 
-      <div className={styles.stage}>
-        <div className={styles.card}>
-          {/* LEFT — form */}
-          <div className={styles.form}>
+      <div className={`${styles.gateway} ${pitch ? "" : styles.solo}`}>
+        <main className={styles.task}>
+          <div className={styles.taskInner}>
             <div className={styles.eyebrow}>Connect a backend</div>
             <h1 className={styles.title}>Point at a deployment</h1>
             <p className={styles.lede}>
-              Connect to any 10xGraph API — a local dev server or a live
+              Connect to any 10xGraph API, a local dev server or a live
               deployment. Everything you see is scoped to the token you provide.
             </p>
 
@@ -757,17 +757,7 @@ const ConnectionPage = () => {
             <RememberSwitch remember={remember} onRemember={setRemember} />
 
             <ConnectButton status={status} onConnect={onConnectClick} />
-          </div>
 
-          {/* RIGHT — status */}
-          <div className={styles.side}>
-            <div className={styles.sideH}>Saved connections</div>
-            <SavedProfiles
-              saved={saved}
-              activeId={activeId}
-              status={status}
-              onPick={pick}
-            />
             <StatusPanel
               status={status}
               error={error}
@@ -777,11 +767,26 @@ const ConnectionPage = () => {
               url={url}
               onEnter={onEnterPlayground}
             />
-          </div>
-        </div>
-      </div>
 
-      <PageFooter />
+            <section aria-labelledby="saved-title">
+              <h2 id="saved-title" className={styles.sideH}>
+                Saved connections
+              </h2>
+              <SavedProfiles
+                saved={saved}
+                activeId={activeId}
+                status={status}
+                onPick={pick}
+              />
+            </section>
+
+            {pitch ? <NoServer /> : null}
+            <PageFooter />
+          </div>
+        </main>
+
+        {pitch ? <BrandPanel /> : null}
+      </div>
     </div>
   )
 }

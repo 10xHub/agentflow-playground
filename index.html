@@ -3,11 +3,74 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>10xGraph Playground</title>
-    <meta name="description" content="10xGraph Playground: chat with, inspect and debug your 10xGraph agents." />
-    <meta name="theme-color" content="#0b0e13" />
+    <title>10xGraph Playground: Chat With and Debug Python AI Agents</title>
+    <meta
+      name="description"
+      content="Free web playground for 10xGraph (formerly Agentflow), the open-source Python multi-agent framework. Chat with, inspect and debug your agents in the browser."
+    />
+    <!-- One URL for every SPA route: /chat, /threads and the rest need a running backend. -->
+    <link rel="canonical" href="https://play.10xgraph.com/" />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="theme-color" content="#0B0E13" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#FAFAF8" media="(prefers-color-scheme: light)" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+    <!-- Open Graph / social. Same card as the docs site (10xgraph.com). -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="10xGraph" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:title" content="10xGraph Playground: Chat With and Debug Python AI Agents" />
+    <meta
+      property="og:description"
+      content="Free web playground for 10xGraph (formerly Agentflow), the open-source Python multi-agent framework. Chat with, inspect and debug your agents in the browser."
+    />
+    <meta property="og:url" content="https://play.10xgraph.com/" />
+    <meta property="og:image" content="https://10xgraph.com/og-default.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="10xGraph logo" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="10xGraph Playground: Chat With and Debug Python AI Agents" />
+    <meta
+      name="twitter:description"
+      content="Free web playground for 10xGraph (formerly Agentflow), the open-source Python multi-agent framework. Chat with, inspect and debug your agents in the browser."
+    />
+    <meta name="twitter:image" content="https://10xgraph.com/og-default.png" />
+
+    <!-- Tie the playground to the main site: docs, LLM index and sitemap live on 10xgraph.com. -->
+    <link rel="help" href="https://10xgraph.com/docs/server/playground" />
+    <link rel="alternate" type="text/plain" title="LLM-readable site index" href="https://10xgraph.com/llms.txt" />
+    <link rel="sitemap" href="/sitemap.xml" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "10xGraph Playground",
+        "alternateName": "Agentflow Playground",
+        "url": "https://play.10xgraph.com/",
+        "description": "10xGraph Playground is a free web app for chatting with, inspecting and debugging agents built with 10xGraph, the open-source Python multi-agent framework formerly called Agentflow. Run 10xgraph play to connect it to your local API server, or open the demo to try a support agent without installing anything.",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "Any",
+        "browserRequirements": "Requires JavaScript",
+        "isAccessibleForFree": true,
+        "license": "https://opensource.org/licenses/MIT",
+        "image": "https://10xgraph.com/logo-512.png",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "softwareHelp": { "@type": "CreativeWork", "url": "https://10xgraph.com/docs/server/playground" },
+        "isPartOf": { "@type": "WebSite", "name": "10xGraph", "url": "https://10xgraph.com/" },
+        "about": {
+          "@type": "SoftwareApplication",
+          "name": "10xGraph",
+          "alternateName": "Agentflow",
+          "url": "https://10xgraph.com/",
+          "applicationCategory": "DeveloperApplication",
+          "programmingLanguage": "Python"
+        },
+        "publisher": { "@type": "Organization", "name": "10xScale", "url": "https://10xscale.ai/" }
+      }
+    </script>
     <script>
       // Apply the saved theme before first paint to avoid a flash.
       // Mirrors lib/use-theme.js (key "10xgraph.theme", default dark). Falls back to the
@@ -34,6 +97,20 @@
   </head>
   <body>
     <div id="root"></div>
+    <noscript>
+      <h1>10xGraph Playground</h1>
+      <p>
+        10xGraph Playground is a free web app for chatting with, inspecting and debugging agents
+        built with 10xGraph, the open-source Python multi-agent framework formerly called Agentflow.
+        It needs JavaScript.
+      </p>
+      <ul>
+        <li><a href="https://10xgraph.com/">10xGraph home</a></li>
+        <li><a href="https://10xgraph.com/docs/get-started">Get started with 10xGraph</a></li>
+        <li><a href="https://10xgraph.com/docs/server/playground">Playground docs</a></li>
+        <li><a href="https://github.com/10xGraph/10xGraph">10xGraph on GitHub</a></li>
+      </ul>
+    </noscript>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

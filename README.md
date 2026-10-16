@@ -24,7 +24,7 @@ pip install 10xgraph 10xgraph-api
 You can also open the playground yourself and enter the server URL on the connect screen, or
 pass it in the link: `?backendUrl=http://localhost:8000` (add `&token=...` for a bearer token).
 
-No server yet? Open [`/demo`](https://playground-463bd.web.app/demo) for a recorded tour: a
+No server yet? Open [`/demo`](https://play.10xgraph.com/demo) for a recorded tour: a
 support agent's chat runs, threads, traces, memory and eval report, replayed from a real
 10xGraph server. It makes no model or backend calls, and it never touches your saved
 connections.

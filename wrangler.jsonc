@@ -1,0 +1,11 @@
+{
+  "name": "10xgraph-playground",
+  "compatibility_date": "2026-10-16",
+  "assets": {
+    "directory": "./dist/",
+    "not_found_handling": "single-page-application"
+  },
+  "routes": [
+    { "pattern": "play.10xgraph.com", "custom_domain": true }
+  ]
+}
