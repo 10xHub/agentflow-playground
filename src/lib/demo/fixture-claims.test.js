@@ -37,7 +37,9 @@ describe("demo recording backs the copy", () => {
     expect(names).toEqual(
       expect.arrayContaining(["memory_tool", "issue_refund", "send_email"])
     )
-    expect(names.indexOf("memory_tool")).toBeLessThan(names.indexOf("issue_refund"))
+    expect(names.indexOf("memory_tool")).toBeLessThan(
+      names.indexOf("issue_refund")
+    )
     expect(finalText(run("refund"))).toMatch(/prefers email/)
   })
 
@@ -61,13 +63,20 @@ describe("demo recording backs the copy", () => {
   })
 
   it("observability: the default trace thread is recorded", () => {
-    expect(fixture.observability[DEMO_TRACE_THREAD].latest.data.run).toBeTruthy()
+    expect(
+      fixture.observability[DEMO_TRACE_THREAD].latest.data.run
+    ).toBeTruthy()
   })
 
   it("graph: MAIN calls TOOL or ends; TOOL hands back to MAIN; Postgres checkpointer", () => {
     const { info, edges } = fixture.graph.data
     const pairs = edges.map((e) => `${e.source}>${e.target}`).toSorted()
-    expect(pairs).toEqual(["MAIN>TOOL", "MAIN>__end__", "TOOL>MAIN", "__start__>MAIN"])
+    expect(pairs).toEqual([
+      "MAIN>TOOL",
+      "MAIN>__end__",
+      "TOOL>MAIN",
+      "__start__>MAIN",
+    ])
     expect(info.checkpointer_type).toBe("PgCheckpointer")
     expect(info.store).toBe(true)
   })

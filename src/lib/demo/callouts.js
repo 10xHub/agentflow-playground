@@ -20,7 +20,7 @@ export const CALLOUTS = {
     pillar: 3,
     text: "These threads were saved by the agent's PgCheckpointer: PostgreSQL for durable history, with a Redis cache in front (see the agent source). demo-refund keeps both of its runs.",
   },
-  "/observability": {
+  "/trace": {
     pillar: 1,
     text: "A trace for each run, served by the API's observability endpoint. In the customer-history run, one MAIN step called both get_customer_history and lookup_order.",
   },
@@ -46,7 +46,7 @@ export const CALLOUTS = {
   },
 }
 
-// Observability shows this recorded trace until the visitor plays a prompt in Chat.
+// Run trace shows this recorded trace until the visitor plays a prompt in Chat.
 export const DEMO_TRACE_THREAD = "demo-history"
 
 /** The callout for a route, or null for screens without one. */

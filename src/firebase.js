@@ -42,7 +42,7 @@ const getAnalyticsInstance = () => {
     try {
       if (!(await isSupported())) return null
       // send_page_view: false — the SPA logs its own page_view on every route
-      // change (see lib/use-analytics-page-views.js). Leaving gtag's automatic
+      // change (see lib/use-route-events.js). Leaving gtag's automatic
       // one on would count every view twice.
       return initializeAnalytics(app, { config: { send_page_view: false } })
     } catch {

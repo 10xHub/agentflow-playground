@@ -23,7 +23,7 @@ export const NAV_GROUPS = [
     heading: "Inspect",
     items: [
       { to: "/threads", label: "Thread Inspector", icon: ListTree },
-      { to: "/observability", label: "Observability", icon: Activity },
+      { to: "/trace", label: "Run trace", icon: Activity },
       { to: "/evals", label: "Evals", icon: ClipboardCheck },
       { to: "/memory", label: "Memory Inspector", icon: Database },
     ],
@@ -33,9 +33,7 @@ export const NAV_GROUPS = [
     items: [
       { to: "/graph", label: "Graph", icon: Workflow },
       { to: "/tools", label: "Tools & MCP", icon: Wrench },
-      // Files stays in the rail but the page is a "coming soon" stub — the real
-      // upload/fetch integration lands later (see App.jsx /files route).
-      { to: "/files", label: "Files", icon: FileText, badge: "Soon" },
+      { to: "/files", label: "Files", icon: FileText },
     ],
   },
 ]

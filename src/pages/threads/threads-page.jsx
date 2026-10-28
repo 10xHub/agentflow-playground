@@ -1,9 +1,19 @@
-import { AlertTriangle, RefreshCw, Trash2 } from "lucide-react"
+import {
+  Activity,
+  AlertTriangle,
+  MessageSquare,
+  RefreshCw,
+  Trash2,
+} from "lucide-react"
 import PropTypes from "prop-types"
 import { useEffect, useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
+import { useNavigate } from "react-router-dom"
 
-import { track } from "@/lib/analytics"
+import ErrorNote from "@/components/shell/error-note"
+import { ago } from "@/lib/format-ago"
+import { track } from "@/lib/usage-events"
+import { openServerThread } from "@/store/chat-history"
 import { loadThread, loadThreadList, removeThread } from "@/store/threads-slice"
 
 import MessagesPane from "./components/messages-pane"
@@ -17,17 +27,6 @@ const TABS = [
   { key: "raw", label: "Raw JSON" },
 ]
 
-const ago = (iso) => {
-  if (!iso) return "—"
-  const then = new Date(iso).getTime()
-  if (Number.isNaN(then)) return "—"
-  const s = Math.max(0, (Date.now() - then) / 1000)
-  if (s < 60) return "now"
-  if (s < 3600) return `${Math.floor(s / 60)}m ago`
-  if (s < 86400) return `${Math.floor(s / 3600)}h ago`
-  return `${Math.floor(s / 86400)}d ago`
-}
-
 const threadShape = PropTypes.shape({
   thread_id: PropTypes.string,
   thread_name: PropTypes.string,
@@ -39,6 +38,12 @@ const detailShape = PropTypes.shape({
   state: PropTypes.object,
   messages: PropTypes.array,
 })
+
+// Loaded count; "+" when the API may hold more pages.
+const messageCount = (detail) => {
+  if (!detail?.messages) return "—"
+  return `${detail.messages.length}${detail.messagesHasMore ? "+" : ""}`
+}
 
 // id / user / message-count / updated summary line.
 /**
@@ -53,7 +58,7 @@ const ThreadMeta = ({ thread = null, selectedId, detail = null }) => (
       <b>user</b> {thread?.user_id || "—"}
     </span>
     <span>
-      <b>messages</b> {detail?.messages?.length ?? "—"}
+      <b>messages</b> {messageCount(detail)}
     </span>
     <span>
       <b>updated</b> {ago(thread?.updated_at)}
@@ -71,8 +76,35 @@ ThreadMeta.propTypes = {
 /**
  *
  */
-const Toolbar = ({ busy, delArmed, onRefresh, onDelete }) => (
+const Toolbar = ({
+  busy,
+  delArmed,
+  onRefresh,
+  onDelete,
+  onOpenChat,
+  onViewTrace,
+}) => (
   <div className={styles.toolbar}>
+    <button
+      type="button"
+      className={styles.tbtn}
+      onClick={onOpenChat}
+      disabled={busy}
+    >
+      <MessageSquare size={14} strokeWidth={1.8} />
+      Open in Chat
+    </button>
+    <div className={styles.tbSep} />
+    <button
+      type="button"
+      className={styles.tbtn}
+      onClick={onViewTrace}
+      disabled={busy}
+    >
+      <Activity size={14} strokeWidth={1.8} />
+      View trace
+    </button>
+    <div className={styles.tbSep} />
     <button
       type="button"
       className={styles.tbtn}
@@ -109,6 +141,8 @@ Toolbar.propTypes = {
   delArmed: PropTypes.bool.isRequired,
   onRefresh: PropTypes.func.isRequired,
   onDelete: PropTypes.func.isRequired,
+  onOpenChat: PropTypes.func.isRequired,
+  onViewTrace: PropTypes.func.isRequired,
 }
 
 // Body for the active tab.
@@ -146,9 +180,12 @@ TabBody.propTypes = {
  */
 const ThreadsPage = () => {
   const dispatch = useDispatch()
-  const { list, selectedId, detail, busy } = useSelector((s) => s.threads)
+  const { list, selectedId, detail, busy, detailError } = useSelector(
+    (s) => s.threads
+  )
   const [tab, setTab] = useState("messages")
   const [delArmed, setDelArmed] = useState(false)
+  const navigate = useNavigate()
 
   // Load the thread list on mount.
   useEffect(() => {
@@ -161,6 +198,14 @@ const ThreadsPage = () => {
     dispatch(loadThread(id))
     setTab("messages")
     setDelArmed(false)
+  }
+
+  // Load the thread's history into Chat and go there.
+  const openInChat = async () => {
+    const opened = await dispatch(
+      openServerThread(selectedId, { title: thread?.thread_name })
+    )
+    if (opened) navigate("/chat")
   }
 
   // Two-step delete guard.
@@ -203,6 +248,10 @@ const ThreadsPage = () => {
                 delArmed={delArmed}
                 onRefresh={() => dispatch(loadThread(selectedId))}
                 onDelete={onDelete}
+                onOpenChat={openInChat}
+                onViewTrace={() =>
+                  navigate(`/trace?thread=${encodeURIComponent(selectedId)}`)
+                }
               />
 
               <div className={styles.tabs}>
@@ -219,6 +268,12 @@ const ThreadsPage = () => {
               </div>
             </div>
 
+            {detailError && (
+              <ErrorNote
+                message={detailError}
+                onRetry={() => dispatch(loadThread(selectedId))}
+              />
+            )}
             <TabBody tab={tab} thread={thread} detail={detail} />
           </>
         )}

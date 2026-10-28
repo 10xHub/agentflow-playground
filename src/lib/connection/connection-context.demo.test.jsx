@@ -62,7 +62,9 @@ describe("demo connection", () => {
   })
 
   it("reconnects to the demo on reload, leaving the saved connection untouched", async () => {
-    globalThis.fetch = vi.fn(() => Promise.reject(new TypeError("no network in demo")))
+    globalThis.fetch = vi.fn(() =>
+      Promise.reject(new TypeError("no network in demo"))
+    )
     const before = snapshot()
     enterDemo("support")
     renderProvider()
@@ -74,15 +76,24 @@ describe("demo connection", () => {
   })
 
   it("restores the saved connection and threads when the visitor exits the demo", async () => {
-    globalThis.fetch = vi.fn(() => Promise.reject(new TypeError("no network in demo")))
+    globalThis.fetch = vi.fn(() =>
+      Promise.reject(new TypeError("no network in demo"))
+    )
     enterDemo("support")
     renderProvider()
     await waitFor(() => expect(ctx.status).toBe("connected"))
-    const mine = { order: ["real"], byId: { real: { messages: [] } }, activeId: null }
+    const mine = {
+      order: ["real"],
+      byId: { real: { messages: [] } },
+      activeId: null,
+    }
     localStorage.setItem("10xgraph.threads", JSON.stringify(mine))
     act(() => {
       store.dispatch(
-        replaceThreads({ order: ["demo-x"], byId: { "demo-x": { messages: [] } } })
+        replaceThreads({
+          order: ["demo-x"],
+          byId: { "demo-x": { messages: [] } },
+        })
       )
     })
     act(() => ctx.disconnect())
@@ -92,7 +103,9 @@ describe("demo connection", () => {
   })
 
   it("re-verifying inside the demo re-probes the recording, not a server", async () => {
-    globalThis.fetch = vi.fn(() => Promise.reject(new TypeError("no network in demo")))
+    globalThis.fetch = vi.fn(() =>
+      Promise.reject(new TypeError("no network in demo"))
+    )
     enterDemo("support")
     renderProvider()
     await waitFor(() => expect(ctx.status).toBe("connected"))

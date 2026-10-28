@@ -3,6 +3,7 @@ import { combineReducers, configureStore } from "@reduxjs/toolkit"
 import { demoSwitched } from "./app-actions"
 import chatReducer from "./chat-slice"
 import evalsReducer from "./evals-slice"
+import filesReducer from "./files-slice"
 import graphReducer from "./graph-slice"
 import memoryReducer from "./memory-slice"
 import observabilityReducer from "./observability-slice"
@@ -13,6 +14,7 @@ import toolsReducer from "./tools-slice"
 const appReducer = combineReducers({
   chat: chatReducer,
   evals: evalsReducer,
+  files: filesReducer,
   graph: graphReducer,
   memory: memoryReducer,
   observability: observabilityReducer,

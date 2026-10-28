@@ -7,6 +7,7 @@ import {
   MessageFooter,
   MessageHeader,
 } from "@/components/ui/message"
+import { formatBytes } from "@/lib/files/preview-kind"
 import { cn } from "@/lib/utils"
 
 import styles from "../chat.module.css"
@@ -28,11 +29,17 @@ const runMetaShape = PropTypes.shape({
   status: PropTypes.string,
 })
 
+const WARN_TONE = "text-(--warn)"
+
 const STATUS_TONE = {
   done: "text-(--ok)",
-  stopped: "text-(--warn)",
+  stopped: WARN_TONE,
+  interrupted: WARN_TONE,
   error: "text-destructive",
 }
+
+// Raw run statuses that read better as words.
+const STATUS_LABEL = { interrupted: "needs input" }
 
 /** Token / call / path footer under an agent turn. */
 const RunMeta = ({ runMeta }) => {
@@ -51,7 +58,9 @@ const RunMeta = ({ runMeta }) => {
       {usage?.calls ? <span>{usage.calls} llm calls</span> : null}
       {path ? <span>{path}</span> : null}
       {status ? (
-        <span className={STATUS_TONE[status] ?? ""}>{status}</span>
+        <span className={STATUS_TONE[status] ?? ""}>
+          {STATUS_LABEL[status] ?? status}
+        </span>
       ) : null}
     </MessageFooter>
   )
@@ -69,6 +78,19 @@ const UserMessage = ({ msg }) => (
         <BubbleContent className="whitespace-pre-wrap">
           {msg.text}
         </BubbleContent>
+        {msg.attachments?.length ? (
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
+            {msg.attachments.map((a) => (
+              <span
+                key={a.file_id}
+                className="rounded-md border border-border px-2 py-0.5 font-mono text-[11px]"
+              >
+                {a.filename || a.file_id}
+                {a.size_bytes ? ` · ${formatBytes(a.size_bytes)}` : ""}
+              </span>
+            ))}
+          </div>
+        ) : null}
       </Bubble>
       {msg.time ? (
         <MessageFooter className="font-normal opacity-0 transition-opacity group-hover/message:opacity-100">
@@ -83,6 +105,13 @@ UserMessage.propTypes = {
   msg: PropTypes.shape({
     time: PropTypes.string,
     text: PropTypes.string,
+    attachments: PropTypes.arrayOf(
+      PropTypes.shape({
+        file_id: PropTypes.string,
+        filename: PropTypes.string,
+        size_bytes: PropTypes.number,
+      })
+    ),
   }).isRequired,
 }
 

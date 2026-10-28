@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom"
 import { useConnection } from "@/lib/connection/connection-context"
 
 import LiveSession from "./components/live-session"
+import { getHonoredLiveOptions } from "./live-options-source"
 import styles from "./live.module.css"
 
 // Full-width centered state panel for the unavailable/not-connected cases; the
@@ -49,7 +50,7 @@ Gate.propTypes = {
  */
 export const LivePage = () => {
   const navigate = useNavigate()
-  const { isConnected, isDemo, capabilities, active } = useConnection()
+  const { isConnected, isDemo, capabilities, active, info } = useConnection()
   const liveSupported = Boolean(
     capabilities?.find((c) => c.name === "live")?.on
   )
@@ -98,7 +99,7 @@ export const LivePage = () => {
   }
 
   // Live-capable agent — drive a real realtime session over /v1/graph/live.
-  return <LiveSession />
+  return <LiveSession honored={getHonoredLiveOptions(info)} />
 }
 
 export default LivePage

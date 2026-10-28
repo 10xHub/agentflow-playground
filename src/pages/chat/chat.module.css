@@ -196,28 +196,6 @@
   color: var(--text);
 }
 
-/* ws "coming soon": disabled, muted, with a small badge. */
-.seg button.soon {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-.seg button.soon:hover {
-  color: var(--text-secondary);
-}
-.soonBadge {
-  font-size: 8.5px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  padding: 1px 4px;
-  border-radius: 4px;
-  background: var(--elevated);
-  color: var(--text-muted);
-}
-
 .miniSelect {
   height: 32px;
   padding: 0 28px 0 10px;
@@ -1179,3 +1157,24 @@
 }
 /* Demo mode: suggested prompts that replay recorded runs. */
 /* Lines up with the composer below it (760px column, 24px gutters). */
+
+.threadSearch {
+  margin: 4px 4px 0;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text);
+  font-size: 12px;
+}
+.threadMore {
+  margin: 4px;
+  padding: 6px;
+  border-radius: 7px;
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+}
+.threadMore:hover {
+  background: var(--surface-2);
+}

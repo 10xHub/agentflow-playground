@@ -11,6 +11,7 @@
 export const createPcmPlayer = (defaultSampleRate = 24000) => {
   let context = null
   let nextTime = 0
+  const active = new Set()
 
   const ensureContext = () => {
     if (!context) {
@@ -41,8 +42,23 @@ export const createPcmPlayer = (defaultSampleRate = 24000) => {
       source.buffer = buffer
       source.connect(c.destination)
       const startAt = Math.max(c.currentTime, nextTime)
+      source.onended = () => active.delete(source)
+      active.add(source)
       source.start(startAt)
       nextTime = startAt + buffer.duration
+    },
+
+    /** Stop everything queued and reset the schedule (barge-in). */
+    flush: () => {
+      active.forEach((source) => {
+        try {
+          source.stop()
+        } catch {
+          /* already ended */
+        }
+      })
+      active.clear()
+      nextTime = 0
     },
 
     /** Tear down the audio context. */

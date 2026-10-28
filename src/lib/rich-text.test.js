@@ -11,7 +11,9 @@ describe("detectFormat", () => {
   })
 
   it("treats a full document as html", () => {
-    expect(detectFormat("<!doctype html><html><body>hi</body></html>")).toBe("html")
+    expect(detectFormat("<!doctype html><html><body>hi</body></html>")).toBe(
+      "html"
+    )
     expect(detectFormat("<html><body>hi</body></html>")).toBe("html")
   })
 
@@ -21,10 +23,12 @@ describe("detectFormat", () => {
   })
 
   it("keeps prose that merely mentions tags as markdown", () => {
-    expect(detectFormat("Use a <div> to wrap it, then add <section>.")).toBe("markdown")
-    expect(detectFormat("Here is the page:\n\n```html\n<div><h1>x</h1></div>\n```")).toBe(
+    expect(detectFormat("Use a <div> to wrap it, then add <section>.")).toBe(
       "markdown"
     )
+    expect(
+      detectFormat("Here is the page:\n\n```html\n<div><h1>x</h1></div>\n```")
+    ).toBe("markdown")
   })
 
   it("does not promote a single lone tag", () => {

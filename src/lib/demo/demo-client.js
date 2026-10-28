@@ -19,6 +19,12 @@ const ignored = () => {}
 const filesUnavailable = async () => {
   throw notFound("Files")
 }
+// The demo holds no uploads, so the server list is empty.
+const noFiles = async ({ limit = 50, offset = 0 } = {}) =>
+  ok({ files: [], has_more: false, offset, limit })
+const uploadsOff = async () => {
+  throw new Error("Uploads are off in the demo.")
+}
 const invokeUnavailable = async () => {
   throw new Error("The recorded demo replays streamed runs only.")
 }
@@ -30,6 +36,19 @@ const liveUnavailable = () => {
     "Live voice needs a live server, so it is not part of the recorded demo."
   )
 }
+
+// Same offset/limit window the server applies (no limit means the rest).
+const page = (list, { offset = 0, limit } = {}) =>
+  list.slice(offset, limit == null ? undefined : offset + limit)
+
+// The server's exact paging flag: rows exist beyond this window.
+const hasMore = (list, { offset = 0, limit } = {}) =>
+  limit != null && offset + limit < list.length
+
+const matchesThread = (t, q) =>
+  [t.thread_id, t.thread_name, t.user_id].some((v) =>
+    v?.toLowerCase().includes(q)
+  )
 
 export class DemoClient {
   // Long pauses in a recording are shortened so a replay never looks stuck.
@@ -53,9 +72,23 @@ export class DemoClient {
   graph = async () => structuredClone(this.f.graph)
   graphTools = async () => structuredClone(this.f.graphTools)
   graphStateSchema = async () => structuredClone(this.f.graphStateSchema)
-  threads = async () => structuredClone(this.f.threads)
+  threads = async (request = {}) => {
+    const res = structuredClone(this.f.threads)
+    const q = request.search?.trim().toLowerCase()
+    let list = res.data.threads
+    if (q) list = list.filter((t) => matchesThread(t, q))
+    res.data.threads = page(list, request)
+    res.data.has_more = hasMore(list, request)
+    return res
+  }
   threadState = (id) => this.recorded("threadState", id, `Thread ${id}`)
-  threadMessages = (id) => this.recorded("threadMessages", id, `Thread ${id}`)
+  threadMessages = async (id, request = {}) => {
+    const res = await this.recorded("threadMessages", id, `Thread ${id}`)
+    const all = res.data.messages || []
+    res.data.messages = page(all, request)
+    res.data.has_more = hasMore(all, request)
+    return res
+  }
 
   observability = async (threadId, runId) => {
     const trace = this.f.observability[threadId]
@@ -79,7 +112,13 @@ export class DemoClient {
   stopGraph = accepted
   fixGraph = accepted
   registerToolHandler = ignored
+  listFiles = noFiles
   getFileAccessUrl = filesUnavailable
+  getFileInfo = filesUnavailable
+  getFile = filesUnavailable
+  getMultimodalConfig = filesUnavailable
+  uploadFile = uploadsOff
+  deleteFile = uploadsOff
   realtime = liveUnavailable
   invoke = invokeUnavailable
   wsStream = wsUnavailable
@@ -109,13 +148,23 @@ export class DemoClient {
 
   listMemories = async () => structuredClone(this.f.memories.list)
 
-  searchMemory = async ({ query }) => {
-    const recorded = this.f.memories.search[(query || "").trim().toLowerCase()]
-    if (recorded) return structuredClone(recorded)
-    return ok({
-      results: searchLocally(this.f.memories.list.data.memories, query),
-      keyword: true,
-    })
+  searchMemory = async ({ query, memory_type, category, score_threshold }) => {
+    const key = (query || "").trim().toLowerCase()
+    const recorded = this.f.memories.search[key]
+    const res = recorded
+      ? structuredClone(recorded)
+      : ok({
+          results: searchLocally(this.f.memories.list.data.memories, query),
+          keyword: true,
+        })
+    // The recording ignores filters, so apply the ones a live store would.
+    res.data.results = res.data.results.filter(
+      (m) =>
+        (!memory_type || m.memory_type === memory_type) &&
+        (!category || m.metadata?.category === category) &&
+        (!score_threshold || m.score >= score_threshold)
+    )
+    return res
   }
 
   deleteMemory = async (id) => {
@@ -124,16 +173,32 @@ export class DemoClient {
     return ok({ success: true, data: id })
   }
 
+  storeMemory = async ({ content, memory_type, category, metadata = {} }) => {
+    const id = `demo-${this.f.memories.list.data.memories.length + 1}-${Date.now()}`
+    this.f.memories.list.data.memories.unshift({
+      id,
+      content,
+      score: 1,
+      memory_type,
+      metadata: { ...metadata, category },
+      vector: [],
+      user_id: "demo",
+      thread_id: null,
+      timestamp: new Date().toISOString(),
+    })
+    return ok({ memory_id: id })
+  }
+
+  updateMemory = async (id, content, { metadata } = {}) => {
+    const row = this.f.memories.list.data.memories.find((m) => m.id === id)
+    if (!row) throw notFound(`Memory ${id}`)
+    row.content = content
+    if (metadata) row.metadata = metadata
+    return ok({ success: true, data: {} })
+  }
+
   /** Memory searches the recording holds, offered when a query falls back to keywords. */
   recordedQueries = () => Object.keys(this.f.memories.search)
-
-  evalRuns = async () => structuredClone(this.f.evals.runs)
-
-  evalRun = async (id) => {
-    const detail = this.f.evals.detail[id]
-    if (detail === undefined) throw notFound(`Eval run ${id}`)
-    return structuredClone(detail)
-  }
 
   availableRuns = () =>
     this.f.runs.filter(

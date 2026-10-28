@@ -2,7 +2,7 @@ import { ArrowRight, Check, Copy } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 
-import { track } from "@/lib/analytics"
+import { track } from "@/lib/usage-events"
 
 import styles from "./connect.module.css"
 

@@ -1,9 +1,12 @@
 import { ChevronsLeft, Settings } from "lucide-react"
 import PropTypes from "prop-types"
-import { useSelector } from "react-redux"
+import { useEffect } from "react"
+import { useDispatch, useSelector } from "react-redux"
 import { NavLink } from "react-router-dom"
 
+import { useConnection } from "@/lib/connection/connection-context"
 import { NAV_GROUPS } from "@/lib/nav"
+import { loadThreadList } from "@/store/threads-slice"
 
 import styles from "./Sidebar.module.css"
 
@@ -14,6 +17,17 @@ import styles from "./Sidebar.module.css"
 const Sidebar = ({ collapsed, onToggleCollapse }) => {
   // Live local count for the Thread Inspector badge; empty until the list loads.
   const threadCount = useSelector((s) => s.threads.list.length)
+  const listStatus = useSelector((s) => s.threads.listStatus)
+  const { isConnected, isDemo } = useConnection()
+  const dispatch = useDispatch()
+
+  // Fill the badge at startup without fetching a thread's detail. A demo
+  // switch resets the slice to "idle", so isDemo re-triggers the load.
+  useEffect(() => {
+    if (isConnected && listStatus === "idle") {
+      dispatch(loadThreadList({ select: false }))
+    }
+  }, [dispatch, isConnected, isDemo, listStatus])
 
   return (
     <aside className={`${styles.side} ${collapsed ? styles.collapsed : ""}`}>

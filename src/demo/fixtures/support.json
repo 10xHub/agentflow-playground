@@ -30,11 +30,7 @@
         "id_generator": "DefaultIDGenerator",
         "id_type": "string",
         "state_type": "AgentState",
-        "state_fields": [
-          "context",
-          "context_summary",
-          "execution_meta"
-        ]
+        "state_fields": ["context", "context_summary", "execution_meta"]
       },
       "nodes": [
         {
@@ -103,9 +99,7 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "order_id"
-                ]
+                "required": ["order_id"]
               }
             },
             {
@@ -119,9 +113,7 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "customer_id"
-                ]
+                "required": ["customer_id"]
               }
             },
             {
@@ -138,10 +130,7 @@
                     "type": "number"
                   }
                 },
-                "required": [
-                  "order_id",
-                  "amount"
-                ]
+                "required": ["order_id", "amount"]
               }
             },
             {
@@ -161,11 +150,7 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "to",
-                  "subject",
-                  "body"
-                ]
+                "required": ["to", "subject", "body"]
               }
             },
             {
@@ -179,9 +164,7 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "order_id"
-                ]
+                "required": ["order_id"]
               }
             },
             {
@@ -193,12 +176,7 @@
                 "properties": {
                   "action": {
                     "type": "string",
-                    "enum": [
-                      "search",
-                      "store",
-                      "update",
-                      "delete"
-                    ],
+                    "enum": ["search", "store", "update", "delete"],
                     "default": "search"
                   },
                   "content": {
@@ -235,10 +213,7 @@
                   },
                   "write_mode": {
                     "type": "string",
-                    "enum": [
-                      "merge",
-                      "replace"
-                    ],
+                    "enum": ["merge", "replace"],
                     "default": "merge"
                   }
                 }
@@ -268,10 +243,7 @@
             },
             "kind": {
               "default": "citation",
-              "enum": [
-                "citation",
-                "note"
-              ],
+              "enum": ["citation", "note"],
               "title": "Kind",
               "type": "string"
             },
@@ -427,9 +399,7 @@
               "title": "Channels"
             }
           },
-          "required": [
-            "media"
-          ],
+          "required": ["media"],
           "title": "AudioBlock",
           "type": "object"
         },
@@ -475,9 +445,7 @@
               "default": null
             }
           },
-          "required": [
-            "mime_type"
-          ],
+          "required": ["mime_type"],
           "title": "DataBlock",
           "type": "object"
         },
@@ -533,9 +501,7 @@
               "title": "Excerpt"
             }
           },
-          "required": [
-            "media"
-          ],
+          "required": ["media"],
           "title": "DocumentBlock",
           "type": "object"
         },
@@ -578,9 +544,7 @@
               "title": "Data"
             }
           },
-          "required": [
-            "message"
-          ],
+          "required": ["message"],
           "title": "ErrorBlock",
           "type": "object"
         },
@@ -659,9 +623,7 @@
               "type": "object"
             }
           },
-          "required": [
-            "current_node"
-          ],
+          "required": ["current_node"],
           "title": "ExecutionState",
           "type": "object"
         },
@@ -717,9 +679,7 @@
               "title": "Bbox"
             }
           },
-          "required": [
-            "media"
-          ],
+          "required": ["media"],
           "title": "ImageBlock",
           "type": "object"
         },
@@ -728,11 +688,7 @@
           "properties": {
             "kind": {
               "default": "url",
-              "enum": [
-                "url",
-                "file_id",
-                "data"
-              ],
+              "enum": ["url", "file_id", "data"],
               "title": "Kind",
               "type": "string"
             },
@@ -887,12 +843,7 @@
               "title": "Message Id"
             },
             "role": {
-              "enum": [
-                "user",
-                "assistant",
-                "system",
-                "tool"
-              ],
+              "enum": ["user", "assistant", "system", "tool"],
               "title": "Role",
               "type": "string"
             },
@@ -1047,10 +998,7 @@
               "title": "Parsed Content"
             }
           },
-          "required": [
-            "role",
-            "content"
-          ],
+          "required": ["role", "content"],
           "title": "Message",
           "type": "object"
         },
@@ -1083,9 +1031,7 @@
               "title": "Details"
             }
           },
-          "required": [
-            "summary"
-          ],
+          "required": ["summary"],
           "title": "ReasoningBlock",
           "type": "object"
         },
@@ -1117,20 +1063,13 @@
               "type": "string"
             }
           },
-          "required": [
-            "id",
-            "name"
-          ],
+          "required": ["id", "name"],
           "title": "RemoteToolCallBlock",
           "type": "object"
         },
         "StopRequestStatus": {
           "description": "Status of graph execution.",
-          "enum": [
-            "none",
-            "stop_requested",
-            "stopped"
-          ],
+          "enum": ["none", "stop_requested", "stopped"],
           "title": "StopRequestStatus",
           "type": "string"
         },
@@ -1155,9 +1094,7 @@
               "type": "array"
             }
           },
-          "required": [
-            "text"
-          ],
+          "required": ["text"],
           "title": "TextBlock",
           "type": "object"
         },
@@ -1216,11 +1153,7 @@
               "title": "Audio Tokens"
             }
           },
-          "required": [
-            "completion_tokens",
-            "prompt_tokens",
-            "total_tokens"
-          ],
+          "required": ["completion_tokens", "prompt_tokens", "total_tokens"],
           "title": "TokenUsages",
           "type": "object"
         },
@@ -1259,10 +1192,7 @@
               "title": "Tool Type"
             }
           },
-          "required": [
-            "id",
-            "name"
-          ],
+          "required": ["id", "name"],
           "title": "ToolCallBlock",
           "type": "object"
         },
@@ -1291,10 +1221,7 @@
             "status": {
               "anyOf": [
                 {
-                  "enum": [
-                    "completed",
-                    "failed"
-                  ],
+                  "enum": ["completed", "failed"],
                   "type": "string"
                 },
                 {
@@ -1305,9 +1232,7 @@
               "title": "Status"
             }
           },
-          "required": [
-            "call_id"
-          ],
+          "required": ["call_id"],
           "title": "ToolResultBlock",
           "type": "object"
         },
@@ -1335,9 +1260,7 @@
               "default": null
             }
           },
-          "required": [
-            "media"
-          ],
+          "required": ["media"],
           "title": "VideoBlock",
           "type": "object"
         }
@@ -1542,10 +1465,7 @@
                     {
                       "name": "Maya Chen",
                       "email": "maya.chen@example.com",
-                      "orders": [
-                        "1042",
-                        "1043"
-                      ],
+                      "orders": ["1042", "1043"],
                       "customer_id": "c_88",
                       "open_tickets": 0,
                       "customer_since": "2023-04"
@@ -2291,10 +2211,7 @@
                     "name": "Maya Chen",
                     "email": "maya.chen@example.com",
                     "customer_since": "2023-04",
-                    "orders": [
-                      "1042",
-                      "1043"
-                    ],
+                    "orders": ["1042", "1043"],
                     "open_tickets": 0
                   }
                 ],
@@ -2877,9 +2794,7 @@
         "data": {
           "thread_id": "demo-history",
           "run_count": 1,
-          "run_ids": [
-            "d5d1c03d-d5cf-40e7-91e4-575761d2c475"
-          ],
+          "run_ids": ["d5d1c03d-d5cf-40e7-91e4-575761d2c475"],
           "run": {
             "run_id": "d5d1c03d-d5cf-40e7-91e4-575761d2c475",
             "thread_id": "demo-history",
@@ -2992,9 +2907,7 @@
           "data": {
             "thread_id": "demo-history",
             "run_count": 1,
-            "run_ids": [
-              "d5d1c03d-d5cf-40e7-91e4-575761d2c475"
-            ],
+            "run_ids": ["d5d1c03d-d5cf-40e7-91e4-575761d2c475"],
             "run": {
               "run_id": "d5d1c03d-d5cf-40e7-91e4-575761d2c475",
               "thread_id": "demo-history",
@@ -3109,9 +3022,7 @@
         "data": {
           "thread_id": "demo-prefs",
           "run_count": 1,
-          "run_ids": [
-            "5c5a9058-6c78-4df9-a2fa-34e61d61f0e3"
-          ],
+          "run_ids": ["5c5a9058-6c78-4df9-a2fa-34e61d61f0e3"],
           "run": {
             "run_id": "5c5a9058-6c78-4df9-a2fa-34e61d61f0e3",
             "thread_id": "demo-prefs",
@@ -3206,9 +3117,7 @@
           "data": {
             "thread_id": "demo-prefs",
             "run_count": 1,
-            "run_ids": [
-              "5c5a9058-6c78-4df9-a2fa-34e61d61f0e3"
-            ],
+            "run_ids": ["5c5a9058-6c78-4df9-a2fa-34e61d61f0e3"],
             "run": {
               "run_id": "5c5a9058-6c78-4df9-a2fa-34e61d61f0e3",
               "thread_id": "demo-prefs",
@@ -4175,10 +4084,7 @@
                       "name": "Maya Chen",
                       "email": "maya.chen@example.com",
                       "customer_since": "2023-04",
-                      "orders": [
-                        "1042",
-                        "1043"
-                      ],
+                      "orders": ["1042", "1043"],
                       "open_tickets": 0
                     }
                   ],

@@ -35,7 +35,7 @@
     "@tanstack/query-async-storage-persister": "^5.80.2",
     "@tanstack/react-query": "^5.80.2",
     "@tanstack/react-query-persist-client": "^5.80.2",
-    "10xgraph-client": "^0.6.0",
+    "10xgraph-client": "1.0.0-rc.1",
     "firebase": "^12.11.0",
     "i18next": "^25.2.1",
     "i18next-browser-languagedetector": "^8.1.0",

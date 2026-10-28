@@ -1,12 +1,13 @@
-import { Trash2 } from "lucide-react"
+import { AlertTriangle, Trash2 } from "lucide-react"
 import PropTypes from "prop-types"
+import { useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
 
 import { Trace } from "@/components/ui/trace"
 import chatStyles from "@/pages/chat/chat.module.css"
 import { ReasoningStep, ToolStep } from "@/pages/chat/components/agent-steps"
 import RichText from "@/pages/chat/components/rich-text"
-import { removeMessage } from "@/store/threads-slice"
+import { loadMoreMessages, removeMessage } from "@/store/threads-slice"
 
 import styles from "../threads.module.css"
 
@@ -82,6 +83,15 @@ const timeOf = (m) => {
  */
 const MessageRow = ({ threadId = null, msg, onDelete }) => {
   const roleClass = styles[msg.role] || ""
+  const [armed, setArmed] = useState(false)
+  const onClick = () => {
+    if (!armed) {
+      setArmed(true)
+      return
+    }
+    setArmed(false)
+    onDelete(threadId, msg.message_id)
+  }
   return (
     <div className={styles.mrow}>
       <div className={styles.mrowH}>
@@ -93,10 +103,15 @@ const MessageRow = ({ threadId = null, msg, onDelete }) => {
         <button
           type="button"
           className={styles.mDel}
-          title="Delete message"
-          onClick={() => onDelete(threadId, msg.message_id)}
+          title={armed ? "Click again to delete" : "Delete message"}
+          onClick={onClick}
+          onBlur={() => setArmed(false)}
         >
-          <Trash2 size={14} strokeWidth={1.7} />
+          {armed ? (
+            <AlertTriangle size={14} strokeWidth={1.7} />
+          ) : (
+            <Trash2 size={14} strokeWidth={1.7} />
+          )}
         </button>
       </div>
       <div className={styles.mrowBody}>
@@ -150,6 +165,16 @@ const MessagesPane = () => {
           onDelete={onDelete}
         />
       ))}
+      {detail?.messagesHasMore && (
+        <button
+          type="button"
+          className={styles.tbtn}
+          disabled={detail.loadingMore}
+          onClick={() => dispatch(loadMoreMessages())}
+        >
+          {detail.loadingMore ? "Loading…" : "Load more messages"}
+        </button>
+      )}
     </div>
   )
 }

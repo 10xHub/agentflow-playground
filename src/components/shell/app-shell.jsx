@@ -7,6 +7,8 @@ import {
 } from "react"
 import { Outlet } from "react-router-dom"
 
+import { Toaster } from "@/components/ui/toaster"
+
 import styles from "./AppShell.module.css"
 import ConnectionBar from "./connection-bar"
 import DemoBanner from "./demo-banner"
@@ -36,6 +38,7 @@ const AppShell = () => {
   return (
     <div className={styles.app}>
       <ConnectionBar right={barRight} />
+      <Toaster />
       <div className={styles.shell}>
         <Sidebar collapsed={collapsed} onToggleCollapse={toggleCollapse} />
         <div className={styles.column}>

@@ -84,10 +84,12 @@ Payload.propTypes = {
   code: PropTypes.string,
 }
 
-const toolState = (result, streaming) => {
+const toolState = (result, streaming, remote = false) => {
   if (result?.isError) return { status: "error", verb: "Failed to run" }
   if (result) return { status: null, verb: "Ran" }
   if (streaming) return { status: "running", verb: "Running" }
+  // The browser runs these itself and the result is not streamed back.
+  if (remote) return { status: null, verb: "Ran" }
   // No result in this turn (stopped, or the server did not send one).
   return { status: null, verb: "Called" }
 }
@@ -100,12 +102,21 @@ const TOOL_ICON = {
 }
 
 /** The collapsed row: "Ran lookup_order  order_id: \"1043\"". */
-const ToolLine = ({ status = null, verb, name, args = null }) => (
+const ToolLine = ({
+  status = null,
+  verb,
+  name,
+  args = null,
+  remote = false,
+}) => (
   <TraceLine status={status}>
     <TraceIcon>{TOOL_ICON[status] ?? <Wrench />}</TraceIcon>
     <TraceTitle>
       {verb} <span className="font-mono">{name}</span>
     </TraceTitle>
+    {remote ? (
+      <TraceDescription className="text-xs">in your browser</TraceDescription>
+    ) : null}
     {args ? (
       <TraceDescription className="hidden font-mono text-xs sm:inline">
         {argsPreview(args)}
@@ -119,11 +130,12 @@ ToolLine.propTypes = {
   verb: PropTypes.string.isRequired,
   name: PropTypes.string.isRequired,
   args: PropTypes.string,
+  remote: PropTypes.bool,
 }
 
 /** A tool call and the result that answers it, folded into one step. */
 export const ToolStep = ({ call = null, result = null, streaming = false }) => {
-  const { status, verb } = toolState(result, streaming)
+  const { status, verb } = toolState(result, streaming, call?.remote)
 
   return (
     <TraceCollapsible>
@@ -133,6 +145,7 @@ export const ToolStep = ({ call = null, result = null, streaming = false }) => {
           verb={verb}
           name={toolName(call, result)}
           args={call?.code}
+          remote={Boolean(call?.remote)}
         />
       </TraceCollapsibleTrigger>
       <TraceCollapsibleContent className="flex flex-col gap-2">
@@ -160,6 +173,7 @@ const blockShape = PropTypes.shape({
   code: PropTypes.string,
   text: PropTypes.string,
   isError: PropTypes.bool,
+  remote: PropTypes.bool,
 })
 
 ToolStep.propTypes = {

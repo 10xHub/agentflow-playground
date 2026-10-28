@@ -94,39 +94,6 @@
 .skv .v {
   color: var(--text-secondary);
 }
-.colInput {
-  width: 150px;
-  text-align: right;
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 6px;
-  color: var(--text-secondary);
-  font-family: var(--mono);
-  font-size: 11px;
-  padding: 2px 6px;
-  outline: none;
-  transition:
-    border-color 0.15s,
-    color 0.15s,
-    background 0.15s;
-  cursor: text;
-}
-.colInput:hover {
-  border-color: var(--border);
-  color: var(--text);
-}
-.colInput:focus {
-  border-color: var(--text-secondary);
-  background: var(--elevated);
-  color: var(--text);
-  box-shadow: 0 0 0 3px var(--focus-ring);
-}
-.colEditHint {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  color: var(--text-muted);
-}
 .scopeNote {
   margin-top: 9px;
   padding-top: 9px;
@@ -811,4 +778,42 @@
 .keywordChip:focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
+}
+
+/* ---- create / edit form ---- */
+.form {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow-y: auto;
+}
+.formField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.formInput {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 12.5px;
+  color: inherit;
+  font-family: inherit;
+}
+.formInput:disabled {
+  opacity: 0.6;
+}
+.formError {
+  color: var(--danger);
+  font-size: 12px;
+}
+.newBtn {
+  margin-left: auto;
+}
+.listHeadRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }

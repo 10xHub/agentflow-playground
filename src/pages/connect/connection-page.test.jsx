@@ -1,22 +1,24 @@
-import { render, screen } from "@testing-library/react"
+import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { MemoryRouter, Route, Routes } from "react-router-dom"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import ConnectionPage from "@/pages/connect/connection-page"
 
-const { conn } = vi.hoisted(() => ({ conn: { saved: [] } }))
+const { conn } = vi.hoisted(() => ({
+  conn: { saved: [], status: "idle", connect: null },
+}))
 vi.mock("@/lib/connection/connection-context", () => ({
   useConnection: () => ({
-    status: "idle",
+    status: conn.status,
     error: null,
-    capabilities: null,
+    capabilities: conn.status === "connected" ? [] : null,
     info: null,
     probe: null,
     saved: conn.saved,
-    connect: vi.fn(),
+    connect: conn.connect,
   }),
 }))
-vi.mock("@/lib/analytics", () => ({ track: vi.fn() }))
+vi.mock("@/lib/usage-events", () => ({ track: vi.fn() }))
 
 const renderPage = () =>
   render(
@@ -24,6 +26,7 @@ const renderPage = () =>
       <Routes>
         <Route path="/" element={<ConnectionPage />} />
         <Route path="/demo" element={<p>demo route</p>} />
+        <Route path="/chat" element={<p>chat route</p>} />
       </Routes>
     </MemoryRouter>
   )
@@ -33,6 +36,8 @@ const profile = (id) => ({ id, name: id, backendUrl: `http://${id}:8000` })
 describe("ConnectionPage", () => {
   beforeEach(() => {
     conn.saved = [profile("local")]
+    conn.status = "idle"
+    conn.connect = vi.fn().mockResolvedValue({ ok: true })
   })
 
   it("puts the connect form first", () => {
@@ -44,24 +49,34 @@ describe("ConnectionPage", () => {
 
   it("offers the demo, the install commands and why 10xGraph beside it", () => {
     renderPage()
-    expect(screen.getByRole("button", { name: /Explore the recorded demo/ })).toBeInTheDocument()
-    expect(screen.getByText(/pip install 10xgraph 10xgraph-api/)).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: /Explore the recorded demo/ })
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(/pip install 10xgraph 10xgraph-api/)
+    ).toBeInTheDocument()
     expect(
       screen.getByRole("heading", { name: /builds the production server/ })
     ).toBeInTheDocument()
-    expect(screen.getByText(/never repeats a charge or an email/)).toBeInTheDocument()
+    expect(
+      screen.getByText(/never repeats a charge or an email/)
+    ).toBeInTheDocument()
   })
 
   it("keeps it while there are two saved connections", () => {
     conn.saved = [profile("local"), profile("staging")]
     renderPage()
-    expect(screen.getByRole("button", { name: /Explore the recorded demo/ })).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: /Explore the recorded demo/ })
+    ).toBeInTheDocument()
   })
 
   it("shows only the form from three saved connections on", () => {
     conn.saved = [profile("a"), profile("b"), profile("c")]
     renderPage()
-    expect(screen.queryByRole("button", { name: /Explore the recorded demo/ })).toBeNull()
+    expect(
+      screen.queryByRole("button", { name: /Explore the recorded demo/ })
+    ).toBeNull()
     expect(
       screen.queryByRole("heading", { name: /builds the production server/ })
     ).toBeNull()
@@ -70,6 +85,68 @@ describe("ConnectionPage", () => {
   it("always links to the demo from the top bar", () => {
     conn.saved = [profile("a"), profile("b"), profile("c")]
     renderPage()
-    expect(screen.getByRole("link", { name: "Demo" })).toHaveAttribute("href", "/demo")
+    expect(screen.getByRole("link", { name: "Demo" })).toHaveAttribute(
+      "href",
+      "/demo"
+    )
+  })
+
+  describe("two-state connect button", () => {
+    // The mocked context cannot flip status itself, so rerender after connect.
+    const verify = async () => {
+      const view = renderPage()
+      fireEvent.click(screen.getByRole("button", { name: "Connect & verify" }))
+      await waitFor(() => expect(conn.connect).toHaveBeenCalled())
+      conn.status = "connected"
+      view.rerender(
+        <MemoryRouter initialEntries={["/"]}>
+          <Routes>
+            <Route path="/" element={<ConnectionPage />} />
+            <Route path="/chat" element={<p>chat route</p>} />
+          </Routes>
+        </MemoryRouter>
+      )
+      return view
+    }
+
+    it("is not verified when already connected on mount", () => {
+      conn.status = "connected"
+      renderPage()
+      expect(
+        screen.getByRole("button", { name: "Connect & verify" })
+      ).toBeInTheDocument()
+      expect(screen.getByText(/to connect/)).toBeInTheDocument()
+    })
+
+    it("turns into Enter playground after a successful connect", async () => {
+      await verify()
+      const btn = await screen.findByRole("button", {
+        name: /enter playground/i,
+      })
+      expect(btn).toHaveTextContent("Verified")
+      expect(screen.getByText(/to enter/)).toBeInTheDocument()
+      fireEvent.click(btn)
+      expect(await screen.findByText("chat route")).toBeInTheDocument()
+    })
+
+    it("reverts when a field is edited after verifying", async () => {
+      await verify()
+      await screen.findByRole("button", { name: /enter playground/i })
+      fireEvent.change(screen.getByLabelText(/Base URL/), {
+        target: { value: "http://other:9000" },
+      })
+      expect(
+        screen.getByRole("button", { name: "Connect & verify" })
+      ).toBeInTheDocument()
+    })
+
+    it("Enter key navigates when verified", async () => {
+      await verify()
+      await screen.findByRole("button", { name: /enter playground/i })
+      conn.connect.mockClear()
+      fireEvent.keyDown(document, { key: "Enter" })
+      expect(await screen.findByText("chat route")).toBeInTheDocument()
+      expect(conn.connect).not.toHaveBeenCalled()
+    })
   })
 })

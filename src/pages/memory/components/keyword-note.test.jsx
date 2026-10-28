@@ -41,7 +41,9 @@ describe("KeywordNote", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "contact preference" }))
 
-    await vi.waitFor(() => expect(store.getState().memory.query).toBe("contact preference"))
+    await vi.waitFor(() =>
+      expect(store.getState().memory.query).toBe("contact preference")
+    )
     expect(store.getState().memory.keywordMatch).toBe(false)
   })
 

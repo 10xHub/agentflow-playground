@@ -1,7 +1,7 @@
 import { createSlice } from "@reduxjs/toolkit"
 
+import { notifyError, notifySuccess } from "@/lib/notify"
 import { getTenxGraphClient } from "@/lib/tenxgraph-client"
-import { DEFAULT_COLLECTION } from "@/pages/memory/data"
 
 // Live memory-store inspector state (POST /v1/store/*). Two modes:
 //   browse -> listMemories()          (all memories, newest first)
@@ -17,10 +17,11 @@ const initialState = {
   query: "",
   strategy: "SIMILARITY",
   metric: "cosine",
-  collection: DEFAULT_COLLECTION,
   busy: false,
   // Demo mode: the last search was a keyword fallback, not the store's search.
   keywordMatch: false,
+  // Facets. types null = every type. They go to the server as search filters.
+  filters: { types: null, cat: null, minScore: 0 },
 }
 
 // Adapt the API's MemorySearchResult to the shape the memory components expect.
@@ -53,8 +54,8 @@ const memorySlice = createSlice({
     setMetric: (s, a) => {
       s.metric = a.payload
     },
-    setCollection: (s, a) => {
-      s.collection = a.payload || DEFAULT_COLLECTION
+    setFilters: (s, a) => {
+      s.filters = { ...s.filters, ...a.payload }
     },
     setKeywordMatch: (s, a) => {
       s.keywordMatch = a.payload
@@ -97,7 +98,7 @@ export const {
   setQuery,
   setStrategy,
   setMetric,
-  setCollection,
+  setFilters,
   selectMemory,
   setKeywordMatch,
   loading,
@@ -108,6 +109,14 @@ export const {
 } = memorySlice.actions
 
 const unwrap = (res) => res?.data || res || {}
+
+// Server-side filters for a search. A single selected type is sent as memory_type;
+// several (or all) types are not, and the page narrows the results itself.
+const searchFilters = ({ types, cat, minScore }) => ({
+  ...(types?.length === 1 ? { memory_type: types[0] } : {}),
+  ...(cat ? { category: cat } : {}),
+  ...(minScore > 0 ? { score_threshold: minScore } : {}),
+})
 
 const NOT_CONNECTED = "Not connected"
 
@@ -125,13 +134,8 @@ const dispatchFetchError = (dispatch, e, fallback) => {
   else dispatch(failed(e?.message || fallback))
 }
 
-const cfgFor = (getState) => {
-  const { collection } = getState().memory
-  return collection ? { collection } : {}
-}
-
 /** Browse all loaded memories. */
-export const browseMemories = () => async (dispatch, getState) => {
+export const browseMemories = () => async (dispatch) => {
   let client
   try {
     client = getTenxGraphClient()
@@ -141,9 +145,7 @@ export const browseMemories = () => async (dispatch, getState) => {
   }
   dispatch(loading())
   try {
-    const data = unwrap(
-      await client.listMemories({ config: cfgFor(getState), limit: 100 })
-    )
+    const data = unwrap(await client.listMemories({ limit: 100 }))
     dispatch(setKeywordMatch(false))
     dispatch(loaded((data.memories || []).map(normalize)))
   } catch (e) {
@@ -160,20 +162,20 @@ export const searchMemories = (query) => async (dispatch, getState) => {
     dispatch(failed(e?.message || NOT_CONNECTED))
     return
   }
-  const { strategy, metric } = getState().memory
+  const { strategy, metric, filters } = getState().memory
   dispatch(setQuery(query))
   dispatch(loading())
   try {
     const data = unwrap(
       await client.searchMemory({
         query,
-        config: cfgFor(getState),
         limit: 25,
         // These are first-class SearchMemorySchema fields — passing them via
         // `options` collides with the service's explicit kwargs (dummy store's
         // asearch would get retrieval_strategy twice → 500).
         retrieval_strategy: strategy?.toLowerCase(),
         distance_metric: metric,
+        ...searchFilters(filters),
       })
     )
     dispatch(setKeywordMatch(Boolean(data.keyword)))
@@ -190,6 +192,14 @@ export const refreshMemories = () => (dispatch, getState) => {
   return dispatch(browseMemories())
 }
 
+/** Change the facets; a search in progress re-runs with the new server filters. */
+export const applyFilters = (patch) => (dispatch, getState) => {
+  dispatch(setFilters(patch))
+  const { mode, query } = getState().memory
+  if (mode === "search" && query) return dispatch(searchMemories(query))
+  return undefined
+}
+
 /** Delete one memory, then refresh. */
 export const deleteMemory = (id) => async (dispatch) => {
   const client = getTenxGraphClient()
@@ -197,25 +207,71 @@ export const deleteMemory = (id) => async (dispatch) => {
   try {
     await client.deleteMemory(id)
     await dispatch(refreshMemories())
+  } catch (e) {
+    notifyError("Could not delete memory", e)
   } finally {
     dispatch(setBusy(false))
   }
 }
 
-/** Forget the currently shown set (all visible). */
-export const forgetVisible = () => async (dispatch, getState) => {
+/** Forget exactly the given ids (the rows the user sees), then refresh. */
+export const forgetVisible = (ids) => async (dispatch) => {
   const client = getTenxGraphClient()
-  const ids = getState().memory.items.map((m) => m.id)
   dispatch(setBusy(true))
   try {
     // No bulk endpoint that matches arbitrary ids; delete individually.
-    await Promise.all(
-      ids.map((id) => client.deleteMemory(id).catch(() => null))
+    const results = await Promise.allSettled(
+      ids.map((id) => client.deleteMemory(id))
     )
+    const failed = results.filter((r) => r.status === "rejected")
+    if (failed.length) {
+      notifyError(
+        `Forgot ${ids.length - failed.length} of ${ids.length} memories`,
+        failed[0].reason?.message || failed[0].reason
+      )
+    }
     await dispatch(refreshMemories())
   } finally {
     dispatch(setBusy(false))
   }
 }
+
+/** Create a memory, refresh the list and select the new row. Resolves true on success. */
+export const createMemory = (values) => async (dispatch) => {
+  const client = getTenxGraphClient()
+  dispatch(setBusy(true))
+  try {
+    const res = unwrap(await client.storeMemory(values))
+    dispatch(setMode("browse"))
+    await dispatch(browseMemories())
+    if (res.memory_id) dispatch(selectMemory(res.memory_id))
+    notifySuccess("Memory saved")
+    return true
+  } catch (e) {
+    notifyError("Could not save memory", e)
+    return false
+  } finally {
+    dispatch(setBusy(false))
+  }
+}
+
+/** Change a memory's content and metadata, then refresh. Resolves true on success. */
+export const editMemory =
+  (id, { content, metadata }) =>
+  async (dispatch) => {
+    const client = getTenxGraphClient()
+    dispatch(setBusy(true))
+    try {
+      await client.updateMemory(id, content, { metadata })
+      await dispatch(refreshMemories())
+      notifySuccess("Memory updated")
+      return true
+    } catch (e) {
+      notifyError("Could not update memory", e)
+      return false
+    } finally {
+      dispatch(setBusy(false))
+    }
+  }
 
 export default memorySlice.reducer

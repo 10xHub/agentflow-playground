@@ -1,26 +1,21 @@
 import { RefreshCw, Search } from "lucide-react"
 import PropTypes from "prop-types"
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
 
-import { loadThreadList } from "@/store/threads-slice"
+import { ago } from "@/lib/format-ago"
+import { loadMoreThreads, loadThreadList } from "@/store/threads-slice"
 
 import styles from "../threads.module.css"
 
-// "3m ago" style relative time from an ISO/timestamp string.
-const ago = (iso) => {
-  if (!iso) return "—"
-  const then = new Date(iso).getTime()
-  if (Number.isNaN(then)) return "—"
-  const s = Math.max(0, (Date.now() - then) / 1000)
-  if (s < 60) return "now"
-  if (s < 3600) return `${Math.floor(s / 60)}m ago`
-  if (s < 86400) return `${Math.floor(s / 3600)}h ago`
-  return `${Math.floor(s / 86400)}d ago`
-}
+const SEARCH_DELAY_MS = 300
 
 const shortId = (id) =>
   id?.length > 12 ? `${id.slice(0, 8)}…${id.slice(-3)}` : id
+
+// The API returns no total, so say only what is loaded.
+const countLabel = (n, hasMore) =>
+  `${n} loaded${hasMore ? ", more available" : ""}`
 
 // Keyboard equivalent of the row click (Enter / Space activate).
 const activateOnKey = (handler) => (e) => {
@@ -34,18 +29,25 @@ const activateOnKey = (handler) => (e) => {
  */
 const ThreadList = ({ selectedId = null, onSelect }) => {
   const dispatch = useDispatch()
-  const { list, listStatus, listError } = useSelector((s) => s.threads)
-  const [query, setQuery] = useState("")
+  const { list, listStatus, listError, hasMore, loadingMore, search } =
+    useSelector((s) => s.threads)
+  const [query, setQuery] = useState(search)
+  const skipFirst = useRef(true)
 
-  const rows = list.filter((t) => {
-    if (!query.trim()) return true
-    const q = query.toLowerCase()
-    return (
-      t.thread_id?.toLowerCase().includes(q) ||
-      t.thread_name?.toLowerCase().includes(q) ||
-      t.user_id?.toLowerCase().includes(q)
+  // Search is server-side (GET /v1/threads?search=); debounce the keystrokes.
+  useEffect(() => {
+    if (skipFirst.current) {
+      skipFirst.current = false
+      return undefined
+    }
+    const timer = setTimeout(
+      () => dispatch(loadThreadList({ select: false, search: query })),
+      SEARCH_DELAY_MS
     )
-  })
+    return () => clearTimeout(timer)
+  }, [dispatch, query])
+
+  const rows = list
 
   return (
     <section className={styles.list}>
@@ -53,7 +55,9 @@ const ThreadList = ({ selectedId = null, onSelect }) => {
         <div className={styles.listTitle}>
           <h2>Threads</h2>
           <span className={styles.cnt}>
-            {listStatus === "loading" ? "loading…" : `${list.length} readable`}
+            {listStatus === "loading"
+              ? "loading…"
+              : countLabel(list.length, hasMore)}
           </span>
           <button
             type="button"
@@ -67,7 +71,7 @@ const ThreadList = ({ selectedId = null, onSelect }) => {
         <div className={styles.search}>
           <Search size={14} strokeWidth={1.7} />
           <input
-            placeholder="Search id, name, user…"
+            placeholder="Search threads…"
             spellCheck={false}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -107,6 +111,16 @@ const ThreadList = ({ selectedId = null, onSelect }) => {
             </div>
           </div>
         ))}
+        {hasMore && (
+          <button
+            type="button"
+            className={styles.refreshBtn}
+            disabled={loadingMore}
+            onClick={() => dispatch(loadMoreThreads())}
+          >
+            {loadingMore ? "Loading…" : "Load more"}
+          </button>
+        )}
       </div>
     </section>
   )

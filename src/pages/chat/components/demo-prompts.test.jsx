@@ -12,7 +12,7 @@ const { current } = vi.hoisted(() => ({ current: { client: null } }))
 vi.mock("@/lib/tenxgraph-client", () => ({
   getTenxGraphClient: () => current.client,
 }))
-vi.mock("@/lib/analytics", () => ({ track: vi.fn() }))
+vi.mock("@/lib/usage-events", () => ({ track: vi.fn() }))
 
 const renderPrompts = () => {
   current.client = new DemoClient(fixture, { sleep: () => Promise.resolve() })
@@ -38,13 +38,17 @@ describe("DemoPrompts", () => {
   it("plays a run and unlocks the next one", async () => {
     renderPrompts()
     fireEvent.click(screen.getByRole("button", { name: "First" }))
-    expect(await screen.findByRole("button", { name: "Second" })).toBeInTheDocument()
+    expect(
+      await screen.findByRole("button", { name: "Second" })
+    ).toBeInTheDocument()
   })
 
   it("points to running it yourself when every run has played", async () => {
     renderPrompts()
     fireEvent.click(screen.getByRole("button", { name: "First" }))
     fireEvent.click(await screen.findByRole("button", { name: "Second" }))
-    expect(await screen.findByText(/pip install 10xgraph 10xgraph-api/)).toBeInTheDocument()
+    expect(
+      await screen.findByText(/pip install 10xgraph 10xgraph-api/)
+    ).toBeInTheDocument()
   })
 })

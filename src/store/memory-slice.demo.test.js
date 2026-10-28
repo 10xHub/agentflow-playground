@@ -3,7 +3,10 @@ import { describe, expect, it, vi } from "vitest"
 
 import { DemoClient } from "@/lib/demo/demo-client"
 import fixture from "@/lib/demo/test-fixture"
-import memoryReducer, { browseMemories, searchMemories } from "@/store/memory-slice"
+import memoryReducer, {
+  browseMemories,
+  searchMemories,
+} from "@/store/memory-slice"
 
 const { current } = vi.hoisted(() => ({ current: { client: null } }))
 vi.mock("@/lib/tenxgraph-client", () => ({

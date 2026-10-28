@@ -31,7 +31,10 @@ const setup = (fixture) => {
 }
 
 const userTexts = (store) =>
-  store.getState().chat.messages.filter((m) => m.role === "user").map((m) => m.text)
+  store
+    .getState()
+    .chat.messages.filter((m) => m.role === "user")
+    .map((m) => m.text)
 
 describe("sendDemoRun", () => {
   beforeEach(() => {
@@ -53,7 +56,11 @@ describe("sendDemoRun", () => {
   it("builds the cURL for a local server, not the visitor's saved one", async () => {
     localStorage.setItem(
       "10xgraph.settings",
-      JSON.stringify({ backendUrl: "http://mine:8000", authMode: "bearer", authToken: "x" })
+      JSON.stringify({
+        backendUrl: "http://mine:8000",
+        authMode: "bearer",
+        authToken: "x",
+      })
     )
     enterDemo("support")
     const fixture = withThreads()
@@ -102,7 +109,11 @@ describe("sendDemoRun", () => {
   })
 
   it("drops the rest of a demo run when the visitor leaves mid-stream", async () => {
-    const mine = { order: ["real"], byId: { real: { id: "real", messages: [] } }, activeId: "real" }
+    const mine = {
+      order: ["real"],
+      byId: { real: { id: "real", messages: [] } },
+      activeId: "real",
+    }
     localStorage.setItem("10xgraph.threads", JSON.stringify(mine))
     enterDemo("support")
     const fixture = withThreads()

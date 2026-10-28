@@ -1,6 +1,17 @@
 import { Message } from "10xgraph-client"
 
+import { buildAttachmentMessage } from "@/lib/chat-attachments"
+import { isClientToolHandled } from "@/lib/client-tool-handlers"
 import { isDemoActive } from "@/lib/demo/demo-mode"
+import {
+  interruptFromChunk,
+  isStaticPause,
+  pauseFromChunk,
+  remoteToolNames,
+  savedPause,
+  unhandledPause,
+} from "@/lib/interrupt"
+import { notifyError, notifySuccess } from "@/lib/notify"
 import { resolveRunOptions } from "@/lib/run-options"
 import { getCurrentSettings } from "@/lib/settings-utils"
 import { getTenxGraphClient } from "@/lib/tenxgraph-client"
@@ -10,6 +21,7 @@ import {
   addUserMessage,
   appendErrorAnswer,
   beginRun,
+  clearPendingInterrupt,
   finishAgentTurn,
   newThread,
   pushEvent,
@@ -19,7 +31,10 @@ import {
   setError,
   setGenerating,
   setGraphInfo,
+  setInterruptBusy,
+  setInterruptError,
   setMode,
+  setPendingInterrupt,
   setThreadId,
   startAgentTurn,
   upsertBlock,
@@ -39,6 +54,8 @@ export const abortActiveRun = () => {
   activeAbort.abandoned = true
   activeAbort.abort()
 }
+
+const NOT_CONNECTED = "Not connected to a backend"
 
 const nowTime = () =>
   new Date().toLocaleTimeString([], {
@@ -141,6 +158,19 @@ const toolCallBlock = (block, index) => ({
   },
 })
 
+// A call the browser runs itself (a client tool registered in the Tools page).
+const remoteToolCallBlock = (block, index) => ({
+  key: `tool_call:${block.id || block.name || index}`,
+  block: {
+    kind: "tool_call",
+    callId: block.id,
+    name: block.name,
+    code: pretty(block.args ?? {}),
+    remote: true,
+    collapsed: false,
+  },
+})
+
 const toolResultBlock = (block, index) => ({
   key: `tool_result:${block.call_id || block.id || index}`,
   block: {
@@ -156,6 +186,7 @@ const toolResultBlock = (block, index) => ({
 const BLOCK_BUILDERS = new Map([
   ["reasoning", reasoningBlock],
   ["tool_call", toolCallBlock],
+  ["remote_tool_call", remoteToolCallBlock],
   ["tool_result", toolResultBlock],
 ])
 
@@ -314,20 +345,63 @@ const applyChunkMessage = (dispatch, agentId, message) => {
   return true
 }
 
+// Ask the server to stop the thread's run. The AbortSignal cancels the request
+// itself; this tells the server to stop work it may already be doing.
+const requestServerStop = async (controller, threadId) => {
+  if (!threadId || controller?.stopSent) return
+  if (controller) controller.stopSent = true
+  try {
+    await getTenxGraphClient().stopGraph(threadId)
+  } catch (e) {
+    notifyError("Could not stop the run", e)
+  }
+}
+
+// Stop landed before the thread id was known: take it from this chunk.
+const stopOnAbort = (controller, getState, chunk) =>
+  requestServerStop(
+    controller,
+    getState().chat.threadId || chunk?.thread_id || chunk?.metadata?.thread_id
+  )
+
 // Consume the async chunk stream (shared by "stream" and "ws" modes) and fan the
 // chunks out into messages + inspector logs. Returns whether any text was seen.
+
+// Note the pause a chunk announces. A remote_tool pause only counts if the
+// stream ends there: the client SDK runs the tool and keeps streaming, so the
+// next chunk drops it. It is also skipped when a handler runs the tool.
+const trackPause = (chunk, outcome, tools) => {
+  if (!outcome) return
+  if (outcome.interrupt?.kind === "remote_tool") delete outcome.interrupt
+  const names = remoteToolNames(chunk?.message)
+  if (names.length > 0) tools.names = names
+  const pause = unhandledPause(
+    pauseFromChunk(chunk),
+    tools.names,
+    isClientToolHandled
+  )
+  const interrupt = interruptFromChunk(chunk) || pause
+  if (interrupt) outcome.interrupt = interrupt
+}
+
 const consumeStream = async (
   stream,
-  { dispatch, getState, agentId, startedAt, signal }
+  { dispatch, getState, agentId, startedAt, signal, controller, outcome }
 ) => {
   let sawText = false
+  const tools = { names: [] }
   for await (const chunk of stream) {
-    if (signal?.aborted) break
+    if (signal?.aborted) {
+      await stopOnAbort(controller, getState, chunk)
+      break
+    }
 
     logChunk(dispatch, chunk, startedAt)
     syncThreadId(dispatch, getState, chunk)
     syncAgentNode(dispatch, agentId, chunk)
     throwIfErrorChunk(chunk)
+
+    trackPause(chunk, outcome, tools)
 
     if (applyChunkMessage(dispatch, agentId, chunk?.message)) sawText = true
   }
@@ -367,20 +441,11 @@ export const loadGraphInfo = () => async (dispatch) => {
 
 /** Abort the in-flight run (header/composer Stop button). */
 export const stopGeneration = () => async (dispatch, getState) => {
-  // Aborting the local iterator is what actually stops the UI stream; the server
-  // stopGraph call is best-effort and only exists on newer SDK builds.
-  if (activeAbort) activeAbort.abort()
-  const { threadId } = getState().chat
-  if (threadId) {
-    try {
-      const client = getTenxGraphClient()
-      if (typeof client.stopGraph === "function") {
-        await client.stopGraph(threadId)
-      }
-    } catch {
-      /* best-effort server stop */
-    }
-  }
+  // Aborting stops the UI side; the server is asked to stop too. Without a
+  // thread id yet, consumeStream asks once the first chunk carries it.
+  const controller = activeAbort
+  if (controller) controller.abort()
+  await requestServerStop(controller, getState().chat.threadId)
   dispatch(setGenerating(false))
 }
 
@@ -389,13 +454,13 @@ export const fixThread = () => async (dispatch, getState) => {
   const { threadId } = getState().chat
   if (!threadId) return
   try {
-    const client = getTenxGraphClient()
-    if (typeof client.fixGraph !== "function") {
-      dispatch(setError("Fix thread requires a newer 10xGraph client build."))
-      return
-    }
-    await client.fixGraph(threadId)
+    const res = await getTenxGraphClient().fixGraph(threadId)
     dispatch(setError(null))
+    const removed = (res?.data || res)?.removed_count
+    notifySuccess(
+      "Thread fixed",
+      typeof removed === "number" ? `Removed ${removed} message(s).` : undefined
+    )
   } catch (e) {
     dispatch(setError(e?.message || "Fix thread failed"))
   }
@@ -415,9 +480,16 @@ const outboundLabel = (mode) =>
 // Everything that marks the start of a run, in dispatch order.
 const startRun = (
   dispatch,
-  { agentId, granularity, mode, outgoing, run, startedAt, trimmed }
+  { agentId, granularity, mode, outgoing, run, startedAt, trimmed, attachments }
 ) => {
-  dispatch(addUserMessage({ id: uid("user"), text: trimmed, time: nowTime() }))
+  dispatch(
+    addUserMessage({
+      id: uid("user"),
+      text: trimmed,
+      time: nowTime(),
+      attachments,
+    })
+  )
   dispatch(startAgentTurn({ id: agentId }))
   dispatch(setGenerating(true))
   dispatch(setError(null))
@@ -454,9 +526,9 @@ const runInvoke = async (
   client,
   outgoing,
   clientOptions,
-  { dispatch, agentId, startedAt }
+  { dispatch, agentId, startedAt, signal, outcome }
 ) => {
-  const result = await client.invoke(outgoing, clientOptions)
+  const result = await client.invoke(outgoing, { ...clientOptions, signal })
   dispatch(
     pushFrame({ dir: "in", label: "200 invoke result", time: since(startedAt) })
   )
@@ -472,6 +544,11 @@ const runInvoke = async (
   const resThreadId = responseThreadId(result)
   if (resThreadId) dispatch(setThreadId(resThreadId))
 
+  // Best effort: the invoke body carries the pause only as saved state, and
+  // only when the granularity returns it.
+  const interrupt = savedPause(result?.state, isClientToolHandled)
+  if (interrupt) outcome.interrupt = interrupt
+
   let sawText = false
   responseMessages(result)
     .filter((m) => m.role !== "user")
@@ -485,24 +562,38 @@ const runInvoke = async (
 const executeRun = async (client, mode, outgoing, clientOptions, ctx) => {
   if (mode === "invoke") return runInvoke(client, outgoing, clientOptions, ctx)
   if (mode === "ws") {
-    if (typeof client.wsStream !== "function") {
-      throw new Error(
-        "This 10xGraph client build does not support WebSocket streaming."
-      )
-    }
-    return consumeStream(client.wsStream(outgoing, clientOptions), ctx)
+    return consumeStream(
+      client.wsStream(outgoing, { ...clientOptions, signal: ctx.signal }),
+      ctx
+    )
   }
-  return consumeStream(client.stream(outgoing, clientOptions), ctx)
+  return consumeStream(
+    client.stream(outgoing, { ...clientOptions, signal: ctx.signal }),
+    ctx
+  )
 }
 
 // Close out a run that completed without throwing.
-const finishRun = (dispatch, { agentId, mode, sawText, signal }) => {
+const finishRun = (dispatch, { agentId, mode, sawText, signal, outcome }) => {
   if (signal.aborted) {
     dispatch(
       finishAgentTurn({
         id: agentId,
         runMeta: { status: "stopped", path: mode },
       })
+    )
+    return
+  }
+  // A paused run is waiting for an answer, not finished.
+  if (outcome?.interrupt) {
+    dispatch(
+      finishAgentTurn({
+        id: agentId,
+        runMeta: { status: "interrupted", path: mode },
+      })
+    )
+    dispatch(
+      setPendingInterrupt({ interrupt: outcome.interrupt, turnId: agentId })
     )
     return
   }
@@ -517,8 +608,19 @@ const finishRun = (dispatch, { agentId, mode, sawText, signal }) => {
 }
 
 // Close out a run that threw. An abort is a clean stop, not an error.
+const isAbort = (e, signal) => signal.aborted || e?.name === "AbortError"
+
+export const WS_UNAVAILABLE_MESSAGE =
+  "This server can't serve WebSocket. Install 10xgraph-api[websocket] or switch to Stream mode."
+
+// The SDK reports a refused upgrade only as this generic message.
+const friendlyError = (e, mode) =>
+  mode === "ws" && /WebSocket connection failed/i.test(e?.message || "")
+    ? WS_UNAVAILABLE_MESSAGE
+    : e?.message
+
 const failRun = (dispatch, e, { agentId, mode, signal, startedAt }) => {
-  if (signal.aborted) {
+  if (isAbort(e, signal)) {
     dispatch(
       finishAgentTurn({
         id: agentId,
@@ -527,10 +629,10 @@ const failRun = (dispatch, e, { agentId, mode, signal, startedAt }) => {
     )
     return
   }
-  const reason = e?.message || e
+  const reason = friendlyError(e, mode) || e
   dispatch(appendErrorAnswer({ id: agentId, text: `Error: ${reason}` }))
   dispatch(finishAgentTurn({ id: agentId, runMeta: { status: "error" } }))
-  dispatch(setError(e?.message || "Stream failed"))
+  dispatch(setError(friendlyError(e, mode) || "Stream failed"))
   dispatch(
     pushEvent({
       type: "error",
@@ -547,21 +649,38 @@ const failRun = (dispatch, e, { agentId, mode, signal, startedAt }) => {
  */
 // Run under a fresh AbortController and close the turn out. An abandoned run
 // (abortActiveRun) dispatches nothing more: its state has already been reset.
-const runAndSettle = async (client, mode, outgoing, clientOptions, base) => {
+// A stream or ws run that ended with no abort and no interrupt chunk seen.
+const endedQuietly = (signal, outcome, mode) =>
+  !signal.aborted && !outcome.interrupt && mode !== "invoke" && !isDemoActive()
+
+const runAndSettle = async (
+  client,
+  mode,
+  outgoing,
+  clientOptions,
+  base,
+  execute = executeRun
+) => {
   const { dispatch, agentId, startedAt } = base
+  const outcome = {}
+  let completed = false
   const controller = new AbortController()
   activeAbort = controller
   const { signal } = controller
   try {
-    const sawText = await executeRun(client, mode, outgoing, clientOptions, {
+    const sawText = await execute(client, mode, outgoing, clientOptions, {
       ...base,
       signal,
+      controller,
+      outcome,
     })
     if (!controller.abandoned) {
-      finishRun(dispatch, { agentId, mode, sawText, signal })
+      finishRun(dispatch, { agentId, mode, sawText, signal, outcome })
+      completed = endedQuietly(signal, outcome, mode)
     }
   } catch (e) {
-    if (!controller.abandoned) {
+    const handled = base.handleError?.(e, signal)
+    if (!controller.abandoned && !handled) {
       failRun(dispatch, e, { agentId, mode, signal, startedAt })
     }
   } finally {
@@ -569,53 +688,66 @@ const runAndSettle = async (client, mode, outgoing, clientOptions, base) => {
     if (activeAbort === controller) activeAbort = null
     if (!controller.abandoned) dispatch(setGenerating(false))
   }
+  // Low granularity may omit the "interrupted" chunk: ask the thread's saved
+  // state whether the finished stream actually paused.
+  if (completed) {
+    await dispatch(loadPendingInterrupt({ turnId: agentId, mode }))
+  }
 }
 
-export const sendMessage = (text) => async (dispatch, getState) => {
-  const trimmed = (text || "").trim()
-  if (!trimmed) return
-  if (getState().chat.generating) return
+export const sendMessage =
+  (text, attachments = []) =>
+  async (dispatch, getState) => {
+    const trimmed = (text || "").trim()
+    if (!trimmed && attachments.length === 0) return
+    if (getState().chat.generating) return
+    dispatch(clearPendingInterrupt())
 
-  let client
-  try {
-    client = getTenxGraphClient()
-  } catch (e) {
-    dispatch(setError(e?.message || "Not connected to a backend"))
-    return
+    let client
+    try {
+      client = getTenxGraphClient()
+    } catch (e) {
+      dispatch(setError(e?.message || NOT_CONNECTED))
+      return
+    }
+
+    const { mode, granularity, runOptions, threadId } = getState().chat
+    const startedAt = Date.now()
+    const outgoing = [
+      attachments.length > 0
+        ? buildAttachmentMessage(trimmed, attachments)
+        : Message.text_message(trimmed, "user"),
+    ]
+
+    // Per-run overrides from the composer popup. Refuse to send malformed JSON
+    // rather than silently dropping what the user typed.
+    const run = resolveRunOptions(runOptions, threadId)
+    if (!run.valid) {
+      const [[field, message]] = Object.entries(run.errors)
+      dispatch(setError(`Run options — ${field}: ${message}`))
+      return
+    }
+    const clientOptions = buildClientOptions(run, granularity)
+
+    const agentId = uid("agent")
+    startRun(dispatch, {
+      agentId,
+      granularity,
+      mode,
+      outgoing,
+      run,
+      startedAt,
+      trimmed,
+      attachments,
+    })
+
+    await runAndSettle(client, mode, outgoing, clientOptions, {
+      dispatch,
+      getState,
+      agentId,
+      startedAt,
+    })
   }
-
-  const { mode, granularity, runOptions, threadId } = getState().chat
-  const startedAt = Date.now()
-  const outgoing = [Message.text_message(trimmed, "user")]
-
-  // Per-run overrides from the composer popup. Refuse to send malformed JSON
-  // rather than silently dropping what the user typed.
-  const run = resolveRunOptions(runOptions, threadId)
-  if (!run.valid) {
-    const [[field, message]] = Object.entries(run.errors)
-    dispatch(setError(`Run options — ${field}: ${message}`))
-    return
-  }
-  const clientOptions = buildClientOptions(run, granularity)
-
-  const agentId = uid("agent")
-  startRun(dispatch, {
-    agentId,
-    granularity,
-    mode,
-    outgoing,
-    run,
-    startedAt,
-    trimmed,
-  })
-
-  await runAndSettle(client, mode, outgoing, clientOptions, {
-    dispatch,
-    getState,
-    agentId,
-    startedAt,
-  })
-}
 
 /**
  * Demo mode: replay a recorded run through the normal send path, so frames,
@@ -629,3 +761,172 @@ export const sendDemoRun = (run) => async (dispatch, getState) => {
   dispatch(setMode("stream"))
   await dispatch(sendMessage(run.prompt))
 }
+
+// Resume goes out as soon as the stream opens; nothing is added to the
+// transcript until the server accepts it, so a 409 or 422 leaves the card as
+// it was. Returns whether the resumed run produced text.
+const executeResume = async (client, mode, outgoing, clientOptions, ctx) => {
+  const withSignal = { ...clientOptions, signal: ctx.signal }
+  const source =
+    mode === "ws"
+      ? client.wsStream(outgoing, withSignal)
+      : client.stream(outgoing, withSignal)
+  const iterator = source[Symbol.asyncIterator]()
+  const first = await iterator.next()
+  ctx.begin()
+  const replay = (async function* replayChunks() {
+    if (first.done) return
+    yield first.value
+    for (let next = await iterator.next(); !next.done; ) {
+      yield next.value
+      next = await iterator.next()
+    }
+  })()
+  return consumeStream(replay, ctx)
+}
+
+// Take the answered turn out of "needs input" and open the continuation turn.
+const beginResumedTurn = (dispatch, { pending, agentId, value, mode }) => {
+  if (pending.turnId) {
+    dispatch(
+      finishAgentTurn({
+        id: pending.turnId,
+        runMeta: {
+          status: value === null ? "rejected" : "answered",
+          path: mode,
+        },
+      })
+    )
+  }
+  dispatch(clearPendingInterrupt())
+  dispatch(startAgentTurn({ id: agentId }))
+  dispatch(setError(null))
+  dispatch(
+    pushFrame({
+      dir: "out",
+      label:
+        mode === "ws"
+          ? "WS /v1/graph/ws (resume)"
+          : "POST /v1/graph/stream (resume)",
+      time: nowTime(),
+    })
+  )
+}
+
+// The request that continues a pause. interrupt_before / interrupt_after have
+// no answer to give: an empty resume (null, no interrupt_id) continues the run
+// and adds no message to the thread.
+const resumeRequest = ({ pending, value, run, granularity }) => {
+  const clientOptions = buildClientOptions(run, granularity)
+  delete clientOptions.initial_state
+  if (isStaticPause(pending.interrupt)) {
+    return { outgoing: [], clientOptions: { ...clientOptions, resume: null } }
+  }
+  return {
+    outgoing: [],
+    clientOptions: {
+      ...clientOptions,
+      resume: value,
+      interrupt_id: pending.interrupt.id,
+    },
+  }
+}
+
+/**
+ * Answer the open interrupt and continue the same thread over the stream.
+ * `value` is the resume payload; null cancels (reject). Only meaningful in
+ * stream mode, where the pause was received.
+ */
+export const resumeRun = (value) => async (dispatch, getState) => {
+  const { pendingInterrupt: pending, generating, mode } = getState().chat
+  if (!pending || generating || mode === "invoke") return
+  // A client-tool wait ends when the browser sends the result, not here.
+  if (pending.interrupt.kind === "remote_tool") return
+
+  let client
+  try {
+    client = getTenxGraphClient()
+  } catch (e) {
+    dispatch(setInterruptError(e?.message || NOT_CONNECTED))
+    return
+  }
+
+  const { granularity, runOptions, threadId } = getState().chat
+  const run = resolveRunOptions(runOptions, threadId)
+  if (!run.valid) {
+    const [[field, message]] = Object.entries(run.errors)
+    dispatch(setInterruptError(`Run options, ${field}: ${message}`))
+    return
+  }
+
+  const agentId = uid("agent")
+  const startedAt = Date.now()
+  const { outgoing, clientOptions } = resumeRequest({
+    pending,
+    value,
+    run,
+    granularity,
+  })
+
+  dispatch(setInterruptBusy(true))
+  dispatch(setGenerating(true))
+  let begun = false
+  await runAndSettle(
+    client,
+    mode,
+    outgoing,
+    clientOptions,
+    {
+      dispatch,
+      getState,
+      agentId,
+      startedAt,
+      begin: () => {
+        begun = true
+        beginResumedTurn(dispatch, { pending, agentId, value, mode })
+      },
+      // Before the stream opens the failure belongs to the card, not the transcript.
+      handleError: (e, signal) => {
+        if (begun) return false
+        dispatch(
+          isAbort(e, signal)
+            ? setInterruptBusy(false)
+            : setInterruptError(e?.message || "Resume failed")
+        )
+        return true
+      },
+    },
+    executeResume
+  )
+}
+
+/**
+ * After a reload or thread switch, offer the interrupt the thread is paused at
+ * (read from its saved state). Quiet when there is none or the lookup fails.
+ */
+export const loadPendingInterrupt =
+  ({ turnId, mode } = {}) =>
+  async (dispatch, getState) => {
+    const start = getState().chat
+    if (!start.threadId || start.generating || start.pendingInterrupt) return
+    let res
+    try {
+      res = await getTenxGraphClient().threadState(start.threadId)
+    } catch {
+      return
+    }
+    const now = getState().chat
+    if (now.threadId !== start.threadId || now.generating) return
+    if (now.pendingInterrupt) return
+    const interrupt = savedPause(res, isClientToolHandled)
+    if (!interrupt) return
+    if (turnId) {
+      dispatch(
+        finishAgentTurn({
+          id: turnId,
+          runMeta: { status: "interrupted", path: mode },
+        })
+      )
+    }
+    dispatch(setPendingInterrupt({ interrupt, turnId }))
+  }

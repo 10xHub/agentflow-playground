@@ -1,5 +1,10 @@
 import { createSlice } from "@reduxjs/toolkit"
 
+import {
+  buildHandler,
+  CLIENT_TOOLS_KEY,
+  readStoredClientTools,
+} from "@/lib/client-tool-handlers"
 import { isDemoActive } from "@/lib/demo/demo-mode"
 import { getTenxGraphClient } from "@/lib/tenxgraph-client"
 
@@ -8,17 +13,10 @@ import { getTenxGraphClient } from "@/lib/tenxgraph-client"
 //   - `clientTools`: browser-owned handlers persisted to localStorage. Matching trusted
 //     schemas must already exist in the server's 10xgraph.json.
 
-const CLIENT_TOOLS_KEY = "10xgraph.client-tools"
-
 // The demo never reads or writes the visitor's own client tools.
 const loadClientTools = () => {
   if (isDemoActive()) return []
-  try {
-    const raw = localStorage.getItem(CLIENT_TOOLS_KEY)
-    return raw ? JSON.parse(raw) : []
-  } catch {
-    return []
-  }
+  return readStoredClientTools()
 }
 
 const persistClientTools = (tools) => {
@@ -116,26 +114,6 @@ export const loadTools = () => async (dispatch) => {
     dispatch(toolsLoaded(toolsPayload(res)))
   } catch (e) {
     dispatch(toolsError(e?.message || "Failed to load tools"))
-  }
-}
-
-// Build a browser handler for a client tool. In "mock" mode it returns the
-// parsed mock JSON; in "handler" mode it runs the user's function body.
-const buildHandler = (tool) => {
-  if (tool.callMode === "handler" && tool.code) {
-    return async (arguments_) => {
-      // The code defines a function; evaluate it and call it with args.
-
-      const function_ = new Function(`${tool.code}\nreturn ${tool.name};`)()
-      return function_(arguments_)
-    }
-  }
-  return async () => {
-    try {
-      return tool.mock ? JSON.parse(tool.mock) : { ok: true }
-    } catch {
-      return { ok: true }
-    }
   }
 }
 

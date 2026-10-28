@@ -1,4 +1,4 @@
-import { Check, Search, Trash2 } from "lucide-react"
+import { Check, Plus, Search, Trash2 } from "lucide-react"
 import PropTypes from "prop-types"
 import { useState } from "react"
 import { useDispatch } from "react-redux"
@@ -66,9 +66,7 @@ const RowsPlaceholder = ({ status, error = null, search, empty }) => (
     {status === "error" && <div className={styles.memEmpty}>{error}</div>}
     {status === "ready" && empty && (
       <div className={styles.memEmpty}>
-        {search
-          ? "No results — try another query."
-          : "No memories in this collection."}
+        {search ? "No results — try another query." : "No memories yet."}
       </div>
     )}
   </>
@@ -236,6 +234,7 @@ const MemoryList = ({
   query = "",
   activeId = null,
   onSelect,
+  onNew,
 }) => {
   const dispatch = useDispatch()
   const [forgetArmed, setForgetArmed] = useState(false)
@@ -254,16 +253,16 @@ const MemoryList = ({
     if (searchInput.trim()) dispatch(searchMemories(searchInput.trim()))
   }
 
+  const shown = visibleRows(list, search, browseFilter)
+
   const confirmForget = () => {
     if (forgetArmed) {
-      dispatch(forgetVisible())
+      dispatch(forgetVisible(shown.map((m) => m.id)))
       setForgetArmed(false)
     } else {
       setForgetArmed(true)
     }
   }
-
-  const shown = visibleRows(list, search, browseFilter)
 
   const subLabel = search
     ? `${shown.length} results · scored by ${strategy}`
@@ -272,7 +271,17 @@ const MemoryList = ({
   return (
     <section className={styles.list}>
       <div className={styles.listHead}>
-        <ModeTabs mode={mode} onSetMode={onSetMode} />
+        <div className={styles.listHeadRow}>
+          <ModeTabs mode={mode} onSetMode={onSetMode} />
+          <button
+            type="button"
+            className={`${styles.tbtn} ${styles.newBtn}`}
+            onClick={onNew}
+          >
+            <Plus size={14} strokeWidth={1.8} />
+            New memory
+          </button>
+        </div>
 
         {mode === "browse" ? (
           <div className={styles.search}>
@@ -343,6 +352,7 @@ MemoryList.propTypes = {
   query: PropTypes.string,
   activeId: PropTypes.string,
   onSelect: PropTypes.func.isRequired,
+  onNew: PropTypes.func.isRequired,
 }
 
 export default MemoryList
