@@ -23,16 +23,40 @@ const BarSlotContext = createContext(null)
  */
 export const useConnectionBarSlot = () => useContext(BarSlotContext)
 
+const COLLAPSED_STORAGE_KEY = "10xgraph.sidebarCollapsed"
+
+const readCollapsed = () => {
+  try {
+    return localStorage.getItem(COLLAPSED_STORAGE_KEY) === "1"
+  } catch {
+    return false
+  }
+}
+
+const writeCollapsed = (collapsed) => {
+  try {
+    localStorage.setItem(COLLAPSED_STORAGE_KEY, collapsed ? "1" : "0")
+  } catch {
+    /* ignore write failures (private mode); the flag still holds this session */
+  }
+}
+
 /**
  * Persistent chrome for every app route: connection bar + collapsible left rail.
  * The routed page renders into the flexible content region and owns its own
  * inner layout (main + optional right panel).
  */
 const AppShell = () => {
-  const [collapsed, setCollapsed] = useState(false)
+  const [collapsed, setCollapsed] = useState(readCollapsed)
   const [barRight, setBarRight] = useState(null)
 
-  const toggleCollapse = useCallback(() => setCollapsed((c) => !c), [])
+  const toggleCollapse = useCallback(() => {
+    setCollapsed((c) => {
+      const next = !c
+      writeCollapsed(next)
+      return next
+    })
+  }, [])
   const slot = useMemo(() => ({ setBarRight }), [])
 
   return (

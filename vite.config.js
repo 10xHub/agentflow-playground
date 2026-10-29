@@ -74,6 +74,12 @@ export default defineConfig({
       statements: 30,
     },
   },
+  server: {
+    fs: {
+      // 10xgraph-client is linked via file:../agentflow-client until rc.2 is published
+      allow: [".", "../agentflow-client"],
+    },
+  },
   css: {
     devSourcemap: false,
   },

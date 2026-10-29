@@ -280,11 +280,15 @@ const chatSlice = createSlice({
     },
     // Upsert a reasoning / tool_call / tool_result block by a stable key.
     upsertBlock: (state, action) => {
-      const { id, key, block } = action.payload
+      const { id, key, block, append } = action.payload
       const m = findAgent(state, id)
       if (!m) return
       const existing = m.blocks.find((b) => b._key === key)
-      if (existing) Object.assign(existing, block)
+      if (existing && append && typeof block.text === "string") {
+        // Streamed deltas carry only the new piece: grow the row's text.
+        const text = (existing.text || "") + block.text
+        Object.assign(existing, block, { text })
+      } else if (existing) Object.assign(existing, block)
       else m.blocks.push({ _key: key, ...block })
     },
     // Accumulate token usage across a run (a turn may make several LLM calls).

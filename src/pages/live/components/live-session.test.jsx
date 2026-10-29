@@ -29,7 +29,7 @@ vi.mock("@/lib/tenxgraph-client", () => ({
         activityEnd: vi.fn(),
         sendAudio: vi.fn(),
         sendText: vi.fn(),
-        threadId: "t-1",
+        threadId: null,
       }
       mocks.sessions.push(session)
       return session
@@ -216,8 +216,11 @@ describe("LiveSession", () => {
     expect(mocks.inits[0].voice).toBe("Puck")
   })
 
-  it("links the ended session's thread", () => {
+  it("links the ended session's thread, using the id the server created", () => {
     startSession()
+    act(() =>
+      mocks.sessions[0].emit("session_started", { thread_id: "t-1" })
+    )
     fireEvent.click(screen.getByRole("button", { name: /End/ }))
     expect(screen.getByText(/Thread t-1/)).toBeTruthy()
   })

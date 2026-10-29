@@ -274,6 +274,10 @@ const useLiveSession = (honored, options) => {
     const handlers = {
       dispatch,
       onOpen: () => setStatus("live"),
+      // The server creates the thread and sends its id as the first event.
+      onThread: (id) => {
+        if (sessionReference.current === session) setThreadId(id)
+      },
       onAudio: (pcm, rate) => playerReference.current?.play(pcm, rate),
       flushAudio: () => playerReference.current?.flush?.(),
       onHandle: (handle) => {
@@ -305,7 +309,7 @@ const useLiveSession = (honored, options) => {
       return
     }
     sessionReference.current = session
-    setThreadId(session.threadId || null)
+    setThreadId(session.threadId || null) // set up front only when the caller passed one
 
     // After the early returns above, so failed opens are not counted as starts.
     startedAtReference.current = Date.now()

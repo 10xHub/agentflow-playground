@@ -92,6 +92,22 @@ describe("CaseDetail", () => {
     expect(screen.queryByText("summary line")).toBeNull()
   })
 
+  it("labels the expected text as goals for a simulation", () => {
+    render(
+      <CaseDetail
+        activeCase={{
+          ...base,
+          type: "sim",
+          expected_label: "goals",
+          expected_detail: { response: "get refund; confirm" },
+        }}
+        threshold={0.8}
+      />
+    )
+    expect(screen.getByText("goals")).toBeTruthy()
+    expect(screen.getByText("get refund; confirm")).toBeTruthy()
+  })
+
   it("falls back to the one-line expected text", () => {
     render(<CaseDetail activeCase={base} threshold={0.8} />)
     expect(screen.getByText("summary line")).toBeTruthy()

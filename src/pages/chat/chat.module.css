@@ -842,6 +842,35 @@
   text-transform: none;
   letter-spacing: 0;
 }
+/* Header row that doubles as a collapse toggle (reset button chrome). */
+.stCardToggle {
+  justify-content: space-between;
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  padding: 2px 4px;
+  margin-left: -4px;
+  margin-right: -4px;
+  width: calc(100% + 8px);
+  border-radius: 6px;
+  cursor: pointer;
+}
+.stCardToggle:hover {
+  background: var(--surface);
+}
+.stCardToggle:focus-visible {
+  outline: 2px solid var(--border-strong);
+  outline-offset: 1px;
+}
+.stCardHeadCollapsed {
+  margin-bottom: 0;
+}
+.stCardChevron {
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
 .stCardDesc {
   font-size: 11px;
   color: var(--text-muted);

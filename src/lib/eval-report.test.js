@@ -202,6 +202,71 @@ describe("buildEvalRuns", () => {
     )
   })
 
+  it("prefers the reported expected object and keeps tool args", () => {
+    const c = result({
+      messages: [],
+      criterion_results: [
+        criterion({ details: { expected_response: "from details" } }),
+      ],
+      expected: {
+        response: "assistant",
+        tool_calls: [
+          { name: "refund", args: { order: 7 } },
+          { name: "notify" },
+        ],
+        node_order: ["MAIN"],
+        input: "hi there",
+      },
+    })
+    const { details } = buildEvalRuns([{ id: "a", report: report([c]) }], NOW)
+    const built = details.a.cases[0]
+    expect(built.expected_detail).toEqual({
+      response: "assistant",
+      tool_trajectory: [
+        { name: "refund", args: { order: 7 } },
+        { name: "notify" },
+      ],
+      node_order: ["MAIN"],
+    })
+    expect(built.expected).toBe(
+      'assistant; tools: refund({"order":7}), notify; nodes: MAIN'
+    )
+    expect(built.input).toBe("hi there")
+    expect(built.expected_label).toBe("response")
+  })
+
+  it("keeps the message input over expected.input and falls back when expected is empty", () => {
+    const c = result({
+      expected: {
+        response: null,
+        tool_calls: null,
+        node_order: null,
+        input: "other",
+      },
+      criterion_results: [
+        criterion({ details: { expected_response: "legacy" } }),
+      ],
+    })
+    const { details } = buildEvalRuns([{ id: "a", report: report([c]) }], NOW)
+    expect(details.a.cases[0].input).toBe("hello")
+    expect(details.a.cases[0].expected_detail.response).toBe("legacy")
+  })
+
+  it("shows simulation goals and starting prompt from expected", () => {
+    const sim = result({
+      metadata: { turns: 2 },
+      messages: [],
+      actual_response: "USER: hi\nAGENT: hello",
+      expected: { response: "get refund; confirm", input: "I want a refund" },
+    })
+    const { details } = buildEvalRuns([{ id: "a", report: report([sim]) }], NOW)
+    const built = details.a.cases[0]
+    expect(built.type).toBe("sim")
+    expect(built.input).toBe("I want a refund")
+    expect(built.expected).toBe("get refund; confirm")
+    expect(built.expected_label).toBe("goals")
+  })
+
   it("has no expectations when no criterion recorded any", () => {
     const { details } = buildEvalRuns(
       [{ id: "a", report: report([result()]) }],

@@ -137,12 +137,22 @@ const summarizeChunk = (chunk) => {
 // --- Content block builders ------------------------------------------------
 // Each returns the { key, block } half of an upsertBlock payload.
 
-const reasoningBlock = (block, index) => ({
-  key: `reasoning:${index}`,
+// Reasoning is keyed by the model call (`turn.call`) and its ordinal among the
+// reasoning blocks only, never by its position in `content`. Converters put it
+// at different positions in deltas and in the final message; this keeps one
+// row per reasoning block. Deltas append, the final message replaces.
+const reasoningText = (block) => {
+  const text = block.summary || block.details || block.text || ""
+  return Array.isArray(text) ? text.join("\n") : text
+}
+
+const reasoningBlock = (block, ordinal, message, turn) => ({
+  key: `reasoning:${turn?.call ?? 0}:${ordinal}`,
+  append: Boolean(message?.delta),
   block: {
     kind: "reasoning",
     summary: "Model reasoning",
-    text: block.summary || block.details || block.text || "",
+    text: reasoningText(block),
     collapsed: true,
   },
 })
@@ -192,14 +202,27 @@ const BLOCK_BUILDERS = new Map([
 
 // Map assistant/tool content blocks from a streamed message into UI blocks,
 // dispatching an upsert for each. Keyed so repeated snapshots update in place.
-const emitContentBlocks = (dispatch, agentId, message) => {
+const emitContentBlocks = (dispatch, agentId, message, turn) => {
   const content = Array.isArray(message?.content) ? message.content : []
+  let reasoningOrdinal = 0
 
   content.forEach((block, index) => {
     const build = BLOCK_BUILDERS.get(block?.type)
     if (!build) return
+    if (block.type === "reasoning") {
+      dispatch(
+        upsertBlock({
+          id: agentId,
+          ...reasoningBlock(block, reasoningOrdinal++, message, turn),
+        })
+      )
+      return
+    }
     dispatch(upsertBlock({ id: agentId, ...build(block, index) }))
   })
+  // A complete (non-delta) assistant message ends one model call; reasoning
+  // from the next call in the same turn gets its own rows.
+  if (turn && message?.role !== "tool" && !message?.delta) turn.call += 1
 }
 
 // Also handle tool messages that arrive as role:"tool" with string content.
@@ -320,7 +343,7 @@ const throwIfErrorChunk = (chunk) => {
 
 // Fan one streamed message out into blocks / usage / text. Returns whether it
 // contributed visible text.
-const applyChunkMessage = (dispatch, agentId, message) => {
+const applyChunkMessage = (dispatch, agentId, message, turn) => {
   if (!message || message.role === "user") return false
 
   if (message.role === "tool") {
@@ -328,7 +351,7 @@ const applyChunkMessage = (dispatch, agentId, message) => {
     return false
   }
 
-  emitContentBlocks(dispatch, agentId, message)
+  emitContentBlocks(dispatch, agentId, message, turn)
   if (message.usages) {
     dispatch(addUsage({ id: agentId, usage: message.usages }))
   }
@@ -390,6 +413,7 @@ const consumeStream = async (
 ) => {
   let sawText = false
   const tools = { names: [] }
+  const turn = { call: 0 }
   for await (const chunk of stream) {
     if (signal?.aborted) {
       await stopOnAbort(controller, getState, chunk)
@@ -403,7 +427,7 @@ const consumeStream = async (
 
     trackPause(chunk, outcome, tools)
 
-    if (applyChunkMessage(dispatch, agentId, chunk?.message)) sawText = true
+    if (applyChunkMessage(dispatch, agentId, chunk?.message, turn)) sawText = true
   }
   return sawText
 }

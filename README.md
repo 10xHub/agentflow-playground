@@ -10,6 +10,12 @@ everything you see here is something your own frontend can do too.
 
 **Docs:** https://10xgraph.com/docs
 
+> **Local client for now.** Until `10xgraph-client` 1.0.0-rc.2 is published, the playground
+> depends on the local client via `file:../agentflow-client`. After changing the client, run
+> `npm run build` in `agentflow-client` (the playground reads its `dist/`). To go back to the
+> published package, set the dependency in `package.json` to the published version and run
+> `npm install`.
+
 ## Try it
 
 The fastest path is the CLI, which starts your agent's API and opens the hosted playground

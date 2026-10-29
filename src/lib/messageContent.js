@@ -150,15 +150,10 @@ const formatDocumentBlock = (block) => {
   return formatNamedSection("Document", safeStringify(media))
 }
 
-const formatReasoningBlock = (block, options, index) => {
-  const reasoningText =
-    index === 0 && options.reasoning
-      ? options.reasoning
-      : block.summary || block.details
-  return formatNamedSection("Reasoning", reasoningText)
-}
+const formatReasoningBlock = (block) =>
+  formatNamedSection("Reasoning", block.summary || block.details)
 
-const formatContentBlock = (block, options = {}, index = 0) => {
+const formatContentBlock = (block, options = {}) => {
   if (!block || typeof block !== "object") {
     return safeStringify(block).trim()
   }
@@ -167,7 +162,7 @@ const formatContentBlock = (block, options = {}, index = 0) => {
     case "text":
       return safeStringify(block.text).trim()
     case "reasoning":
-      return formatReasoningBlock(block, options, index)
+      return formatReasoningBlock(block)
     case "tool_call":
       return formatToolCall(block, options)
     case "tool_result":
@@ -193,20 +188,12 @@ export const buildMessageText = (content, options = {}) => {
   }
 
   if (!Array.isArray(content)) {
-    if (options.reasoning) {
-      return options.reasoning
-    }
-
     return safeStringify(content)
   }
 
   const formattedBlocks = content
-    .map((block, index) => formatContentBlock(block, options, index))
+    .map((block) => formatContentBlock(block, options))
     .filter(Boolean)
-
-  if (formattedBlocks.length === 0 && options.reasoning) {
-    return options.reasoning
-  }
 
   return formattedBlocks.join("\n\n")
 }
@@ -237,7 +224,6 @@ export const normalizeTimestamp = (timestamp) => {
 export const getMessageCopyText = (message, options = {}) =>
   buildMessageText(message?.rawContent ?? message?.content, {
     metadata: message?.metadata,
-    reasoning: message?.reasoning,
     showToolDetails: options.showToolDetails,
     toolCalls: message?.toolsCalls,
   })

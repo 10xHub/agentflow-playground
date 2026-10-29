@@ -2,9 +2,10 @@
 // serialized EvalReport) into the run rows, drilldowns and case views the Evals
 // page renders. Pure: no network, no store.
 //
-// The report holds results only: no run number, no dollar cost, no EvalCase and
-// no comparison between runs. Those are derived here. "Expected" comes from the
-// details the built-in criteria record, and a run's regression is computed
+// The report holds results only: no run number, no dollar cost and no
+// comparison between runs. Those are derived here. "Expected" comes from each
+// result's `expected` object, or for older reports from the details the
+// built-in criteria record, and a run's regression is computed
 // against the previous loaded report of the same eval set.
 
 const NONE = "-"
@@ -130,8 +131,17 @@ const expectedTrajectory = (details) => {
   return names ? names.expected_names.map((name) => ({ name })) : null
 }
 
-// Expectations recorded in criterion details (the report does not store the EvalCase).
-const caseExpected = (c) => {
+// Preferred source: the `expected` object core writes on each result.
+const reportedExpected = (expected) => {
+  const toolCalls = expected.tool_calls?.length ? expected.tool_calls : null
+  const nodeOrder = expected.node_order?.length ? expected.node_order : null
+  const response = expected.response || null
+  if (!response && !toolCalls && !nodeOrder) return null
+  return { response, tool_trajectory: toolCalls, node_order: nodeOrder }
+}
+
+// Older reports: expectations recorded in criterion details.
+const detailExpected = (c) => {
   const details = (c.criterion_results || []).map((cr) => cr.details || {})
   const response = first(details.map((d) => d.expected_response))
   const trajectory = expectedTrajectory(details)
@@ -144,13 +154,25 @@ const caseExpected = (c) => {
   return { response, tool_trajectory: trajectory, node_order: nodeOrder }
 }
 
+const caseExpected = (c) => {
+  if (c.expected && typeof c.expected === "object") {
+    const reported = reportedExpected(c.expected)
+    if (reported) return reported
+  }
+  return detailExpected(c)
+}
+
+const toolSummary = (t) =>
+  t.args && Object.keys(t.args).length
+    ? `${t.name ?? ""}(${JSON.stringify(t.args)})`
+    : String(t.name ?? "")
+
 const expectedSummary = (expected) => {
   if (!expected) return NONE
   const parts = []
   if (expected.response) parts.push(String(expected.response))
   if (expected.tool_trajectory) {
-    const names = expected.tool_trajectory.map((t) => String(t.name ?? ""))
-    parts.push(`tools: ${names.join(", ")}`)
+    parts.push(`tools: ${expected.tool_trajectory.map(toolSummary).join(", ")}`)
   }
   if (expected.node_order) {
     parts.push(`nodes: ${expected.node_order.join(" > ")}`)
@@ -158,8 +180,14 @@ const expectedSummary = (expected) => {
   return parts.join("; ")
 }
 
+const reportedInput = (c) =>
+  typeof c.expected?.input === "string" && c.expected.input
+    ? c.expected.input
+    : NONE
+
 const buildCase = (c) => {
   const expected = caseExpected(c)
+  const input = caseInput(c)
   return {
     id: c.eval_id || "",
     name: c.name || c.eval_id || "",
@@ -169,9 +197,10 @@ const buildCase = (c) => {
     error: c.error ?? null,
     lat: formatDuration(c.duration_seconds),
     cost: formatTokens(c.token_usage),
-    input: caseInput(c),
+    input: input === NONE ? reportedInput(c) : input,
     expected: expectedSummary(expected),
     expected_detail: expected,
+    expected_label: caseType(c) === "sim" ? "goals" : "response",
     actual: c.actual_response || NONE,
     rubric: caseRubric(c),
     conversation: caseConversation(c),

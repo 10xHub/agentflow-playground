@@ -83,6 +83,17 @@ describe("buildEvalMarkdown", () => {
     expect(md).not.toContain("weighted score: scored")
   })
 
+  it("includes expected tool args and node order from the summary", () => {
+    const withArgs = {
+      ...detail.cases[1],
+      expected: 'ok; tools: refund({"order":7}); nodes: MAIN',
+    }
+    const out = buildEvalMarkdown({ ...detail, cases: [withArgs] })
+    expect(out).toContain(
+      '- Expected: ok; tools: refund({"order":7}); nodes: MAIN'
+    )
+  })
+
   it("says so when nothing failed", () => {
     const clean = buildEvalMarkdown({ ...detail, cases: [detail.cases[0]] })
     expect(clean).toContain("No failures.")

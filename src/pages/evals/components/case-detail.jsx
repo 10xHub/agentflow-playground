@@ -14,9 +14,9 @@ const toolText = (t) =>
     ? `${t.name}(${JSON.stringify(t.args)})`
     : t.name
 
-const expectedLines = (detail) => {
+const expectedLines = (detail, responseLabel) => {
   const lines = []
-  if (detail?.response) lines.push(["response", detail.response])
+  if (detail?.response) lines.push([responseLabel, detail.response])
   if (detail?.tool_trajectory?.length) {
     lines.push(["tools", detail.tool_trajectory.map(toolText).join(", ")])
   }
@@ -29,8 +29,8 @@ const expectedLines = (detail) => {
 /**
  * Structured expectations when the server recorded them, else its one-line summary.
  */
-const Expected = ({ summary, detail = null }) => {
-  const lines = expectedLines(detail)
+const Expected = ({ summary, detail = null, responseLabel = "response" }) => {
+  const lines = expectedLines(detail, responseLabel)
   return (
     <div className={`${styles.cdBox} ${styles.expected}`}>
       {lines.length === 0
@@ -47,6 +47,7 @@ const Expected = ({ summary, detail = null }) => {
 
 Expected.propTypes = {
   summary: PropTypes.string.isRequired,
+  responseLabel: PropTypes.string,
   detail: PropTypes.shape({
     response: PropTypes.string,
     tool_trajectory: PropTypes.arrayOf(PropTypes.object),
@@ -204,6 +205,7 @@ const CaseDetail = ({ activeCase = null, threshold = null }) => {
         <Expected
           summary={activeCase.expected ?? "—"}
           detail={activeCase.expected_detail}
+          responseLabel={activeCase.expected_label}
         />
 
         <CaseError text={activeCase.error} />
@@ -243,6 +245,7 @@ CaseDetail.propTypes = {
     error: PropTypes.string,
     expected: PropTypes.string,
     expected_detail: PropTypes.object,
+    expected_label: PropTypes.string,
     actual: PropTypes.string,
     lat: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     cost: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),

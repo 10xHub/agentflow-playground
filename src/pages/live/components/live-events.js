@@ -155,6 +155,7 @@ export const bindSessionEvents = (session, h) => {
   session.on("agent_changed", (e) =>
     h.dispatch({ type: "agent_changed", author: e.author })
   )
+  session.on("session_started", (e) => h.onThread?.(e.thread_id ?? null))
   session.on("session_update", (e) => h.onHandle(e.resumption_handle ?? null))
   session.on("error", h.onError)
   session.on("close", h.onClose)
