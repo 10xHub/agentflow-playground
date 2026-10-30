@@ -679,6 +679,29 @@
   line-height: 1.6;
   color: var(--text-muted);
 }
+.rawWrap {
+  position: relative;
+}
+.copyBtn {
+  position: absolute;
+  top: 8px;
+  right: 22px;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--text-secondary);
+  font-size: 10.5px;
+  cursor: pointer;
+}
+.copyBtn:hover {
+  color: var(--text);
+  border-color: var(--border-strong, var(--border));
+}
 .rawState {
   border: 1px solid var(--border);
   border-radius: 9px;

@@ -151,8 +151,14 @@ const detailFrom = (stateRes, msgRes) => {
   }
 }
 
-const selectFirst = (dispatch, getState, list) => {
-  if (!getState().threads.selectedId && list.length) {
+// A selection kept from before (for example a thread an in-memory server lost on
+// restart) that the full, unfiltered list no longer has is replaced too.
+const selectFirst = (dispatch, getState, list, complete) => {
+  const { selectedId } = getState().threads
+  const gone =
+    selectedId && complete && !list.some((t) => t.thread_id === selectedId)
+  if (gone && !list.length) dispatch(selectThread(null))
+  if ((!selectedId || gone) && list.length) {
     dispatch(loadThread(list[0].thread_id))
   }
 }
@@ -195,7 +201,9 @@ export const loadThreadList =
       const threads = data.threads || []
       dispatch(listPageLoaded({ threads, hasMore: data.has_more === true }))
       // Auto-select the first thread if none selected yet.
-      if (select) selectFirst(dispatch, getState, threads)
+      // Only a complete list (no search, no further page) can show a thread is gone.
+      const complete = !term && data.has_more !== true
+      if (select) selectFirst(dispatch, getState, threads, complete)
     } catch (e) {
       if (mine === listRequest) {
         dispatch(listFailed(e?.message || "Failed to load threads"))

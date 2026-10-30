@@ -254,3 +254,43 @@ describe("threads paging", () => {
     expect(detail.messagesHasMore).toBe(false)
   })
 })
+
+describe("loadThreadList with a stale selection", () => {
+  const listOf = (threads, hasMore = false) => ({
+    data: { threads, has_more: hasMore },
+  })
+
+  it("selects the first thread when the selected one is no longer on the server", async () => {
+    const store = setup([A], "old")
+    client.threads.mockResolvedValue(listOf([B]))
+    await store.dispatch(loadThreadList())
+    await vi.waitFor(() =>
+      expect(store.getState().threads.selectedId).toBe("b")
+    )
+  })
+
+  it("keeps a selection that is still in the list", async () => {
+    const store = setup([A, B], "a")
+    client.threads.mockResolvedValue(listOf([B, A]))
+    await store.dispatch(loadThreadList())
+    expect(store.getState().threads.selectedId).toBe("a")
+  })
+
+  it("keeps the selection when the list is only a page or a search", async () => {
+    const store = setup([A], "c")
+    client.threads.mockResolvedValue(listOf([A, B], true))
+    await store.dispatch(loadThreadList())
+    expect(store.getState().threads.selectedId).toBe("c")
+
+    client.threads.mockResolvedValue(listOf([A]))
+    await store.dispatch(loadThreadList({ search: "a" }))
+    expect(store.getState().threads.selectedId).toBe("c")
+  })
+
+  it("clears the selection when the server has no threads left", async () => {
+    const store = setup([A], "old")
+    client.threads.mockResolvedValue(listOf([]))
+    await store.dispatch(loadThreadList())
+    expect(store.getState().threads.selectedId).toBeNull()
+  })
+})

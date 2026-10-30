@@ -21,7 +21,9 @@ const addMessage = (state, message) => ({
   nextId: state.nextId + 1,
 })
 
-// Coalesce consecutive chunks from one speaker into a bubble until `finished`.
+// Coalesce consecutive chunks from one speaker into a bubble until `finished`. A finished
+// event carries the whole turn's text (the server consolidates it), so it replaces the
+// streamed chunks instead of being appended to them.
 const transcript = (state, { role, text, finished }) => {
   const openId = state.open[role]
   if (openId == null) {
@@ -36,7 +38,11 @@ const transcript = (state, { role, text, finished }) => {
     open: { ...state.open, [role]: finished ? null : openId },
     messages: state.messages.map((m) =>
       m.id === openId
-        ? { ...m, text: m.text + text, done: Boolean(finished) }
+        ? {
+            ...m,
+            text: finished && text ? text : m.text + text,
+            done: Boolean(finished),
+          }
         : m
     ),
   }

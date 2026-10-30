@@ -223,3 +223,185 @@ describe("real API shape", () => {
     expect(out[1].blocks[0].code).toContain('"a": 1')
   })
 })
+
+describe("mapStoredMessages steps", () => {
+  const row = (id, role, node, content, extra = {}) => ({
+    message_id: id,
+    role,
+    content,
+    metadata: node ? { node_name: node } : {},
+    ...extra,
+  })
+  const txt = (t) => [{ type: "text", text: t }]
+
+  it("groups a turn by metadata.node into steps", () => {
+    const [, turn] = mapStoredMessages([
+      row("u", "user", null, txt("go")),
+      row("a1", "assistant", "PLAN", txt("plan 1")),
+      row("a2", "assistant", "REFLECT", txt("reflect 1")),
+      row("a3", "assistant", "PLAN", txt("plan 2")),
+      row("a4", "assistant", "PLAN", txt("plan 2b")),
+    ])
+    expect(turn.steps).toEqual([
+      { node: "PLAN", round: 1, text: "plan 1" },
+      { node: "REFLECT", round: 1, text: "reflect 1" },
+      { node: "PLAN", round: 2, text: "plan 2" },
+      { node: "PLAN", round: 3, text: "plan 2b" },
+    ])
+    expect(turn.node).toBe("PLAN")
+  })
+
+  it("marks a step internal when its row has metadata.internal", () => {
+    const [, turn] = mapStoredMessages([
+      row("u", "user", null, txt("HI")),
+      row("a1", "assistant", "PLAN", txt("What can I help with?")),
+      row("a2", "assistant", "REFLECT", txt("Greeting handled."), {
+        metadata: { node_name: "REFLECT", internal: true },
+      }),
+    ])
+    expect(turn.steps).toEqual([
+      { node: "PLAN", round: 1, text: "What can I help with?" },
+      { node: "REFLECT", round: 1, text: "Greeting handled.", internal: true },
+    ])
+  })
+
+  it("puts tool rows in the step of their node", () => {
+    const [, turn] = mapStoredMessages([
+      row("u", "user", null, txt("go")),
+      row("a1", "assistant", "PLAN", [
+        { type: "tool_call", id: "c1", name: "f", args: {} },
+      ]),
+      row("t1", "tool", "ACT", "result", {
+        metadata: { node: "ACT", tool_call_id: "c1" },
+      }),
+    ])
+    expect(turn.blocks.map((b) => [b.kind, b.step])).toEqual([
+      ["tool_call", 0],
+      ["tool_result", 1],
+    ])
+  })
+
+  it("reads metadata.node_name first and falls back to metadata.node", () => {
+    const [, turn] = mapStoredMessages([
+      row("u", "user", null, txt("go")),
+      row("a1", "assistant", null, txt("plan"), {
+        metadata: { node_name: "PLAN", node: "other" },
+      }),
+      row("a2", "assistant", "REFLECT", txt("reflect")),
+    ])
+    expect(turn.steps.map((s) => s.node)).toEqual(["PLAN", "REFLECT"])
+  })
+
+  it("lets a row without a node join the current step", () => {
+    const [, turn] = mapStoredMessages([
+      row("u", "user", null, txt("go")),
+      row("s0", "assistant", null, txt("lead")),
+      row("a1", "assistant", "PLAN", txt("plan")),
+      row("s1", "assistant", null, txt("synthetic")),
+      row("a2", "assistant", "REFLECT", txt("reflect")),
+    ])
+    expect(turn.steps).toEqual([
+      { node: "PLAN", round: 1, text: "lead\n\nplan\n\nsynthetic" },
+      { node: "REFLECT", round: 1, text: "reflect" },
+    ])
+  })
+
+  it("falls back to one joined answer when rows have no node", () => {
+    const [, turn] = mapStoredMessages([
+      row("u", "user", null, txt("go")),
+      row("a1", "assistant", null, txt("one")),
+      row("a2", "assistant", null, txt("two")),
+    ])
+    expect(turn.steps).toEqual([])
+    expect(turn.answer).toEqual(["one\n\ntwo"])
+  })
+})
+
+describe("mapStoredMessages repeated node runs", () => {
+  const row = (id, role, node, content) => ({
+    message_id: id,
+    role,
+    content,
+    metadata: node ? { node_name: node } : {},
+  })
+  const txt = (t) => [{ type: "text", text: t }]
+
+  it("gives each run of the same node its own step, and keeps a tool loop together", () => {
+    const [, turn] = mapStoredMessages([
+      row("u", "user", null, txt("go")),
+      row("a1", "assistant", "WEATHER", [
+        { type: "tool_call", id: "c1", name: "get_weather", args: {} },
+      ]),
+      row("t1", "tool", "WEATHER_TOOL", [
+        { type: "tool_result", call_id: "c1", output: "sunny" },
+      ]),
+      row("a2", "assistant", "WEATHER", txt("It is sunny.")),
+      row("a3", "assistant", "PLANNER", txt("Wear a hat.")),
+      row("a4", "assistant", "PLANNER", txt("Also sunscreen.")),
+    ])
+    expect(turn.steps.map((s) => [s.node, s.round, s.text])).toEqual([
+      ["WEATHER", 1, ""],
+      ["WEATHER_TOOL", 1, ""],
+      ["WEATHER", 2, "It is sunny."],
+      ["PLANNER", 1, "Wear a hat."],
+      ["PLANNER", 2, "Also sunscreen."],
+    ])
+  })
+})
+
+describe("mapStoredMessages skipped calls", () => {
+  it("marks the result of a call skipped by a handoff", () => {
+    const [, turn] = mapStoredMessages([
+      {
+        message_id: "u",
+        role: "user",
+        content: [{ type: "text", text: "go" }],
+      },
+      {
+        message_id: "a",
+        role: "assistant",
+        content: [],
+        tools_calls: [
+          {
+            id: "c1",
+            function: { name: "transfer_to_weather", arguments: "{}" },
+          },
+          {
+            id: "c2",
+            function: { name: "transfer_to_planner", arguments: "{}" },
+          },
+        ],
+        metadata: { node_name: "TRIAGE" },
+      },
+      {
+        message_id: "t1",
+        role: "tool",
+        content: [
+          {
+            type: "tool_result",
+            call_id: "c1",
+            output: "Transferred to WEATHER.",
+          },
+        ],
+        metadata: { node_name: "TRIAGE_HANDOFF" },
+      },
+      {
+        message_id: "t2",
+        role: "tool",
+        content: [
+          {
+            type: "tool_result",
+            call_id: "c2",
+            output: "Not run: control was transferred to WEATHER.",
+          },
+        ],
+        metadata: { node_name: "TRIAGE_HANDOFF", not_run: true },
+      },
+    ])
+    const results = turn.blocks.filter((b) => b.kind === "tool_result")
+    expect(results.map((b) => [b.callId, Boolean(b.notRun)])).toEqual([
+      ["c1", false],
+      ["c2", true],
+    ])
+  })
+})

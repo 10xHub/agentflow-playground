@@ -17,6 +17,7 @@ import { openServerThread } from "@/store/chat-history"
 import { loadThread, loadThreadList, removeThread } from "@/store/threads-slice"
 
 import MessagesPane from "./components/messages-pane"
+import RawJson from "./components/raw-json"
 import StatePane from "./components/state-pane"
 import ThreadList from "./components/thread-list"
 import styles from "./threads.module.css"
@@ -154,17 +155,13 @@ const TabBody = ({ tab, thread = null, detail = null }) => (
     {tab === "messages" && <MessagesPane />}
     {tab === "state" && <StatePane />}
     {tab === "raw" && (
-      <pre className={styles.rawState}>
-        {JSON.stringify(
-          {
-            thread,
-            state: detail?.state,
-            messages: detail?.messages,
-          },
-          null,
-          2
-        )}
-      </pre>
+      <RawJson
+        value={{
+          thread,
+          state: detail?.state,
+          messages: detail?.messages,
+        }}
+      />
     )}
   </div>
 )

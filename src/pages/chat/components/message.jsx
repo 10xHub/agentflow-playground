@@ -7,12 +7,18 @@ import {
   MessageFooter,
   MessageHeader,
 } from "@/components/ui/message"
+import { Trace } from "@/components/ui/trace"
 import { formatBytes } from "@/lib/files/preview-kind"
 import { cn } from "@/lib/utils"
 
 import styles from "../chat.module.css"
 
-import AgentSteps from "./agent-steps"
+import AgentSteps, {
+  StepGroup,
+  answerIndex,
+  stepLabel,
+  stepViews,
+} from "./agent-steps"
 import RichText from "./rich-text"
 
 const usageShape = PropTypes.shape({
@@ -115,9 +121,19 @@ UserMessage.propTypes = {
   }).isRequired,
 }
 
+const answerText = (msg, lastStep) =>
+  lastStep ? lastStep.text : msg.answer?.join("\n\n") || ""
+
 /** An agent turn: the node, reasoning and tool steps, the answer, the run footer. */
 const AgentMessage = ({ msg }) => {
-  const text = msg.answer?.join("\n\n") || ""
+  // A run through several nodes: earlier steps fold away, the last one is the
+  // answer. Otherwise the turn is one flat list, as before.
+  // The answer is the last step that is not internal (a reflector review is);
+  // internal steps after it fold away below it.
+  const views = stepViews(msg)
+  const answerAt = views ? answerIndex(views) : -1
+  const lastStep = views?.[answerAt]
+  const text = answerText(msg, lastStep)
   return (
     <MessageRoot>
       <MessageContent className="gap-3">
@@ -127,8 +143,22 @@ const AgentMessage = ({ msg }) => {
           <span className="font-mono">{msg.node}</span>
         </MessageHeader>
 
+        {views ? (
+          <Trace>
+            {views.slice(0, answerAt).map((step) => (
+              <StepGroup key={`${step.node}:${step.round}`} step={step} />
+            ))}
+          </Trace>
+        ) : null}
+
+        {lastStep ? (
+          <span className="font-mono text-xs text-muted-foreground">
+            {stepLabel(lastStep)}
+          </span>
+        ) : null}
+
         <AgentSteps
-          blocks={msg.blocks}
+          blocks={lastStep ? lastStep.blocks : msg.blocks}
           streaming={msg.streaming}
           answering={text.length > 0}
         />
@@ -139,6 +169,14 @@ const AgentMessage = ({ msg }) => {
               {msg.streaming ? <span className={styles.caret} /> : null}
             </RichText>
           </div>
+        ) : null}
+
+        {views && answerAt < views.length - 1 ? (
+          <Trace>
+            {views.slice(answerAt + 1).map((step) => (
+              <StepGroup key={`${step.node}:${step.round}`} step={step} />
+            ))}
+          </Trace>
         ) : null}
 
         {msg.runMeta ? <RunMeta runMeta={msg.runMeta} /> : null}
@@ -153,6 +191,7 @@ AgentMessage.propTypes = {
     node: PropTypes.string,
     blocks: PropTypes.arrayOf(PropTypes.shape({ _key: PropTypes.string })),
     answer: PropTypes.arrayOf(PropTypes.string),
+    steps: PropTypes.arrayOf(PropTypes.shape({ node: PropTypes.string })),
     streaming: PropTypes.bool,
     runMeta: runMetaShape,
   }).isRequired,

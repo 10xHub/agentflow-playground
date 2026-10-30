@@ -85,6 +85,23 @@ describe("AgentSteps", () => {
     ).toBeInTheDocument()
   })
 
+  it("labels a call skipped by a handoff as skipped, not ran", () => {
+    render(
+      <AgentSteps
+        blocks={[
+          call("a", "transfer_to_planner"),
+          result("a", "Not run: control was transferred to WEATHER.", {
+            notRun: true,
+          }),
+        ]}
+      />
+    )
+    expect(
+      screen.getByRole("button", { name: /Skipped transfer_to_planner/ })
+    ).toBeInTheDocument()
+    expect(screen.queryByText(/^Ran/)).not.toBeInTheDocument()
+  })
+
   it("shows a call without a result as running while the turn streams", () => {
     const { rerender } = render(
       <AgentSteps blocks={[call("a", "lookup_order")]} streaming />

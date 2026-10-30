@@ -28,6 +28,7 @@ import {
   pushFrame,
   setAgentNode,
   setAgentText,
+  endAgentStep,
   setError,
   setGenerating,
   setGraphInfo,
@@ -218,7 +219,12 @@ const emitContentBlocks = (dispatch, agentId, message, turn) => {
       )
       return
     }
-    dispatch(upsertBlock({ id: agentId, ...build(block, index) }))
+    const built = build(block, index)
+    // A call skipped because control moved to another agent (a handoff).
+    if (block.type === "tool_result" && message?.metadata?.not_run) {
+      built.block.notRun = true
+    }
+    dispatch(upsertBlock({ id: agentId, ...built }))
   })
   // A complete (non-delta) assistant message ends one model call; reasoning
   // from the next call in the same turn gets its own rows.
@@ -357,15 +363,19 @@ const applyChunkMessage = (dispatch, agentId, message, turn) => {
   }
 
   const text = textFromContent(message.content)
-  if (!text) return false
-  dispatch(
-    setAgentText({
-      id: agentId,
-      text,
-      mode: message.delta ? "append" : "replace",
-    })
-  )
-  return true
+  if (text) {
+    dispatch(
+      setAgentText({
+        id: agentId,
+        text,
+        mode: message.delta ? "append" : "replace",
+        internal: !message.delta && message.metadata?.internal === true,
+      })
+    )
+  }
+  // One complete message per model call: it ends this run of the node.
+  if (!message.delta) dispatch(endAgentStep({ id: agentId }))
+  return Boolean(text)
 }
 
 // Ask the server to stop the thread's run. The AbortSignal cancels the request
@@ -427,7 +437,8 @@ const consumeStream = async (
 
     trackPause(chunk, outcome, tools)
 
-    if (applyChunkMessage(dispatch, agentId, chunk?.message, turn)) sawText = true
+    if (applyChunkMessage(dispatch, agentId, chunk?.message, turn))
+      sawText = true
   }
   return sawText
 }

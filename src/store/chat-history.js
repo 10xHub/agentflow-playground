@@ -88,6 +88,12 @@ const blocksOf = (msg, index) => {
         ? [build(withToolName(b, msg), `${b.type}:${index}:${i}`)]
         : []
     })
+    // A call skipped because control moved to another agent (a handoff).
+    if (msg.metadata?.not_run) {
+      blocks.forEach((b) => {
+        if (b.kind === "tool_result") b.notRun = true
+      })
+    }
     const hasCalls = blocks.some((b) => b.kind === "tool_call")
     if (!hasCalls && Array.isArray(msg.tools_calls)) {
       blocks.push(...fromToolsCalls(msg.tools_calls, index))
@@ -118,9 +124,47 @@ const agentTurn = (msg, index) => ({
   node: "agent",
   blocks: [],
   answer: [],
+  steps: [],
   streaming: false,
   runMeta: null,
 })
+
+// A row's node: `node_name` (set by 10xgraph on every row a node makes), with
+// the older `node` as fallback. Older threads have neither.
+const nodeOf = (msg) => msg.metadata?.node_name || msg.metadata?.node
+
+/**
+ * Group a turn's stored rows into steps by node: consecutive rows of one node
+ * are one step. A row with no node (a synthetic row) joins the current step;
+ * rows before the first node join the first step. Returns null when no row
+ * has a node, and the turn stays a flat list.
+ */
+const stepRows = (rows) => {
+  if (!rows.some(({ msg }) => nodeOf(msg))) return null
+  const steps = []
+  let leading = []
+  rows.forEach(({ msg, index }) => {
+    const node = nodeOf(msg)
+    let step = steps.at(-1)
+    if (!node) {
+      if (step) step.rows.push({ msg, index })
+      else leading.push({ msg, index })
+      return
+    }
+    // One assistant message per model call: a second one from the same node is
+    // that node's next run (PLANNER · 2), not more of the same step.
+    const rerun = msg.role === "assistant" && step?.hasReply
+    if (step?.node !== node || rerun) {
+      const round = steps.filter((s) => s.node === node).length + 1
+      step = { node, round, texts: [], rows: leading }
+      leading = []
+      steps.push(step)
+    }
+    if (msg.role === "assistant") step.hasReply = true
+    step.rows.push({ msg, index })
+  })
+  return steps
+}
 
 const timeOf = (msg) => {
   if (!msg.timestamp) return ""
@@ -130,15 +174,45 @@ const timeOf = (msg) => {
     : d.toLocaleTimeString([], { hour12: false })
 }
 
+// Rebuild blocks and step texts of a turn per node execution.
+const applySteps = (turn, steps) => {
+  turn.blocks = []
+  turn.steps = steps.map((step, stepIndex) => {
+    const texts = []
+    let internal = false
+    step.rows.forEach(({ msg, index }) => {
+      const text = msg.role === "assistant" ? textOf(msg.content) : ""
+      if (text) texts.push(text)
+      if (msg.role === "assistant" && msg.metadata?.internal === true) {
+        internal = true
+      }
+      turn.blocks.push(
+        ...blocksOf(msg, index).map((b) => ({ ...b, step: stepIndex }))
+      )
+    })
+    const view = {
+      node: step.node,
+      round: step.round,
+      text: texts.join("\n\n"),
+    }
+    return internal ? { ...view, internal: true } : view
+  })
+  turn.node = steps.at(-1).node
+}
+
 /** Map stored API messages to the message shape Chat renders. */
 export const mapStoredMessages = (stored = []) => {
   const out = []
   let turn = null
   let texts = []
+  let rows = []
   const close = () => {
     if (turn && texts.length) turn.answer = [texts.join("\n\n")]
+    const steps = turn ? stepRows(rows) : null
+    if (steps) applySteps(turn, steps)
     turn = null
     texts = []
+    rows = []
   }
   stored.forEach((msg, index) => {
     if (msg.role === "system") return
@@ -160,6 +234,7 @@ export const mapStoredMessages = (stored = []) => {
     const text = msg.role === "assistant" ? textOf(msg.content) : ""
     if (text) texts.push(text)
     turn.blocks.push(...blocksOf(msg, index))
+    rows.push({ msg, index })
   })
   close()
   return out
