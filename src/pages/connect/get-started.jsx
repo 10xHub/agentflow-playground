@@ -7,7 +7,7 @@ import { track } from "@/lib/usage-events"
 import styles from "./connect.module.css"
 
 const INSTALL = "pip install 10xgraph 10xgraph-api"
-const PLAY = "10xgraph play"
+const PLAY = "10xgraph dev"
 const DOCS = "https://10xgraph.com/docs"
 
 // Copy follows POSITIONING.md: lead with pillars 1 and 2, then ownership; no

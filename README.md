@@ -24,7 +24,7 @@ already connected to it:
 ```bash
 pip install 10xgraph 10xgraph-api
 10xgraph init        # scaffold an agent project
-10xgraph play        # start the API on :8000 and open the playground
+10xgraph dev         # start the API on :8000 and open the playground
 ```
 
 You can also open the playground yourself and enter the server URL on the connect screen, or

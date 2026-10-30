@@ -32,7 +32,7 @@ const DemoPrompts = ({ enabled = true }) => {
       <p className={`${ROW} pt-2 text-xs text-muted-foreground`}>
         That is the whole recording. Run it on your own agent:{" "}
         <code className="font-mono text-foreground">{INSTALL}</code> then{" "}
-        <code className="font-mono text-foreground">10xgraph play</code>
+        <code className="font-mono text-foreground">10xgraph dev</code>
       </p>
     )
   }

@@ -271,7 +271,7 @@ const redactedAuthHeaders = (settings) => {
 }
 
 // Build the { method, url, headers, body } snapshot the cURL pane renders from.
-// The demo's cURL targets a local `10xgraph api` (default port), never the
+// The demo's cURL targets a local `10xgraph dev` (default port), never the
 // visitor's own saved server or its auth.
 const DEMO_BASE_URL = "http://localhost:8000"
 

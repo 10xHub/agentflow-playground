@@ -3,7 +3,7 @@
 
 const KEY = "10xgraph.connections"
 
-// Seed shown on first run. Only `local` is a real reachable default (10xgraph api/play).
+// Seed shown on first run. Only `local` is a real reachable default (10xgraph dev).
 export const DEFAULT_CONNECTIONS = [
   {
     id: "local",

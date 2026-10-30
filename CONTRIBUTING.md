@@ -11,7 +11,7 @@ anything about how requests are made belongs in the client SDK.
 
 ## Setup
 
-Node 20 or newer, plus a running backend (`10xgraph api`).
+Node 20 or newer, plus a running backend (`10xgraph dev`).
 
 ```bash
 npm install

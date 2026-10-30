@@ -11,6 +11,7 @@ import { useTheme } from "@/lib/use-theme"
 
 import styles from "./connect.module.css"
 import { BrandPanel, NoServer } from "./get-started"
+import { useLocalAccess } from "./use-local-access"
 
 // The brand panel and the "no server yet" row show until the visitor has more
 // saved connections than this; regulars only need the form.
@@ -398,6 +399,54 @@ ProbePanel.propTypes = {
 }
 
 /**
+ * Shown instead of the generic failure when Chrome blocked a local server.
+ */
+const LocalBlockedHint = ({ onRetry }) => (
+  <div className={styles.errBox} role="alert">
+    <AlertTriangle size={28} strokeWidth={1.6} />
+    <div className={styles.errTitle}>Your browser blocked the local server</div>
+    <div className={styles.errMsg}>
+      Chrome needs permission to let {window.location.hostname} reach your
+      computer. Click the site settings icon left of the address bar, set Local
+      network access to Allow, then reload. Also check that{" "}
+      <code>10xgraph dev</code> is running.
+    </div>
+    <button type="button" className={styles.btnOutline} onClick={onRetry}>
+      <span>
+        <b>Try again</b>
+      </span>
+    </button>
+  </div>
+)
+
+LocalBlockedHint.propTypes = {
+  onRetry: PropTypes.func.isRequired,
+}
+
+/**
+ * The red box: the local-network hint when Chrome blocked the server, else the
+ * generic connection failure.
+ */
+const FailurePanel = ({ status, error = null, localBlocked, onRetry }) => {
+  if (localBlocked) return <LocalBlockedHint onRetry={onRetry} />
+  if (status !== "error") return null
+  return (
+    <div className={styles.errBox}>
+      <AlertTriangle size={28} strokeWidth={1.6} />
+      <div className={styles.errTitle}>Connection failed</div>
+      <div className={styles.errMsg}>{error}</div>
+    </div>
+  )
+}
+
+FailurePanel.propTypes = {
+  status: PropTypes.string.isRequired,
+  error: PropTypes.string,
+  localBlocked: PropTypes.bool.isRequired,
+  onRetry: PropTypes.func.isRequired,
+}
+
+/**
  *
  */
 const StatusPanel = ({
@@ -407,6 +456,8 @@ const StatusPanel = ({
   info = null,
   probe = null,
   url,
+  localBlocked,
+  onRetry,
 }) => (
   <>
     {status === "connecting" && (
@@ -420,13 +471,12 @@ const StatusPanel = ({
       <ProbePanel capabilities={capabilities} info={info} probe={probe} />
     )}
 
-    {status === "error" && (
-      <div className={styles.errBox}>
-        <AlertTriangle size={28} strokeWidth={1.6} />
-        <div className={styles.errTitle}>Connection failed</div>
-        <div className={styles.errMsg}>{error}</div>
-      </div>
-    )}
+    <FailurePanel
+      status={status}
+      error={error}
+      localBlocked={localBlocked}
+      onRetry={onRetry}
+    />
   </>
 )
 
@@ -437,6 +487,8 @@ StatusPanel.propTypes = {
   info: PropTypes.object,
   probe: PropTypes.object,
   url: PropTypes.string.isRequired,
+  localBlocked: PropTypes.bool.isRequired,
+  onRetry: PropTypes.func.isRequired,
 }
 
 /**
@@ -586,6 +638,24 @@ const fingerprint = (f) =>
     f.activeId,
   ])
 
+// Runs `handler` on Enter anywhere but a textarea. Reads the latest handler
+// through a ref, so the listener is added once.
+const useEnterKey = (enabled, handler) => {
+  const latest = useRef(handler)
+  useEffect(() => {
+    latest.current = handler
+  })
+  useEffect(() => {
+    const onKey = (e) => {
+      if (enabled && e.key === "Enter" && e.target.tagName !== "TEXTAREA") {
+        latest.current()
+      }
+    }
+    document.addEventListener("keydown", onKey)
+    return () => document.removeEventListener("keydown", onKey)
+  }, [enabled])
+}
+
 /**
  *
  */
@@ -608,6 +678,11 @@ const ConnectionPage = () => {
   const [remember, setRemember] = useState(true)
   const [activeId, setActiveId] = useState("local")
   const autoRan = useRef(false)
+  const { localBlocked, noteConnectResult } = useLocalAccess(
+    url,
+    parameters,
+    status
+  )
   // Fingerprint of the fields this page last verified; null until then.
   const [verifiedKey, setVerifiedKey] = useState(null)
 
@@ -641,6 +716,7 @@ const ConnectionPage = () => {
     const source = override || fields
     const profile = saved.find((c) => c.id === source.activeId)
     const res = await connect(buildConn(source, profile), { remember })
+    noteConnectResult(res)
     if (res.ok) {
       setVerifiedKey(fingerprint(source))
       // The backend URL is deliberately not sent — it can be a private host.
@@ -662,7 +738,7 @@ const ConnectionPage = () => {
   const onEnterPlayground = () => navigate("/chat")
 
   // Auto-connect from ?backendUrl= (+ optional ?token=) — this is exactly what
-  // `10xgraph play` appends, and makes a connection shareable as a link.
+  // `10xgraph dev` appends, and makes a connection shareable as a link.
   useEffect(() => {
     if (autoRan.current) return
     const backendUrl =
@@ -704,35 +780,10 @@ const ConnectionPage = () => {
   }
 
   // Enter-to-connect, mirroring the mockup's global keydown handler.
-  useEffect(() => {
-    /**
-     *
-     */
-    const onKey = (e) => {
-      if (
-        e.key === "Enter" &&
-        e.target.tagName !== "TEXTAREA" &&
-        status !== "connecting"
-      ) {
-        if (verified) onEnterPlayground()
-        else runConnect()
-      }
-    }
-    document.addEventListener("keydown", onKey)
-    return () => document.removeEventListener("keydown", onKey)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    url,
-    authMode,
-    token,
-    username,
-    password,
-    headers,
-    activeId,
-    remember,
-    status,
-    verified,
-  ])
+  useEnterKey(status !== "connecting", () => {
+    if (verified) onEnterPlayground()
+    else runConnect()
+  })
 
   const pitch = saved.length <= PITCH_MAX_SAVED
 
@@ -803,6 +854,8 @@ const ConnectionPage = () => {
               info={info}
               probe={probe}
               url={url}
+              localBlocked={localBlocked}
+              onRetry={onConnectClick}
             />
 
             <section aria-labelledby="saved-title">

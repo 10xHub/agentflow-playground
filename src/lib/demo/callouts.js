@@ -42,7 +42,7 @@ export const CALLOUTS = {
   },
   "/settings": {
     pillar: 5,
-    text: "To use your own agent: pip install 10xgraph 10xgraph-api, then 10xgraph play. MIT licensed and self-hosted.",
+    text: "To use your own agent: pip install 10xgraph 10xgraph-api, then 10xgraph dev. MIT licensed and self-hosted.",
   },
 }
 
