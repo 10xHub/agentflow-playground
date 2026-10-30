@@ -1,4 +1,4 @@
-import { Search, Trash2 } from "lucide-react"
+import { Pencil, Search, Trash2 } from "lucide-react"
 import PropTypes from "prop-types"
 import { useState } from "react"
 import { useDispatch } from "react-redux"
@@ -36,7 +36,7 @@ MetaJson.propTypes = {
 /**
  *
  */
-const MemoryDetail = ({ mem, mode, strategy, metric, collection, query }) => {
+const MemoryDetail = ({ mem, mode, strategy, metric, query, onEdit }) => {
   const dispatch = useDispatch()
   const [delArmed, setDelArmed] = useState(false)
   const [armedFor, setArmedFor] = useState(mem.id)
@@ -77,6 +77,10 @@ const MemoryDetail = ({ mem, mode, strategy, metric, collection, query }) => {
           </div>
         </div>
         <div className={styles.dActions}>
+          <button className={styles.tbtn} onClick={onEdit}>
+            <Pencil size={14} strokeWidth={1.7} />
+            Edit
+          </button>
           <button
             className={`${styles.tbtn} ${styles.danger} ${delArmed ? styles.armed : ""}`}
             onClick={onDelete}
@@ -151,10 +155,6 @@ const MemoryDetail = ({ mem, mode, strategy, metric, collection, query }) => {
               The store API returns records, not their vectors.
             </div>
             <div className={styles.kv} style={{ marginTop: 12 }}>
-              <span className={styles.k}>collection</span>
-              <span className={styles.v}>{collection}</span>
-            </div>
-            <div className={styles.kv}>
               <span className={styles.k}>id</span>
               <span className={styles.v}>{mem.id}</span>
             </div>
@@ -182,8 +182,8 @@ MemoryDetail.propTypes = {
   mode: PropTypes.string.isRequired,
   strategy: PropTypes.string.isRequired,
   metric: PropTypes.string.isRequired,
-  collection: PropTypes.string.isRequired,
   query: PropTypes.string.isRequired,
+  onEdit: PropTypes.func.isRequired,
 }
 
 export default MemoryDetail

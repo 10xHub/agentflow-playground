@@ -1,137 +1,85 @@
-import { createSlice } from "@reduxjs/toolkit"
+import { createSelector, createSlice } from "@reduxjs/toolkit"
 
-import { isDemoActive } from "@/lib/demo/demo-mode"
-import { getCurrentSettings } from "@/lib/settings-utils"
-import { getTenxGraphClient } from "@/lib/tenxgraph-client"
+import { buildEvalRuns, parseEvalReport } from "@/lib/eval-report"
+import { notifyError } from "@/lib/notify"
 
-// Live eval-report inspector state. The eval endpoints aren't on the SDK yet, so
-// we call them over raw fetch against the connected backend:
-//   GET /v1/evals/runs           -> { runs: [...] }
-//   GET /v1/evals/runs/{run_id}  -> full drilldown detail
+// Eval reports are files written by `10xgraph eval` (eval_reports/*.json) and
+// opened in the browser. Nothing is fetched: the parsed reports live here for
+// the session, and the run list and drilldowns are derived from them.
 
 const initialState = {
-  runs: [],
-  runsStatus: "idle", // idle | loading | ready | error
-  runsError: null,
-
+  sources: [], // [{ id, report }], id is the file name
   selectedRunId: null,
-  detail: null,
-  detailStatus: "idle",
-  detailError: null,
+  loadError: null,
 }
 
 const evalsSlice = createSlice({
   name: "evals",
   initialState,
   reducers: {
-    runsLoading: (s) => {
-      s.runsStatus = "loading"
-      s.runsError = null
-    },
-    runsLoaded: (s, a) => {
-      s.runs = a.payload
-      s.runsStatus = "ready"
-    },
-    runsFailed: (s, a) => {
-      s.runsStatus = "error"
-      s.runsError = a.payload
+    reportsAdded: (s, a) => {
+      for (const src of a.payload) {
+        const at = s.sources.findIndex((x) => x.id === src.id)
+        if (at === -1) s.sources.push(src)
+        else s.sources[at] = src
+      }
+      s.loadError = null
     },
     selectRun: (s, a) => {
       s.selectedRunId = a.payload
-      s.detail = null
     },
-    detailLoading: (s) => {
-      s.detailStatus = "loading"
-      s.detailError = null
+    loadFailed: (s, a) => {
+      s.loadError = a.payload
     },
-    detailLoaded: (s, a) => {
-      s.detail = a.payload
-      s.detailStatus = "ready"
-    },
-    detailFailed: (s, a) => {
-      s.detailStatus = "error"
-      s.detailError = a.payload
-    },
+    reportsCleared: () => initialState,
   },
 })
 
-export const {
-  runsLoading,
-  runsLoaded,
-  runsFailed,
-  selectRun,
-  detailLoading,
-  detailLoaded,
-  detailFailed,
-} = evalsSlice.actions
+export const { reportsAdded, selectRun, loadFailed, reportsCleared } =
+  evalsSlice.actions
 
-// Auth headers matching the persisted connection's auth mode.
-const evalHeaders = (s) => {
-  const headers = { "Content-Type": "application/json" }
-  if (s.authMode === "bearer" && s.authToken) {
-    headers.Authorization = `Bearer ${s.authToken}`
-  } else if (s.auth?.type === "basic") {
-    headers.Authorization = `Basic ${btoa(`${s.auth.username}:${s.auth.password}`)}`
-  } else if (s.authMode === "header" && Array.isArray(s.headers)) {
-    s.headers.forEach((h) => h?.name && (headers[h.name] = h.value))
+/** Run rows and drilldowns derived from the loaded reports. */
+export const selectEvalView = createSelector(
+  [(state) => state.evals.sources],
+  (sources) => buildEvalRuns(sources)
+)
+
+const readOne = async (file) => {
+  if (!/\.json$/i.test(file.name)) {
+    throw new Error(`${file.name} is not a .json file.`)
   }
-  return headers
+  return parseEvalReport(await file.text(), file.name)
 }
 
-// Resolve the base URL + auth header from the persisted connection (the SDK has
-// no eval methods, so we hit the endpoints with fetch directly).
-// Demo mode: the recorded eval report, never the network.
-const RUN_DETAIL_PREFIX = "/v1/evals/runs/"
-const demoEvalFetch = (path) => {
-  const client = getTenxGraphClient()
-  if (path.startsWith(RUN_DETAIL_PREFIX)) {
-    return client.evalRun(
-      decodeURIComponent(path.slice(RUN_DETAIL_PREFIX.length))
-    )
-  }
-  return client.evalRuns()
-}
-
-const evalFetch = async (path) => {
-  if (isDemoActive()) return demoEvalFetch(path)
-  const s = getCurrentSettings()
-  // Ensures we're actually connected (throws a clear error otherwise).
-  getTenxGraphClient()
-  const base = (s.backendUrl || "").replace(/\/$/, "")
-
-  const res = await fetch(`${base}${path}`, { headers: evalHeaders(s) })
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
-  const json = await res.json()
-  return json?.data ?? json
-}
-
-/** GET /v1/evals/runs */
-export const loadEvalRuns = () => async (dispatch, getState) => {
-  dispatch(runsLoading())
-  try {
-    const data = await evalFetch("/v1/evals/runs")
-    const runs = data.runs || []
-    dispatch(runsLoaded(runs))
-    if (!getState().evals.selectedRunId && runs.length) {
-      dispatch(loadEvalRun(runs[0].id))
+/**
+ * Read and parse report files. Valid ones are added; invalid ones raise a single
+ * error message (toast and inline) naming each file.
+ */
+export const openReportFiles = (files) => async (dispatch) => {
+  const loaded = []
+  const problems = []
+  for (const file of files) {
+    try {
+      loaded.push(await readOne(file))
+    } catch (e) {
+      problems.push(e?.message || `Could not read ${file.name}.`)
     }
-  } catch (e) {
-    dispatch(runsFailed(e?.message || "Failed to load eval runs"))
+  }
+  if (loaded.length) {
+    dispatch(reportsAdded(loaded))
+    dispatch(selectRun(loaded.at(-1).id))
+  }
+  if (problems.length) {
+    const message = problems.join(" ")
+    dispatch(loadFailed(message))
+    notifyError("Could not open report", message)
   }
 }
 
-/** GET /v1/evals/runs/{id} */
-export const loadEvalRun = (runId) => async (dispatch) => {
-  dispatch(selectRun(runId))
-  dispatch(detailLoading())
-  try {
-    const detail = await evalFetch(
-      `/v1/evals/runs/${encodeURIComponent(runId)}`
-    )
-    dispatch(detailLoaded(detail))
-  } catch (e) {
-    dispatch(detailFailed(e?.message || "Failed to load run detail"))
-  }
+/** Add an already-parsed report (the demo sample). */
+export const addParsedReport = (source) => (dispatch) => {
+  dispatch(reportsAdded([source]))
+  dispatch(selectRun(source.id))
 }
 
 export default evalsSlice.reducer

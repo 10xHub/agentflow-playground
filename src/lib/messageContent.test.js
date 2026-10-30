@@ -57,11 +57,23 @@ describe("messageContent", () => {
 
   it("handles empty and string content", () => {
     expect(buildMessageText("plain text")).toBe("plain text")
-    expect(buildMessageText(null, { reasoning: "Fallback" })).toBe("Fallback")
-    expect(hasRenderableMessageContent([], { reasoning: "Fallback" })).toBe(
-      true
-    )
+    expect(
+      hasRenderableMessageContent([{ type: "reasoning", summary: "Why" }])
+    ).toBe(true)
     expect(hasRenderableMessageContent([], {})).toBe(false)
+  })
+
+  it("copy text includes reasoning from content blocks, not message.reasoning", () => {
+    const text = getMessageCopyText({
+      reasoning: "legacy string",
+      content: [
+        { type: "reasoning", summary: "Block thought" },
+        { type: "text", text: "Answer" },
+      ],
+    })
+    expect(text).toContain("Block thought")
+    expect(text).toContain("Answer")
+    expect(text).not.toContain("legacy string")
   })
 
   it("normalizes timestamps from seconds, milliseconds, and invalid values", () => {

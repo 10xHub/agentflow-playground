@@ -1,4 +1,10 @@
-import { Brain, LoaderCircle, TriangleAlert, Wrench } from "lucide-react"
+import {
+  Brain,
+  Layers,
+  LoaderCircle,
+  TriangleAlert,
+  Wrench,
+} from "lucide-react"
 import PropTypes from "prop-types"
 import { useState } from "react"
 
@@ -52,6 +58,43 @@ export const groupSteps = (blocks = []) => {
   })
 }
 
+/** "PLAN", or "PLAN · 2" the second time the node runs. */
+export const stepLabel = (step) =>
+  step.round > 1 ? `${step.node} · ${step.round}` : step.node
+
+/**
+ * Split an agent turn into per-node steps, or return null for a flat turn.
+ * Steps show only when more than one distinct node produced assistant text or
+ * reasoning; a single node looping with its tool node (ReactAgent) stays flat.
+ * Steps with nothing to show (a counter node) are dropped.
+ */
+export const stepViews = (msg) => {
+  const steps = msg?.steps
+  if (!steps?.length) return null
+  const blocks = msg.blocks || []
+  const views = steps
+    .map((step, index) => ({
+      ...step,
+      blocks: blocks.filter((b) => b.step === index),
+    }))
+    .filter((view) => view.text || groupSteps(view.blocks).length > 0)
+  const talkers = new Set(
+    views
+      .filter((v) => v.text || v.blocks.some((b) => b.kind === "reasoning"))
+      .map((v) => v.node)
+  )
+  return talkers.size > 1 ? views : null
+}
+
+/**
+ * Index of the view whose text is the turn's answer: the last step that is not
+ * internal. When every step is internal, the last one (the earlier behaviour).
+ */
+export const answerIndex = (views) => {
+  const index = views.findLastIndex((v) => !v.internal)
+  return index === -1 ? views.length - 1 : index
+}
+
 // One line of the arguments, for the collapsed row.
 const argsPreview = (code) => {
   try {
@@ -84,10 +127,13 @@ Payload.propTypes = {
   code: PropTypes.string,
 }
 
-const toolState = (result, streaming) => {
+const toolState = (result, streaming, remote = false) => {
   if (result?.isError) return { status: "error", verb: "Failed to run" }
+  if (result?.notRun) return { status: null, verb: "Skipped" }
   if (result) return { status: null, verb: "Ran" }
   if (streaming) return { status: "running", verb: "Running" }
+  // The browser runs these itself and the result is not streamed back.
+  if (remote) return { status: null, verb: "Ran" }
   // No result in this turn (stopped, or the server did not send one).
   return { status: null, verb: "Called" }
 }
@@ -100,12 +146,21 @@ const TOOL_ICON = {
 }
 
 /** The collapsed row: "Ran lookup_order  order_id: \"1043\"". */
-const ToolLine = ({ status = null, verb, name, args = null }) => (
+const ToolLine = ({
+  status = null,
+  verb,
+  name,
+  args = null,
+  remote = false,
+}) => (
   <TraceLine status={status}>
     <TraceIcon>{TOOL_ICON[status] ?? <Wrench />}</TraceIcon>
     <TraceTitle>
       {verb} <span className="font-mono">{name}</span>
     </TraceTitle>
+    {remote ? (
+      <TraceDescription className="text-xs">in your browser</TraceDescription>
+    ) : null}
     {args ? (
       <TraceDescription className="hidden font-mono text-xs sm:inline">
         {argsPreview(args)}
@@ -119,11 +174,12 @@ ToolLine.propTypes = {
   verb: PropTypes.string.isRequired,
   name: PropTypes.string.isRequired,
   args: PropTypes.string,
+  remote: PropTypes.bool,
 }
 
 /** A tool call and the result that answers it, folded into one step. */
 export const ToolStep = ({ call = null, result = null, streaming = false }) => {
-  const { status, verb } = toolState(result, streaming)
+  const { status, verb } = toolState(result, streaming, call?.remote)
 
   return (
     <TraceCollapsible>
@@ -133,6 +189,7 @@ export const ToolStep = ({ call = null, result = null, streaming = false }) => {
           verb={verb}
           name={toolName(call, result)}
           args={call?.code}
+          remote={Boolean(call?.remote)}
         />
       </TraceCollapsibleTrigger>
       <TraceCollapsibleContent className="flex flex-col gap-2">
@@ -160,6 +217,7 @@ const blockShape = PropTypes.shape({
   code: PropTypes.string,
   text: PropTypes.string,
   isError: PropTypes.bool,
+  remote: PropTypes.bool,
 })
 
 ToolStep.propTypes = {
@@ -227,6 +285,38 @@ const AgentSteps = ({ blocks = [], streaming = false, answering = false }) => {
       })}
     </Trace>
   )
+}
+
+/** An earlier step of a multi-node run: folded to its label, opened on demand. */
+export const StepGroup = ({ step }) => (
+  <TraceCollapsible>
+    <TraceCollapsibleTrigger>
+      <TraceLine>
+        <TraceIcon>
+          <Layers />
+        </TraceIcon>
+        <TraceTitle className="font-mono">{stepLabel(step)}</TraceTitle>
+      </TraceLine>
+    </TraceCollapsibleTrigger>
+    <TraceCollapsibleContent className="flex flex-col gap-3">
+      <AgentSteps blocks={step.blocks} />
+      {step.text ? (
+        <div className={styles.prose}>
+          <RichText text={step.text} />
+        </div>
+      ) : null}
+    </TraceCollapsibleContent>
+  </TraceCollapsible>
+)
+
+StepGroup.propTypes = {
+  step: PropTypes.shape({
+    node: PropTypes.string,
+    round: PropTypes.number,
+    text: PropTypes.string,
+    internal: PropTypes.bool,
+    blocks: PropTypes.arrayOf(blockShape),
+  }).isRequired,
 }
 
 AgentSteps.propTypes = {

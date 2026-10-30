@@ -1,0 +1,142 @@
+.tree {
+  min-width: 560px;
+}
+.treeTools {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+.linkBtn {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--text-muted);
+  font-size: 11.5px;
+  cursor: pointer;
+}
+.linkBtn:hover {
+  color: var(--text);
+}
+.row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.1fr) minmax(160px, 1.6fr) 64px 78px;
+  align-items: center;
+  gap: 12px;
+  min-height: 30px;
+  padding: 0 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.row:hover {
+  background: var(--surface);
+}
+.row.sel {
+  background: var(--accent-weak);
+}
+.rulerRow {
+  cursor: default;
+  min-height: 24px;
+  color: var(--text-muted);
+  font-size: 10.5px;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+}
+.rulerRow:hover {
+  background: none;
+}
+.ruler {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--mono);
+}
+.name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 12.5px;
+}
+.twisty {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  flex: none;
+  padding: 0;
+  background: none;
+  border: 0;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.kindIcon {
+  flex: none;
+}
+.kindIcon.root {
+  color: var(--viz-root);
+}
+.kindIcon.node {
+  color: var(--viz-node);
+}
+.kindIcon.llm {
+  color: var(--viz-llm);
+}
+.kindIcon.tool {
+  color: var(--viz-tool);
+}
+.label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.statusSlot {
+  display: inline-grid;
+  place-items: center;
+  width: 14px;
+  flex: none;
+}
+.st_ok {
+  color: var(--ok);
+}
+.st_error {
+  color: var(--danger);
+}
+.st_running {
+  color: var(--warn);
+}
+.track {
+  position: relative;
+  height: 14px;
+  background: var(--surface-2);
+  border-radius: 3px;
+}
+.bar {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  min-width: 2px;
+  border-radius: 3px;
+}
+.bar.root {
+  background: color-mix(in srgb, var(--viz-root) 45%, transparent);
+}
+.bar.node {
+  background: color-mix(in srgb, var(--viz-node) 60%, transparent);
+}
+.bar.llm {
+  background: color-mix(in srgb, var(--viz-llm) 65%, transparent);
+}
+.bar.tool {
+  background: color-mix(in srgb, var(--viz-tool) 65%, transparent);
+}
+.barError {
+  background: var(--danger) !important;
+}
+.dur,
+.tok {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-align: right;
+  white-space: nowrap;
+}

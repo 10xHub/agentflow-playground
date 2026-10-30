@@ -8,7 +8,8 @@ describe("storage-migration", () => {
   })
 
   it("moves every old key to its new name", () => {
-    for (const [oldKey] of RENAMED_KEYS) localStorage.setItem(oldKey, `v:${oldKey}`)
+    for (const [oldKey] of RENAMED_KEYS)
+      localStorage.setItem(oldKey, `v:${oldKey}`)
 
     migrateStorageKeys()
 

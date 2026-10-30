@@ -29,7 +29,7 @@ def get_eval_set() -> EvalSet:
         .add_case(
             query="Order 1042 arrived broken. Can I get a refund?",
             expected="refunded",
-            expected_tools=["lookup_order", "memory_tool", "issue_refund", "send_email"],
+            expected_tools=["lookup_order", "user_memory_tool", "issue_refund", "send_email"],
             case_id="refund_broken_order",
             description="Looks up the order and the contact preference, then refunds and emails.",
         )
@@ -42,7 +42,7 @@ def get_eval_set() -> EvalSet:
         )
         .add_tool_test(
             query="c_88 prefers email over phone, please remember that.",
-            tool_name="memory_tool",
+            tool_name="user_memory_tool",
             case_id="remember_preference",
         )
         .add_tool_test(

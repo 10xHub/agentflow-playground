@@ -34,7 +34,7 @@ docker compose -p tenxgraph-demo down -v && docker compose -p tenxgraph-demo up 
 rm -rf qdrant_data payments.json && PYTHONPATH=. .venv/bin/python setup_db.py
 
 # 3. Serve and record (the recorder lives in ../record.mjs; run it from the playground root).
-.venv/bin/10xgraph api --port 8010
+.venv/bin/10xgraph dev --port 8010 --no-open
 cd ../.. && node demo/record.mjs http://localhost:8010
 ```
 

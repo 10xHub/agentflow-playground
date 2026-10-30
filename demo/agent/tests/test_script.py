@@ -33,7 +33,7 @@ PREFS = json.dumps({"results": [{"content": "Maya Chen (c_88) prefers email over
 def test_refund_starts_with_order_lookup_and_memory_search_in_one_step():
     step = next_step([user(REFUND)])
     names = [name for name, _ in calls(step)]
-    assert names == ["lookup_order", "memory_tool"]
+    assert names == ["lookup_order", "user_memory_tool"]
     assert calls(step)[0][1] == {"order_id": "1042"}
     assert calls(step)[1][1]["action"] == "search"
 
@@ -65,10 +65,10 @@ def test_history_calls_both_tools_in_one_step():
 def test_remember_stores_a_memory():
     step = next_step([user("c_88 prefers email over phone, please remember that.")])
     [(name, args)] = calls(step)
-    assert name == "memory_tool"
-    assert args["action"] == "store"
-    assert "email" in args["content"]
-    # Default (episodic) type: memory_tool search and the client both filter to it by default.
+    assert name == "user_memory_tool"
+    assert args["action"] == "remember"
+    assert "email" in args["text"]
+    # Default (episodic) type: user_memory_tool search and the client both filter to it by default.
     assert "memory_type" not in args
 
 

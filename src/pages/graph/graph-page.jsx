@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
 
-import { track } from "@/lib/analytics"
+import { track } from "@/lib/usage-events"
 import { loadGraph } from "@/store/graph-slice"
 
 import GraphCanvas from "./components/graph-canvas"

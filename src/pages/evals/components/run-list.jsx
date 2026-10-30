@@ -1,4 +1,7 @@
+import { FileUp } from "lucide-react"
 import PropTypes from "prop-types"
+
+import ErrorNote from "@/components/shell/error-note"
 
 import styles from "../evals.module.css"
 
@@ -13,18 +16,56 @@ const activateOnKey = (event, activate) => {
 /**
  *
  */
-const RunList = ({ runs, selectedId = null, onSelect }) => {
+const RunsNotice = ({ error = null, empty }) => {
+  if (error) return <ErrorNote message={error} />
+  if (!empty) return null
+  return (
+    <div className={styles.empty} style={{ padding: "20px 14px" }}>
+      No report loaded. Run 10xgraph eval, then open the JSON file it writes to
+      eval_reports/. You can also drop the file anywhere on this page.
+    </div>
+  )
+}
+
+RunsNotice.propTypes = {
+  error: PropTypes.string,
+  empty: PropTypes.bool.isRequired,
+}
+
+/**
+ *
+ */
+const RunList = ({
+  runs,
+  error = null,
+  selectedId = null,
+  onSelect,
+  onOpen,
+  onSample = undefined,
+}) => {
   return (
     <section className={styles.runs}>
       <div className={styles.runsHead}>
         <h2>Eval runs</h2>
-        <span className={styles.cnt}>{runs.length}</span>
+        <span className={styles.runsTools}>
+          <span className={styles.cnt}>{runs.length}</span>
+          <button type="button" className={styles.refresh} onClick={onOpen}>
+            <FileUp size={11} />
+            Open report file
+          </button>
+        </span>
       </div>
       <div className={styles.runsList}>
-        {runs.length === 0 && (
-          <div className={styles.empty} style={{ padding: "20px 14px" }}>
-            No eval runs — connect to a backend.
-          </div>
+        <RunsNotice error={error} empty={runs.length === 0} />
+        {onSample && runs.length === 0 && (
+          <button
+            type="button"
+            className={styles.refresh}
+            style={{ margin: "0 14px" }}
+            onClick={onSample}
+          >
+            Load sample report
+          </button>
         )}
         {runs.map((r) => (
           <div
@@ -44,6 +85,11 @@ const RunList = ({ runs, selectedId = null, onSelect }) => {
             <div className={styles.rrowMeta}>
               <span>{r.run}</span>
               <span>· {r.cases} cases</span>
+              {r.errors > 0 && (
+                <span className={styles.errCount}>
+                  · {r.errors} {r.errors === 1 ? "error" : "errors"}
+                </span>
+              )}
               <span>· {r.ago}</span>
             </div>
             <div className={styles.minibar}>
@@ -65,9 +111,13 @@ RunList.propTypes = {
       rate: PropTypes.number,
       run: PropTypes.string,
       cases: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+      errors: PropTypes.number,
       ago: PropTypes.string,
     })
   ).isRequired,
+  error: PropTypes.string,
+  onOpen: PropTypes.func.isRequired,
+  onSample: PropTypes.func,
   selectedId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   onSelect: PropTypes.func.isRequired,
 }

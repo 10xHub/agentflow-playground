@@ -1,10 +1,14 @@
 // Fixed option lists for the memory screen. Memories themselves come from the store API.
 
-// Matches DEFAULT_COLLECTION in the core QdrantStore/Mem0Store (tenxgraph.storage.store),
-// which still uses the pre-rename name. Change both together, or this points at an empty collection.
-export const DEFAULT_COLLECTION = "agentflow_memories"
-
-export const COLLECTIONS = [DEFAULT_COLLECTION]
+export const MEMORY_TYPES = [
+  "episodic",
+  "semantic",
+  "procedural",
+  "entity",
+  "relationship",
+  "declarative",
+  "custom",
+]
 
 export const RETRIEVAL_STRATEGIES = [
   "SIMILARITY",

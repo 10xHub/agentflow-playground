@@ -53,7 +53,7 @@ const recordRun = async (run) => {
   return { ...run, ended: "complete", chunks }
 }
 
-// memory_tool schedules its write in the background, so wait until the memory is
+// user_memory_tool schedules its write in the background, so wait until the memory is
 // listable before a later run searches for it.
 const waitForMemories = async (memoryConfig) => {
   const started = Date.now()

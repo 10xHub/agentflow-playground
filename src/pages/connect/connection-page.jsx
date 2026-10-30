@@ -1,12 +1,12 @@
-import { AlertTriangle, Eye, EyeOff, Plus, Trash2 } from "lucide-react"
+import { AlertTriangle, Check, Eye, EyeOff, Plus, Trash2 } from "lucide-react"
 import PropTypes from "prop-types"
 import { useEffect, useRef, useState } from "react"
 import { Link, useNavigate, useSearchParams } from "react-router-dom"
 
 import { Brand } from "@/components/shell/brand"
-import { track } from "@/lib/analytics"
 import { useConnection } from "@/lib/connection/connection-context"
 import { newConnectionId } from "@/lib/connection/connections-store"
+import { track } from "@/lib/usage-events"
 import { useTheme } from "@/lib/use-theme"
 
 import styles from "./connect.module.css"
@@ -366,7 +366,7 @@ const buildMetaRows = (probe, info) =>
 /**
  *
  */
-const ProbePanel = ({ capabilities, info = null, probe = null, onEnter }) => (
+const ProbePanel = ({ capabilities, info = null, probe = null }) => (
   <div className={`${styles.probe} ${styles.show}`}>
     <div className={styles.sideH}>Detected capabilities</div>
     <div className={styles.caps}>
@@ -388,13 +388,6 @@ const ProbePanel = ({ capabilities, info = null, probe = null, onEnter }) => (
         </div>
       ))}
     </div>
-    <button
-      className={`${styles.btnEnter} ${styles.show}`}
-      onClick={onEnter}
-      type="button"
-    >
-      Enter playground →
-    </button>
   </div>
 )
 
@@ -402,7 +395,6 @@ ProbePanel.propTypes = {
   capabilities: PropTypes.arrayOf(PropTypes.object).isRequired,
   info: PropTypes.object,
   probe: PropTypes.object,
-  onEnter: PropTypes.func.isRequired,
 }
 
 /**
@@ -415,7 +407,6 @@ const StatusPanel = ({
   info = null,
   probe = null,
   url,
-  onEnter,
 }) => (
   <>
     {status === "connecting" && (
@@ -426,12 +417,7 @@ const StatusPanel = ({
     )}
 
     {status === "connected" && capabilities && (
-      <ProbePanel
-        capabilities={capabilities}
-        info={info}
-        probe={probe}
-        onEnter={onEnter}
-      />
+      <ProbePanel capabilities={capabilities} info={info} probe={probe} />
     )}
 
     {status === "error" && (
@@ -451,7 +437,6 @@ StatusPanel.propTypes = {
   info: PropTypes.object,
   probe: PropTypes.object,
   url: PropTypes.string.isRequired,
-  onEnter: PropTypes.func.isRequired,
 }
 
 /**
@@ -530,40 +515,76 @@ RememberSwitch.propTypes = {
 /**
  *
  */
-const ConnectButton = ({ status, onConnect }) => (
-  <button
-    className={styles.btnPrimary}
-    onClick={onConnect}
-    disabled={status === "connecting"}
-    type="button"
-  >
-    {status === "connecting" ? (
+const ConnectButton = ({ status, verified, onConnect, onEnter }) => {
+  const connecting = status === "connecting"
+  let content = "Connect & verify"
+  if (connecting) {
+    content = (
       <>
         <span className={styles.spinner} />
         <span>Probing…</span>
       </>
-    ) : (
-      "Connect & verify"
-    )}
-  </button>
-)
+    )
+  } else if (verified) {
+    content = (
+      <>
+        <Check size={16} strokeWidth={2.4} aria-hidden="true" />
+        <span>Verified · Enter playground →</span>
+      </>
+    )
+  }
+  return (
+    <button
+      className={`${styles.btnPrimary} ${verified && !connecting ? styles.btnVerified : ""}`}
+      onClick={verified ? onEnter : onConnect}
+      disabled={connecting}
+      aria-label={
+        verified && !connecting
+          ? "Connection verified, enter playground"
+          : undefined
+      }
+      type="button"
+    >
+      {content}
+    </button>
+  )
+}
 
 ConnectButton.propTypes = {
   status: PropTypes.string.isRequired,
+  verified: PropTypes.bool.isRequired,
   onConnect: PropTypes.func.isRequired,
+  onEnter: PropTypes.func.isRequired,
 }
 
 /**
  *
  */
-const PageFooter = () => (
+const PageFooter = ({ verified }) => (
   <div className={styles.footer}>
-    Press <span className={styles.kbd}>↵</span> to connect ·{" "}
+    Press <span className={styles.kbd}>↵</span> to{" "}
+    {verified ? "enter" : "connect"} ·{" "}
     <a href="https://10xgraph.com/docs" target="_blank" rel="noreferrer">
       10xGraph docs
     </a>
   </div>
 )
+
+PageFooter.propTypes = {
+  verified: PropTypes.bool.isRequired,
+}
+
+// Identity of the form fields a connection was verified with; any edit changes it.
+const fingerprint = (f) =>
+  JSON.stringify([
+    f.url,
+    f.authMode,
+    f.token,
+    f.username,
+    f.password,
+    f.headers,
+    f.activeId,
+  ])
 
 /**
  *
@@ -587,6 +608,18 @@ const ConnectionPage = () => {
   const [remember, setRemember] = useState(true)
   const [activeId, setActiveId] = useState("local")
   const autoRan = useRef(false)
+  // Fingerprint of the fields this page last verified; null until then.
+  const [verifiedKey, setVerifiedKey] = useState(null)
+
+  const fields = {
+    url,
+    authMode,
+    token,
+    activeId,
+    username,
+    password,
+    headers,
+  }
 
   const updateHeader = (index, patch) =>
     setHeaders((rows) =>
@@ -605,18 +638,11 @@ const ConnectionPage = () => {
   }
 
   const runConnect = async ({ auto = false, override } = {}) => {
-    const source = override || {
-      url,
-      authMode,
-      token,
-      activeId,
-      username,
-      password,
-      headers,
-    }
+    const source = override || fields
     const profile = saved.find((c) => c.id === source.activeId)
     const res = await connect(buildConn(source, profile), { remember })
     if (res.ok) {
+      setVerifiedKey(fingerprint(source))
       // The backend URL is deliberately not sent — it can be a private host.
       track("connection_established", {
         auth_mode: source.authMode || "none",
@@ -626,6 +652,11 @@ const ConnectionPage = () => {
     if (res.ok && auto) navigate("/chat")
     return res
   }
+
+  const verified =
+    status === "connected" &&
+    verifiedKey !== null &&
+    verifiedKey === fingerprint(fields)
 
   const onConnectClick = () => runConnect()
   const onEnterPlayground = () => navigate("/chat")
@@ -683,7 +714,8 @@ const ConnectionPage = () => {
         e.target.tagName !== "TEXTAREA" &&
         status !== "connecting"
       ) {
-        runConnect()
+        if (verified) onEnterPlayground()
+        else runConnect()
       }
     }
     document.addEventListener("keydown", onKey)
@@ -699,6 +731,7 @@ const ConnectionPage = () => {
     activeId,
     remember,
     status,
+    verified,
   ])
 
   const pitch = saved.length <= PITCH_MAX_SAVED
@@ -756,7 +789,12 @@ const ConnectionPage = () => {
 
             <RememberSwitch remember={remember} onRemember={setRemember} />
 
-            <ConnectButton status={status} onConnect={onConnectClick} />
+            <ConnectButton
+              status={status}
+              verified={verified}
+              onConnect={onConnectClick}
+              onEnter={onEnterPlayground}
+            />
 
             <StatusPanel
               status={status}
@@ -765,7 +803,6 @@ const ConnectionPage = () => {
               info={info}
               probe={probe}
               url={url}
-              onEnter={onEnterPlayground}
             />
 
             <section aria-labelledby="saved-title">
@@ -781,7 +818,7 @@ const ConnectionPage = () => {
             </section>
 
             {pitch ? <NoServer /> : null}
-            <PageFooter />
+            <PageFooter verified={verified} />
           </div>
         </main>
 

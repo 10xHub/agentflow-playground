@@ -3,7 +3,7 @@ import PropTypes from "prop-types"
 import { useState } from "react"
 import { useDispatch } from "react-redux"
 
-import { track } from "@/lib/analytics"
+import { track } from "@/lib/usage-events"
 import {
   registerClientTools,
   removeClientTool,

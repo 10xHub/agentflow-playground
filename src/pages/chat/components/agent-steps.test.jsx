@@ -19,7 +19,11 @@ const result = (id, code, extra = {}) => ({
   code,
   ...extra,
 })
-const reasoning = { _key: "reasoning:0", kind: "reasoning", text: "Look it up." }
+const reasoning = {
+  _key: "reasoning:0",
+  kind: "reasoning",
+  text: "Look it up.",
+}
 
 describe("groupSteps", () => {
   it("pairs each tool call with the result that answers it", () => {
@@ -47,7 +51,9 @@ describe("groupSteps", () => {
 
   it("keeps a result whose call is not in the turn as its own step", () => {
     const steps = groupSteps([result("z", "ok")])
-    expect(steps).toEqual([{ kind: "tool", call: null, result: result("z", "ok") }])
+    expect(steps).toEqual([
+      { kind: "tool", call: null, result: result("z", "ok") },
+    ])
   })
 })
 
@@ -55,7 +61,10 @@ describe("AgentSteps", () => {
   it("names a finished call and shows its arguments and result when opened", async () => {
     render(
       <AgentSteps
-        blocks={[call("a", "lookup_order", '{"order_id":"1043"}'), result("a", '{"total":18}')]}
+        blocks={[
+          call("a", "lookup_order", '{"order_id":"1043"}'),
+          result("a", '{"total":18}'),
+        ]}
       />
     )
     const row = screen.getByRole("button", { name: /Ran lookup_order/ })
@@ -67,16 +76,43 @@ describe("AgentSteps", () => {
 
   it("marks a failed call", () => {
     render(
-      <AgentSteps blocks={[call("a", "cancel"), result("a", "boom", { isError: true })]} />
+      <AgentSteps
+        blocks={[call("a", "cancel"), result("a", "boom", { isError: true })]}
+      />
     )
-    expect(screen.getByRole("button", { name: /Failed to run cancel/ })).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: /Failed to run cancel/ })
+    ).toBeInTheDocument()
+  })
+
+  it("labels a call skipped by a handoff as skipped, not ran", () => {
+    render(
+      <AgentSteps
+        blocks={[
+          call("a", "transfer_to_planner"),
+          result("a", "Not run: control was transferred to WEATHER.", {
+            notRun: true,
+          }),
+        ]}
+      />
+    )
+    expect(
+      screen.getByRole("button", { name: /Skipped transfer_to_planner/ })
+    ).toBeInTheDocument()
+    expect(screen.queryByText(/^Ran/)).not.toBeInTheDocument()
   })
 
   it("shows a call without a result as running while the turn streams", () => {
-    const { rerender } = render(<AgentSteps blocks={[call("a", "lookup_order")]} streaming />)
-    expect(screen.getByRole("button", { name: /Running lookup_order/ })).toBeInTheDocument()
+    const { rerender } = render(
+      <AgentSteps blocks={[call("a", "lookup_order")]} streaming />
+    )
+    expect(
+      screen.getByRole("button", { name: /Running lookup_order/ })
+    ).toBeInTheDocument()
     rerender(<AgentSteps blocks={[call("a", "lookup_order")]} />)
-    expect(screen.getByRole("button", { name: /Called lookup_order/ })).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: /Called lookup_order/ })
+    ).toBeInTheDocument()
   })
 
   it("shows reasoning as thinking until the answer starts", () => {
@@ -84,5 +120,19 @@ describe("AgentSteps", () => {
     expect(screen.getByRole("button", { name: /Thinking/ })).toBeInTheDocument()
     rerender(<AgentSteps blocks={[reasoning]} streaming answering />)
     expect(screen.getByRole("button", { name: /Thought/ })).toBeInTheDocument()
+  })
+})
+
+describe("remote tool calls", () => {
+  it("read as run in the browser, even though no result is streamed back", () => {
+    render(
+      <AgentSteps
+        blocks={[{ ...call("r1", "get_location"), remote: true }]}
+        streaming={false}
+      />
+    )
+    expect(screen.getByText("get_location")).toBeInTheDocument()
+    expect(screen.getByText("in your browser")).toBeInTheDocument()
+    expect(screen.getByText(/^Ran/)).toBeInTheDocument()
   })
 })

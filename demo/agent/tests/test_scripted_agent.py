@@ -16,9 +16,9 @@ async def test_execute_returns_an_assistant_message_with_tool_calls_and_blocks()
     message = await result.invoke()
 
     assert message.role == "assistant"
-    assert [c["function"]["name"] for c in message.tools_calls] == ["lookup_order", "memory_tool"]
+    assert [c["function"]["name"] for c in message.tools_calls] == ["lookup_order", "user_memory_tool"]
     blocks = [b for b in message.content if b.type == "tool_call"]
-    assert [b.name for b in blocks] == ["lookup_order", "memory_tool"]
+    assert [b.name for b in blocks] == ["lookup_order", "user_memory_tool"]
     assert blocks[0].args == {"order_id": "1042"}
 
 
@@ -28,7 +28,7 @@ async def test_stream_yields_the_same_message():
     result = await agent.execute(state_for("Order 1042 arrived broken. Refund?"), {})
     streamed = [m async for m in result.stream({"thread_id": "t"}, "MAIN") if isinstance(m, Message)]
 
-    assert [c["function"]["name"] for c in streamed[-1].tools_calls] == ["lookup_order", "memory_tool"]
+    assert [c["function"]["name"] for c in streamed[-1].tools_calls] == ["lookup_order", "user_memory_tool"]
 
 
 async def test_execute_without_tools_returns_plain_text():

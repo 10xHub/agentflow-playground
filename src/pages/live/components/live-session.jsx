@@ -1,18 +1,27 @@
 import { AlertTriangle, Mic, Radio, Square } from "lucide-react"
 import PropTypes from "prop-types"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useReducer, useRef, useState } from "react"
+import { Link } from "react-router-dom"
 
-import { track } from "@/lib/analytics"
 import { createMicCapture, createPcmPlayer } from "@/lib/realtime-audio"
 import { getTenxGraphClient } from "@/lib/tenxgraph-client"
+import { track } from "@/lib/usage-events"
 
+import { buildLiveInit } from "../live-options-source"
 import styles from "../live.module.css"
+
+import {
+  bindSessionEvents,
+  formatToolRow,
+  initialLiveState,
+  liveReducer,
+} from "./live-events"
+import LiveOptions, { DEFAULT_LIVE_OPTIONS } from "./live-options"
 
 // We deliberately do NOT send a `model` in the init frame. The init `model` is a
 // per-session override that would win over the server's config, and Live model
-// availability is key/region specific — hardcoding one here caused sessions to close
-// (model "not found for bidiGenerateContent"). Omitting it makes the server's LIVE_MODEL
-// (agentflow-api/graph/live.py, env-overridable) the single source of truth.
+// availability is key/region specific, so hardcoding one here caused sessions to close.
+// Omitting it makes the model the server configures the single source of truth.
 
 const STATUS_LABEL = {
   idle: "Not started",
@@ -30,23 +39,32 @@ const messageShape = PropTypes.shape({
   id: PropTypes.number.isRequired,
   role: PropTypes.string.isRequired,
   text: PropTypes.string,
+  name: PropTypes.string,
 })
 
 // Title, status dot and the start/end control.
 /**
  *
  */
-const SessionHeader = ({ status, live, busy, stopped, onStart, onStop }) => (
+const SessionHeader = ({
+  status,
+  live,
+  busy,
+  stopped,
+  agentName = null,
+  onStart,
+  onStop,
+}) => (
   <div className={styles.sessHead}>
     <div className={styles.sessTitle}>
       <Radio size={16} strokeWidth={1.8} />
       Live session
-      <span className={styles.mockTag}>Gemini Live</span>
     </div>
     <div className={styles.sessStatus}>
       <span className={`${styles.sdot} ${live ? styles.sdotLive : ""}`} />
       {STATUS_LABEL[status]}
     </div>
+    {agentName && <div className={styles.agentChip}>agent: {agentName}</div>}
     {stopped ? (
       <button
         className={styles.startBtn}
@@ -69,6 +87,7 @@ SessionHeader.propTypes = {
   live: PropTypes.bool.isRequired,
   busy: PropTypes.bool.isRequired,
   stopped: PropTypes.bool.isRequired,
+  agentName: PropTypes.string,
   onStart: PropTypes.func.isRequired,
   onStop: PropTypes.func.isRequired,
 }
@@ -93,17 +112,23 @@ const Transcript = ({ messages, status, busy, scrollRef }) => (
     {messages.length === 0 && (
       <div className={styles.sessEmpty}>{emptyHint(status, busy)}</div>
     )}
-    {messages.map((m) => (
-      <div
-        key={m.id}
-        className={`${styles.bubble} ${m.role === "user" ? styles.user : styles.agent}`}
-      >
-        <span className={styles.bRole}>
-          {m.role === "user" ? "you" : "agent"}
-        </span>
-        <span className={styles.bText}>{m.text}</span>
-      </div>
-    ))}
+    {messages.map((m) =>
+      m.role === "tool" ? (
+        <div key={m.id} className={styles.toolRow}>
+          {formatToolRow(m)}
+        </div>
+      ) : (
+        <div
+          key={m.id}
+          className={`${styles.bubble} ${m.role === "user" ? styles.user : styles.agent}`}
+        >
+          <span className={styles.bRole}>
+            {m.role === "user" ? "you" : "agent"}
+          </span>
+          <span className={styles.bText}>{m.text}</span>
+        </div>
+      )
+    )}
   </div>
 )
 
@@ -147,48 +172,69 @@ VoiceBar.propTypes = {
   onToggle: PropTypes.func.isRequired,
 }
 
+/**
+ * Typed input row. Sends text to the live agent over the open session.
+ */
+const TextRow = ({ live, onSend }) => {
+  const [value, setValue] = useState("")
+  const submit = (event) => {
+    event.preventDefault()
+    const text = value.trim()
+    if (!text) return
+    onSend(text)
+    setValue("")
+  }
+  return (
+    <form className={styles.textRow} onSubmit={submit}>
+      <input
+        className={styles.textInput}
+        type="text"
+        aria-label="Message to the agent"
+        placeholder={live ? "Type a message" : "Start the session to type"}
+        value={value}
+        disabled={!live}
+        onChange={(e) => setValue(e.target.value)}
+      />
+      <button
+        className={styles.sendBtn}
+        type="submit"
+        disabled={!live || !value.trim()}
+      >
+        Send
+      </button>
+    </form>
+  )
+}
+
+TextRow.propTypes = {
+  live: PropTypes.bool.isRequired,
+  onSend: PropTypes.func.isRequired,
+}
+
+// Open the socket and wire it to the reducer. Returns the session or null on failure.
+const openSession = (client, init, handlers) => {
+  const session = client.realtime(init, { reconnect: { enabled: false } })
+  bindSessionEvents(session, handlers)
+  return session
+}
+
 // A voice-to-voice session over /v1/graph/live: push-to-talk streams mic PCM to the
 // agent, the agent's audio plays back, and both transcripts stream in as text.
 /**
  *
  */
-const LiveSession = () => {
+const useLiveSession = (honored, options) => {
   const [status, setStatus] = useState("idle")
   const [error, setError] = useState(null)
-  const [messages, setMessages] = useState([])
+  const [live, dispatch] = useReducer(liveReducer, initialLiveState)
   const [recording, setRecording] = useState(false)
+  const [threadId, setThreadId] = useState(null)
 
   const sessionReference = useRef(null)
   const playerReference = useRef(null)
   const micReference = useRef(null)
-  const openReference = useRef({ user: null, agent: null })
-  const idReference = useRef(0)
-  const scrollReference = useRef(null)
+  const handleReference = useRef(null)
   const startedAtReference = useRef(null)
-
-  useEffect(() => {
-    scrollReference.current?.scrollTo({
-      top: scrollReference.current.scrollHeight,
-    })
-  }, [messages])
-
-  // Append a transcript delta, coalescing consecutive chunks from the same speaker
-  // into one message until its `finished` marker arrives.
-  const appendTranscript = (role, text, finished) => {
-    setMessages((previous) => {
-      const openId = openReference.current[role]
-      if (openId == null) {
-        const id = (idReference.current += 1)
-        openReference.current[role] = finished ? null : id
-        return [...previous, { id, role, text, done: finished }]
-      }
-      const next = previous.map((m) =>
-        m.id === openId ? { ...m, text: m.text + text, done: finished } : m
-      )
-      if (finished) openReference.current[role] = null
-      return next
-    })
-  }
 
   const stopMic = () => {
     micReference.current?.stop()
@@ -201,10 +247,13 @@ const LiveSession = () => {
     playerReference.current?.close()
     playerReference.current = null
     sessionReference.current = null
-    openReference.current = { user: null, agent: null }
   }
 
   const start = () => {
+    // Restart must not leak the previous socket or player.
+    sessionReference.current?.close()
+    teardown()
+
     let client
     try {
       client = getTenxGraphClient()
@@ -214,20 +263,45 @@ const LiveSession = () => {
       return
     }
 
-    setMessages([])
+    dispatch({ type: "reset" })
     setError(null)
+    setThreadId(null)
+    handleReference.current = null
     setStatus("connecting")
-    openReference.current = { user: null, agent: null }
     playerReference.current = createPcmPlayer()
 
     let session
+    const handlers = {
+      dispatch,
+      onOpen: () => setStatus("live"),
+      // The server creates the thread and sends its id as the first event.
+      onThread: (id) => {
+        if (sessionReference.current === session) setThreadId(id)
+      },
+      onAudio: (pcm, rate) => playerReference.current?.play(pcm, rate),
+      flushAudio: () => playerReference.current?.flush?.(),
+      onHandle: (handle) => {
+        handleReference.current = handle
+      },
+      onError: (e) => {
+        if (sessionReference.current !== session) return
+        setError(e?.message || "Session error")
+        // A non-fatal error keeps the session live; only a fatal one ends it.
+        if (e?.fatal) {
+          session.close()
+          teardown()
+          setStatus("error")
+        }
+      },
+      onClose: () => {
+        if (sessionReference.current !== session) return
+        teardown()
+        setStatus((s) => (s === "error" ? s : "ended"))
+      },
+    }
     try {
-      // Reconnect disabled: a session ends once, so `close` is terminal here. No `model`:
-      // the server's configured LIVE_MODEL is authoritative (see note above).
-      session = client.realtime(
-        { modalities: "AUDIO" },
-        { reconnect: { enabled: false } }
-      )
+      // No `model`: the server's configured LIVE_MODEL is authoritative (see note above).
+      session = openSession(client, buildLiveInit(options, honored), handlers)
     } catch (e) {
       setError(e?.message || "Failed to open session")
       setStatus("error")
@@ -235,23 +309,7 @@ const LiveSession = () => {
       return
     }
     sessionReference.current = session
-
-    session.on("open", () => setStatus("live"))
-    session.on("audio", (pcm, rate) => playerReference.current?.play(pcm, rate))
-    session.on("input_transcript", (e) =>
-      appendTranscript("user", e.text || "", e.finished)
-    )
-    session.on("output_transcript", (e) =>
-      appendTranscript("agent", e.text || "", e.finished)
-    )
-    session.on("error", (e) => {
-      setError(e?.message || "Session error")
-      setStatus("error")
-    })
-    session.on("close", () => {
-      teardown()
-      setStatus((s) => (s === "error" ? s : "ended"))
-    })
+    setThreadId(session.threadId || null) // set up front only when the caller passed one
 
     // After the early returns above, so failed opens are not counted as starts.
     startedAtReference.current = Date.now()
@@ -295,6 +353,11 @@ const LiveSession = () => {
     }
   }
 
+  const sendText = (text) => {
+    sessionReference.current?.sendText(text)
+    dispatch({ type: "transcript", role: "user", text, finished: true })
+  }
+
   // Close the socket + mic if the user navigates away mid-session.
   useEffect(() => {
     return () => {
@@ -304,37 +367,92 @@ const LiveSession = () => {
     }
   }, [])
 
-  const live = status === "live"
-  const busy = status === "connecting"
-  const stopped = status === "idle" || status === "ended" || status === "error"
+  return {
+    status,
+    error,
+    live,
+    recording,
+    threadId,
+    start,
+    stop,
+    toggleMic,
+    sendText,
+  }
+}
+
+/**
+ *
+ */
+const LiveSession = ({ honored = null }) => {
+  const [options, setOptions] = useState(DEFAULT_LIVE_OPTIONS)
+  const s = useLiveSession(honored, options)
+  const scrollReference = useRef(null)
+
+  useEffect(() => {
+    scrollReference.current?.scrollTo({
+      top: scrollReference.current.scrollHeight,
+    })
+  }, [s.live.messages])
+
+  const isLive = s.status === "live"
+  const busy = s.status === "connecting"
+  const stopped =
+    s.status === "idle" || s.status === "ended" || s.status === "error"
 
   return (
     <div className={styles.session}>
       <SessionHeader
-        status={status}
-        live={live}
+        status={s.status}
+        live={isLive}
         busy={busy}
         stopped={stopped}
-        onStart={start}
-        onStop={stop}
+        agentName={s.live.agentName}
+        onStart={s.start}
+        onStop={s.stop}
       />
 
-      {status === "error" && error && (
+      <LiveOptions
+        value={options}
+        onChange={setOptions}
+        honored={honored}
+        disabled={!stopped}
+      />
+
+      {s.error && (
         <div className={styles.sessErr}>
-          <AlertTriangle size={14} /> {error}
+          <AlertTriangle size={14} /> {s.error}
+        </div>
+      )}
+
+      {s.live.goAway && (
+        <div className={styles.banner} role="status">
+          <AlertTriangle size={14} /> The server will end this session in{" "}
+          {s.live.goAway}.
         </div>
       )}
 
       <Transcript
-        messages={messages}
-        status={status}
+        messages={s.live.messages}
+        status={s.status}
         busy={busy}
         scrollRef={scrollReference}
       />
 
-      <VoiceBar live={live} recording={recording} onToggle={toggleMic} />
+      {s.status === "ended" && s.threadId && (
+        <div className={styles.threadNote}>
+          Thread {s.threadId}.{" "}
+          <Link to="/threads">Open the Thread Inspector</Link>
+        </div>
+      )}
+
+      <TextRow live={isLive} onSend={s.sendText} />
+      <VoiceBar live={isLive} recording={s.recording} onToggle={s.toggleMic} />
     </div>
   )
+}
+
+LiveSession.propTypes = {
+  honored: PropTypes.arrayOf(PropTypes.string),
 }
 
 export default LiveSession

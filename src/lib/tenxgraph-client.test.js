@@ -10,7 +10,9 @@ vi.mock("10xgraph-client", () => ({
   TenxGraphClient: TenxGraphClientMock,
 }))
 
-const { loadedFixture } = vi.hoisted(() => ({ loadedFixture: { current: null } }))
+const { loadedFixture } = vi.hoisted(() => ({
+  loadedFixture: { current: null },
+}))
 
 vi.mock("@/lib/demo/fixtures", () => ({
   getLoadedFixture: () => loadedFixture.current,
@@ -101,6 +103,41 @@ describe("tenxgraph-client", () => {
 
     expect(firstClient).not.toBe(secondClient)
     expect(TenxGraphClientMock).toHaveBeenCalledTimes(2)
+  })
+
+  it("re-registers persisted client tools on every rebuilt client", () => {
+    const registerToolHandler = vi.fn()
+    TenxGraphClientMock.mockImplementation(function MockWithTools(options) {
+      this.options = options
+      this.registerToolHandler = registerToolHandler
+    })
+    localStorage.setItem(
+      "10xgraph.client-tools",
+      JSON.stringify([
+        { id: "1", name: "geo", registered: true, callMode: "mock" },
+        { id: "2", name: "idle", registered: false },
+      ])
+    )
+    localStorage.setItem(
+      SETTINGS_STORAGE_KEY,
+      JSON.stringify({ backendUrl: "https://a.example.com" })
+    )
+    getTenxGraphClient()
+    localStorage.setItem(
+      SETTINGS_STORAGE_KEY,
+      JSON.stringify({ backendUrl: "https://b.example.com" })
+    )
+    getTenxGraphClient()
+    expect(registerToolHandler).toHaveBeenCalledTimes(2)
+    expect(registerToolHandler.mock.calls.map(([name]) => name)).toEqual([
+      "geo",
+      "geo",
+    ])
+    TenxGraphClientMock.mockImplementation(
+      function MockTenxGraphClient(options) {
+        this.options = options
+      }
+    )
   })
 
   it("omits auth when it is missing", () => {
@@ -225,7 +262,12 @@ describe("tenxgraph-client", () => {
 
     expect(TenxGraphClientMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        auth: { type: "header", name: "X-API-Key", value: "secret-key", prefix: null },
+        auth: {
+          type: "header",
+          name: "X-API-Key",
+          value: "secret-key",
+          prefix: null,
+        },
         headers: { "X-Tenant-Id": "acme" },
       })
     )

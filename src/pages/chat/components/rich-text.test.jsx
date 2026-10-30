@@ -16,13 +16,17 @@ describe("RichText", () => {
   })
 
   it("renders gfm tables", () => {
-    const { container } = render(<RichText text={"| a | b |\n| - | - |\n| 1 | 2 |"} />)
+    const { container } = render(
+      <RichText text={"| a | b |\n| - | - |\n| 1 | 2 |"} />
+    )
     expect(container.querySelector("table")).toBeTruthy()
     expect(container.querySelectorAll("td")).toHaveLength(2)
   })
 
   it("previews an html document in a sandboxed frame", () => {
-    const { container } = render(<RichText text="<!doctype html><html><body>hi</body></html>" />)
+    const { container } = render(
+      <RichText text="<!doctype html><html><body>hi</body></html>" />
+    )
     const frame = container.querySelector("iframe")
     expect(frame).toBeTruthy()
     expect(frame.getAttribute("sandbox")).toBe("allow-scripts")
@@ -54,7 +58,9 @@ describe("RichText", () => {
     )
     expect(html.querySelector("iframe")).toBeTruthy()
 
-    const { container: py } = render(<RichText text={"```python\nprint(1)\n```"} />)
+    const { container: py } = render(
+      <RichText text={"```python\nprint(1)\n```"} />
+    )
     expect(py.querySelector("iframe")).toBeNull()
     expect(py.textContent).toContain("print(1)")
   })

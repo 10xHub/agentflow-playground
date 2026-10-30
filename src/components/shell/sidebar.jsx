@@ -1,22 +1,52 @@
-import { ChevronsLeft, Settings } from "lucide-react"
+import { PanelLeftClose, PanelLeftOpen, Settings } from "lucide-react"
 import PropTypes from "prop-types"
-import { useSelector } from "react-redux"
+import { useEffect } from "react"
+import { useDispatch, useSelector } from "react-redux"
 import { NavLink } from "react-router-dom"
 
+import { useConnection } from "@/lib/connection/connection-context"
 import { NAV_GROUPS } from "@/lib/nav"
+import { loadThreadList } from "@/store/threads-slice"
 
 import styles from "./Sidebar.module.css"
 
 /**
- * Grouped left rail (Interact / Inspect / Build) + footer (Settings, Collapse).
- * Collapsed mode is icon-only with tooltips; state is owned by AppShell.
+ * Grouped left rail (Interact / Inspect / Build) with a collapse toggle in the
+ * top header and Settings in the footer. Collapsed mode is icon-only with
+ * tooltips; state is owned by AppShell.
  */
 const Sidebar = ({ collapsed, onToggleCollapse }) => {
   // Live local count for the Thread Inspector badge; empty until the list loads.
   const threadCount = useSelector((s) => s.threads.list.length)
+  const listStatus = useSelector((s) => s.threads.listStatus)
+  const { isConnected, isDemo } = useConnection()
+  const dispatch = useDispatch()
+
+  // Fill the badge at startup without fetching a thread's detail. A demo
+  // switch resets the slice to "idle", so isDemo re-triggers the load.
+  useEffect(() => {
+    if (isConnected && listStatus === "idle") {
+      dispatch(loadThreadList({ select: false }))
+    }
+  }, [dispatch, isConnected, isDemo, listStatus])
+
+  const toggleLabel = collapsed ? "Expand sidebar" : "Collapse sidebar"
+  const ToggleIcon = collapsed ? PanelLeftOpen : PanelLeftClose
 
   return (
     <aside className={`${styles.side} ${collapsed ? styles.collapsed : ""}`}>
+      <div className={styles.head}>
+        <button
+          type="button"
+          className={styles.toggle}
+          onClick={onToggleCollapse}
+          aria-label={toggleLabel}
+          title={toggleLabel}
+        >
+          <ToggleIcon size={16} />
+        </button>
+      </div>
+
       <div className={styles.scroll}>
         {NAV_GROUPS.map((group) => (
           <div className={styles.group} key={group.heading}>
@@ -57,18 +87,6 @@ const Sidebar = ({ collapsed, onToggleCollapse }) => {
           <Settings size={16} className={styles.ic} />
           <span className={styles.label}>Settings</span>
         </NavLink>
-        <button
-          type="button"
-          className={`${styles.item} ${styles.collapseBtn}`}
-          onClick={onToggleCollapse}
-          title={collapsed ? "Expand" : "Collapse"}
-        >
-          <ChevronsLeft
-            size={16}
-            className={`${styles.ic} ${styles.chevIcon}`}
-          />
-          <span className={styles.label}>Collapse</span>
-        </button>
       </div>
     </aside>
   )

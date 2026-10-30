@@ -11,8 +11,9 @@ import os
 
 from tenxgraph.core import StateGraph, ToolNode
 from tenxgraph.core.state import AgentState
-from tenxgraph.prebuilt.tools import memory_tool
+from tenxgraph.prebuilt.tools import make_user_memory_tool
 from tenxgraph.storage.checkpointer import PgCheckpointer
+from tenxgraph.storage.store import MemoryConfig, UserMemoryConfig
 from tenxgraph.utils.constants import END
 
 from embedding import HashingEmbedding
@@ -28,8 +29,13 @@ checkpointer = PgCheckpointer(
 
 store = DemoQdrantStore(embedding=HashingEmbedding(), path=os.environ.get("DEMO_QDRANT_PATH", "qdrant_data"))
 
+# The scripted MAIN node is not an Agent, so it cannot take Agent(memory=...); the same
+# user-scoped tool the Agent would register is added to the tool node directly.
+memory = MemoryConfig(store=store, user_memory=UserMemoryConfig(category="preferences"))
+user_memory_tool = make_user_memory_tool(memory)
+
 tool_node = ToolNode(
-    [lookup_order, get_customer_history, issue_refund, send_email, list_refunds, memory_tool]
+    [lookup_order, get_customer_history, issue_refund, send_email, list_refunds, user_memory_tool]
 )
 
 

@@ -63,7 +63,7 @@ def _current_turn(context: list[Message]) -> tuple[str, dict[str, Any]]:
 def _refund(results: dict[str, Any]) -> Step:
     if "issue_refund" in results:
         refund = results["issue_refund"]
-        remembered = "email" in json.dumps(results.get("memory_tool", ""))
+        remembered = "email" in json.dumps(results.get("user_memory_tool", ""))
         reason = ", since memory says the customer prefers email" if remembered else ""
         return Step(
             f"Done. I refunded ${refund['amount']:.2f} for order {refund['order_id']} "
@@ -89,7 +89,7 @@ def _refund(results: dict[str, Any]) -> Step:
         "Let me check the order and how this customer likes to be contacted.",
         [
             _call("lookup_order", order_id="1042"),
-            _call("memory_tool", action="search", query="c_88 contact preference"),
+            _call("user_memory_tool", action="search", text="c_88 contact preference"),
         ],
     )
 
@@ -110,16 +110,15 @@ def _history(results: dict[str, Any]) -> Step:
 
 
 def _remember(results: dict[str, Any]) -> Step:
-    if "memory_tool" in results:
+    if "user_memory_tool" in results:
         return Step("Saved. I will contact Maya Chen (c_88) by email from now on.")
     return Step(
         "",
         [
             _call(
-                "memory_tool",
-                action="store",
-                content="Maya Chen (c_88) prefers email over phone.",
-                category="preferences",
+                "user_memory_tool",
+                action="remember",
+                text="Maya Chen (c_88) prefers email over phone.",
             )
         ],
     )

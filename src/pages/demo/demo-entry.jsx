@@ -1,9 +1,9 @@
 import { useEffect } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 
-import { track } from "@/lib/analytics"
 import { useConnection } from "@/lib/connection/connection-context"
 import { resolveScenario } from "@/lib/demo/demo-mode"
+import { track } from "@/lib/usage-events"
 import Placeholder from "@/pages/placeholder"
 
 /**

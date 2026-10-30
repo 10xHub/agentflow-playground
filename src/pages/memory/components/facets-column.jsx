@@ -1,7 +1,6 @@
-import { Check, Pencil, RotateCcw } from "lucide-react"
+import { Check, RotateCcw } from "lucide-react"
 import PropTypes from "prop-types"
 
-import { COLLECTIONS } from "../data"
 import styles from "../memory.module.css"
 
 // Keyboard parity for the div/span rows that stay divs to keep the layout intact.
@@ -16,8 +15,6 @@ const keyActivate = (fn) => (e) => {
  *
  */
 const FacetsColumn = ({
-  collection,
-  onCollectionChange,
   loaded,
   types,
   typeCounts,
@@ -27,6 +24,9 @@ const FacetsColumn = ({
   catCounts,
   onSetCat,
   onReload,
+  minScore = 0,
+  onMinScore = undefined,
+  searching = false,
 }) => {
   return (
     <aside className={styles.facets}>
@@ -41,23 +41,8 @@ const FacetsColumn = ({
           </div>
 
           <div className={styles.skv}>
-            <span className={`${styles.k} ${styles.colEditHint}`}>
-              <Pencil size={10} />
-              collection
-            </span>
-            <input
-              className={styles.colInput}
-              list="mem-col-list"
-              value={collection}
-              spellCheck={false}
-              onChange={(e) => onCollectionChange(e.target.value)}
-              title="Passed as config.collection — type any collection name"
-            />
-            <datalist id="mem-col-list">
-              {COLLECTIONS.map((c) => (
-                <option key={c} value={c} />
-              ))}
-            </datalist>
+            <span className={styles.k}>collection</span>
+            <span className={styles.v}>set in code</span>
           </div>
 
           <div className={styles.skv}>
@@ -72,13 +57,35 @@ const FacetsColumn = ({
           <div className={styles.scopeNote}>
             <b>Token-scoped.</b> The store API pins{" "}
             <span className="mono">user_id</span> to the connected token
-            server-side; there is no cross-user list. Set{" "}
-            <span className="mono">collection</span> to inspect a non-default
-            one — it&apos;s sent as{" "}
-            <span className="mono">config.collection</span> (no list-collections
-            endpoint exists, so type the name).
+            server-side; there is no cross-user list. The server owns the
+            collection (set in code or in the store config). The playground
+            cannot change it.
           </div>
         </div>
+
+        {onMinScore && (
+          <div className={styles.fg}>
+            <div className={styles.fgH}>
+              <span className={styles.lbl}>Min score</span>
+              <span className={styles.fn}>{minScore.toFixed(2)}</span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.05"
+              value={minScore}
+              disabled={!searching}
+              aria-label="Minimum score"
+              onChange={(e) => onMinScore(Number(e.target.value))}
+            />
+            <div className={styles.scopeNote}>
+              {searching
+                ? "Sent to the store with the search."
+                : "Applies to search results only."}
+            </div>
+          </div>
+        )}
 
         <div className={styles.fg}>
           <div className={styles.fgH}>
@@ -153,8 +160,6 @@ const FacetsColumn = ({
 }
 
 FacetsColumn.propTypes = {
-  collection: PropTypes.string.isRequired,
-  onCollectionChange: PropTypes.func.isRequired,
   loaded: PropTypes.node.isRequired,
   types: PropTypes.instanceOf(Set).isRequired,
   typeCounts: PropTypes.arrayOf(
@@ -174,6 +179,9 @@ FacetsColumn.propTypes = {
   ).isRequired,
   onSetCat: PropTypes.func.isRequired,
   onReload: PropTypes.func.isRequired,
+  minScore: PropTypes.number,
+  onMinScore: PropTypes.func,
+  searching: PropTypes.bool,
 }
 
 export default FacetsColumn

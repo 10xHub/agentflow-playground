@@ -58,7 +58,10 @@ describe("DemoBanner", () => {
       slow
     )
     await waitFor(
-      () => expect(dialog.textContent).toContain("graph.compile(checkpointer=checkpointer"),
+      () =>
+        expect(dialog.textContent).toContain(
+          "graph.compile(checkpointer=checkpointer"
+        ),
       slow
     )
   })

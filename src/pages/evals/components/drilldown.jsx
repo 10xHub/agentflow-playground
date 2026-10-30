@@ -3,8 +3,6 @@ import PropTypes from "prop-types"
 
 import styles from "../evals.module.css"
 
-const THRESHOLD = 0.8
-
 const CASE_SHAPE = PropTypes.shape({
   id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   name: PropTypes.string,
@@ -50,12 +48,17 @@ const activateOnKey = (event, activate) => {
 /**
  *
  */
-const CasesPane = ({ cases, selectedCaseId = null, onSelectCase }) => (
+const CasesPane = ({
+  cases,
+  threshold,
+  selectedCaseId = null,
+  onSelectCase,
+}) => (
   <div className={styles.ctable}>
     <div className={`${styles.crow} ${styles.h}`}>
       <span className={styles.cName}>case</span>
       <span className={styles.cType}>type</span>
-      <span className={styles.cScore}>score · threshold 0.8</span>
+      <span className={styles.cScore}>score · threshold {threshold}</span>
       <span className={styles.cStat}>status</span>
       <span className={styles.cLat}>lat</span>
       <span className={styles.cCost}>cost</span>
@@ -87,7 +90,7 @@ const CasesPane = ({ cases, selectedCaseId = null, onSelectCase }) => (
             />
             <div
               className={styles.scoreTh}
-              style={{ left: `${THRESHOLD * 100}%` }}
+              style={{ left: `${threshold * 100}%` }}
             />
           </div>
           <div className={styles.num}>
@@ -106,6 +109,7 @@ const CasesPane = ({ cases, selectedCaseId = null, onSelectCase }) => (
 
 CasesPane.propTypes = {
   cases: PropTypes.arrayOf(CASE_SHAPE).isRequired,
+  threshold: PropTypes.number.isRequired,
   selectedCaseId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   onSelectCase: PropTypes.func.isRequired,
 }
@@ -211,6 +215,7 @@ const DrilldownBody = ({
     return (
       <CasesPane
         cases={detail.cases}
+        threshold={Number(detail.threshold) / 100}
         selectedCaseId={selectedCaseId}
         onSelectCase={onSelectCase}
       />
@@ -230,6 +235,7 @@ DrilldownBody.propTypes = {
   detail: PropTypes.shape({
     cases: PropTypes.arrayOf(CASE_SHAPE),
     regression: REGRESSION_SHAPE,
+    threshold: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   }).isRequired,
   tab: PropTypes.string.isRequired,
   selectedCaseId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
@@ -241,31 +247,18 @@ DrilldownBody.propTypes = {
  */
 const Drilldown = ({
   detail = null,
-  status = null,
-  error = null,
   tab,
   onTab,
   selectedCaseId = null,
   onSelectCase,
+  onDownload = undefined,
 }) => {
-  if (status === "loading") {
-    return (
-      <section className={styles.detail}>
-        <div className={styles.empty}>Loading report…</div>
-      </section>
-    )
-  }
-  if (status === "error") {
-    return (
-      <section className={styles.detail}>
-        <div className={styles.empty}>{error}</div>
-      </section>
-    )
-  }
   if (!detail) {
     return (
       <section className={styles.detail}>
-        <div className={styles.empty}>Select a run to view its report.</div>
+        <div className={styles.empty}>
+          Open a report file to inspect its run.
+        </div>
       </section>
     )
   }
@@ -301,12 +294,18 @@ const Drilldown = ({
             <TabButton id="cases" label="Cases" tab={tab} onTab={onTab} />
             <TabButton id="reg" label="Regression" tab={tab} onTab={onTab} />
           </div>
-          <div className={styles.right}>
-            <button className={styles.abtn}>
-              <Download size={13} strokeWidth={1.7} />
-              Download HTML report
-            </button>
-          </div>
+          {onDownload && (
+            <div className={styles.right}>
+              <button
+                type="button"
+                className={styles.abtn}
+                onClick={onDownload}
+              >
+                <Download size={13} />
+                Download report
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -339,12 +338,11 @@ Drilldown.propTypes = {
     cases: PropTypes.arrayOf(CASE_SHAPE),
     regression: REGRESSION_SHAPE,
   }),
-  status: PropTypes.string,
-  error: PropTypes.string,
   tab: PropTypes.string.isRequired,
   onTab: PropTypes.func.isRequired,
   selectedCaseId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   onSelectCase: PropTypes.func.isRequired,
+  onDownload: PropTypes.func,
 }
 
 export default Drilldown

@@ -6,6 +6,8 @@ import { clearThread } from "@/store/threads-slice"
 
 import styles from "../threads.module.css"
 
+import RawJson from "./raw-json"
+
 /**
  *
  */
@@ -89,7 +91,7 @@ const StatePane = () => {
       </div>
 
       <h3 className={styles.sectionH}>raw state</h3>
-      <pre className={styles.rawState}>{JSON.stringify(state, null, 2)}</pre>
+      <RawJson value={state} />
 
       <div className={styles.stateActions}>
         <button

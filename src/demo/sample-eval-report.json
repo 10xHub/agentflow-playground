@@ -1,0 +1,395 @@
+{
+  "eval_set_id": "8f443ee6-282e-4224-b496-877100f335ec",
+  "eval_set_name": "acme-support-regression",
+  "results": [
+    {
+      "eval_id": "refund_broken_order",
+      "name": "refund_broken_order",
+      "passed": true,
+      "criterion_results": [
+        {
+          "criterion": "tool_name_match_score",
+          "score": 1,
+          "passed": true,
+          "threshold": 1,
+          "details": {
+            "expected_names": [
+              "get_order",
+              "issue_refund"
+            ],
+            "actual_names": [
+              "get_order",
+              "issue_refund"
+            ]
+          },
+          "error": null,
+          "token_usage": {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0
+          }
+        },
+        {
+          "criterion": "tool_trajectory_avg_score",
+          "score": 1,
+          "passed": true,
+          "threshold": 1,
+          "details": {
+            "expected_trajectory": [
+              {
+                "name": "get_order",
+                "args": {}
+              },
+              {
+                "name": "issue_refund",
+                "args": {}
+              }
+            ]
+          },
+          "error": null,
+          "token_usage": {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0
+          }
+        }
+      ],
+      "actual_trajectory": [],
+      "actual_tool_calls": [],
+      "actual_response": "Done. I refunded $129.00 for order 1042 to the original payment method (refund rf_b0f40324) and emailed the receipt.",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Order 1042 arrived broken. Can I get a refund?"
+        }
+      ],
+      "node_responses": [],
+      "node_visits": [
+        "MAIN",
+        "TOOL",
+        "MAIN"
+      ],
+      "duration_seconds": 3.2,
+      "error": null,
+      "metadata": {},
+      "turn_results": [],
+      "token_usage": {
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "total_tokens": 0
+      }
+    },
+    {
+      "eval_id": "customer_history",
+      "name": "customer_history",
+      "passed": true,
+      "criterion_results": [
+        {
+          "criterion": "tool_name_match_score",
+          "score": 1,
+          "passed": true,
+          "threshold": 1,
+          "details": {
+            "expected_names": [
+              "get_customer",
+              "get_order"
+            ],
+            "actual_names": [
+              "get_customer",
+              "get_order"
+            ]
+          },
+          "error": null,
+          "token_usage": {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0
+          }
+        },
+        {
+          "criterion": "tool_trajectory_avg_score",
+          "score": 1,
+          "passed": true,
+          "threshold": 1,
+          "details": {
+            "expected_trajectory": [
+              {
+                "name": "get_customer",
+                "args": {}
+              },
+              {
+                "name": "get_order",
+                "args": {}
+              }
+            ]
+          },
+          "error": null,
+          "token_usage": {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0
+          }
+        }
+      ],
+      "actual_trajectory": [],
+      "actual_tool_calls": [],
+      "actual_response": "Maya Chen has been a customer since 2023-04, with orders 1042, 1043 and no open tickets. Order 1043 (Paper filters, pack of 200) is in transit.",
+      "messages": [
+        {
+          "role": "user",
+          "content": "What do you know about customer c_88, and where is order 1043?"
+        }
+      ],
+      "node_responses": [],
+      "node_visits": [
+        "MAIN",
+        "TOOL",
+        "MAIN"
+      ],
+      "duration_seconds": 2.1,
+      "error": null,
+      "metadata": {},
+      "turn_results": [],
+      "token_usage": {
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "total_tokens": 0
+      }
+    },
+    {
+      "eval_id": "remember_preference",
+      "name": "remember_preference",
+      "passed": true,
+      "criterion_results": [
+        {
+          "criterion": "tool_name_match_score",
+          "score": 1,
+          "passed": true,
+          "threshold": 1,
+          "details": {
+            "expected_names": [
+              "memory_tool"
+            ],
+            "actual_names": [
+              "memory_tool"
+            ]
+          },
+          "error": null,
+          "token_usage": {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0
+          }
+        },
+        {
+          "criterion": "tool_trajectory_avg_score",
+          "score": 1,
+          "passed": true,
+          "threshold": 1,
+          "details": {
+            "expected_trajectory": [
+              {
+                "name": "memory_tool",
+                "args": {}
+              }
+            ]
+          },
+          "error": null,
+          "token_usage": {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0
+          }
+        }
+      ],
+      "actual_trajectory": [],
+      "actual_tool_calls": [],
+      "actual_response": "Saved. I will contact Maya Chen (c_88) by email from now on.",
+      "messages": [
+        {
+          "role": "user",
+          "content": "c_88 prefers email over phone, please remember that."
+        }
+      ],
+      "node_responses": [],
+      "node_visits": [
+        "MAIN",
+        "TOOL",
+        "MAIN"
+      ],
+      "duration_seconds": 1.7,
+      "error": null,
+      "metadata": {},
+      "turn_results": [],
+      "token_usage": {
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "total_tokens": 0
+      }
+    },
+    {
+      "eval_id": "count_refunds",
+      "name": "count_refunds",
+      "passed": true,
+      "criterion_results": [
+        {
+          "criterion": "tool_name_match_score",
+          "score": 1,
+          "passed": true,
+          "threshold": 1,
+          "details": {
+            "expected_names": [
+              "list_refunds"
+            ],
+            "actual_names": [
+              "list_refunds"
+            ]
+          },
+          "error": null,
+          "token_usage": {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0
+          }
+        },
+        {
+          "criterion": "tool_trajectory_avg_score",
+          "score": 1,
+          "passed": true,
+          "threshold": 1,
+          "details": {
+            "expected_trajectory": [
+              {
+                "name": "list_refunds",
+                "args": {}
+              }
+            ]
+          },
+          "error": null,
+          "token_usage": {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0
+          }
+        }
+      ],
+      "actual_trajectory": [],
+      "actual_tool_calls": [],
+      "actual_response": "The payments system shows 3 refunds for order 1042, read from the payments store, not from the conversation.",
+      "messages": [
+        {
+          "role": "user",
+          "content": "How many refunds were issued for order 1042?"
+        }
+      ],
+      "node_responses": [],
+      "node_visits": [
+        "MAIN",
+        "TOOL",
+        "MAIN"
+      ],
+      "duration_seconds": 1.9,
+      "error": null,
+      "metadata": {},
+      "turn_results": [],
+      "token_usage": {
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "total_tokens": 0
+      }
+    },
+    {
+      "eval_id": "cancel_unshipped_order",
+      "name": "cancel_unshipped_order",
+      "passed": false,
+      "criterion_results": [
+        {
+          "criterion": "tool_name_match_score",
+          "score": 0,
+          "passed": false,
+          "threshold": 1,
+          "details": {
+            "expected_names": [
+              "cancel_order"
+            ],
+            "actual_names": [],
+            "reason": "Expected tool cancel_order was never called"
+          },
+          "error": null,
+          "token_usage": {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0
+          }
+        },
+        {
+          "criterion": "tool_trajectory_avg_score",
+          "score": 0,
+          "passed": false,
+          "threshold": 1,
+          "details": {
+            "expected_trajectory": [
+              {
+                "name": "cancel_order",
+                "args": {}
+              }
+            ],
+            "reason": "No tool calls matched the expected trajectory"
+          },
+          "error": null,
+          "token_usage": {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0
+          }
+        }
+      ],
+      "actual_trajectory": [],
+      "actual_tool_calls": [],
+      "actual_response": "In this demo I can look up orders, check a customer's history, issue refunds and remember preferences. Try one of the suggested prompts.",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Please cancel order 1043, it has not shipped yet."
+        }
+      ],
+      "node_responses": [],
+      "node_visits": [
+        "MAIN",
+        "TOOL",
+        "MAIN"
+      ],
+      "duration_seconds": 0.8,
+      "error": null,
+      "metadata": {},
+      "turn_results": [],
+      "token_usage": {
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "total_tokens": 0
+      }
+    }
+  ],
+  "summary": {
+    "total_cases": 5,
+    "passed_cases": 4,
+    "failed_cases": 1,
+    "error_cases": 0,
+    "pass_rate": 0.8,
+    "avg_duration_seconds": 1.94,
+    "total_duration_seconds": 9.7,
+    "criterion_stats": {},
+    "total_token_usage": {
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "total_tokens": 0
+    },
+    "per_case_token_usage": {},
+    "avg_tokens_per_case": 0
+  },
+  "config_used": {
+    "model": "gpt-4o-mini"
+  },
+  "timestamp": 1792063842,
+  "metadata": {}
+}

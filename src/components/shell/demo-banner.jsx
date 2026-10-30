@@ -1,9 +1,9 @@
 import { Suspense, lazy, useState } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
 
-import { track } from "@/lib/analytics"
 import { useConnection } from "@/lib/connection/connection-context"
 import { PILLARS, calloutFor } from "@/lib/demo/callouts"
+import { track } from "@/lib/usage-events"
 
 import styles from "./DemoBanner.module.css"
 

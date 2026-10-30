@@ -27,7 +27,11 @@ const initialState = () => {
   const persisted = loadThreads()
   return {
     // messages[]: user  -> { id, role:"user", who, time, text }
-    //             agent -> { id, role:"agent", who, node, blocks:[], answer:[], streaming, runMeta }
+    //             agent -> { id, role:"agent", who, node, blocks:[], answer:[], streaming, runMeta,
+    //                        steps:[{ node, round, text, internal?, done? }] }
+    //             `steps` is one entry per node execution; each block carries the
+    //             index of its step in `step`. Turns saved before steps existed have
+    //             neither and render as a flat list.
     messages: persisted.activeId
       ? persisted.byId[persisted.activeId]?.messages || []
       : [],
@@ -59,7 +63,31 @@ const initialState = () => {
     graphInfo: null, // structure from client.graph()
     lastRequest: null, // { method, url, headers, body, mode } for the cURL pane
     runStartedAt: null,
+
+    // The interrupt() the active thread is paused at, or null:
+    // { interrupt, turnId, busy, error }. Not persisted; a reload re-reads
+    // it from the thread state.
+    pendingInterrupt: null,
   }
+}
+
+// The text a delta appends to. Deltas of a different node never glue onto the
+// previous node's answer.
+const answerBase = (m, step) => {
+  const sameNode = !step || !m.answerNode || m.answerNode === step.node
+  if (step) m.answerNode = step.node
+  return sameNode ? m.answer[0] || "" : ""
+}
+
+// The step new content belongs to. A step whose complete message has arrived is
+// done; more content from the same node is that node's next run (PLANNER · 2).
+const contentStep = (m) => {
+  const step = m.steps?.at(-1)
+  if (!step?.done) return step
+  const round = m.steps.filter((s) => s.node === step.node).length + 1
+  const next = { node: step.node, round, text: "" }
+  m.steps.push(next)
+  return next
 }
 
 const findAgent = (state, id) =>
@@ -124,9 +152,6 @@ const chatSlice = createSlice({
       state.error = action.payload
     },
     setMode: (state, action) => {
-      // ws is gated "coming soon" until the client is published (see ChatHeader);
-      // ignore attempts to activate it so a stale value can't leave the UI stuck.
-      if (action.payload === "ws") return
       state.mode = action.payload
     },
     setGranularity: (state, action) => {
@@ -141,6 +166,7 @@ const chatSlice = createSlice({
       state.events = []
       state.frames = []
       state.lastRequest = null
+      state.pendingInterrupt = null
     },
     // Swap in a whole thread cache without persisting it: entering the demo hides
     // the visitor's own threads, and leaving it brings them back.
@@ -153,6 +179,7 @@ const chatSlice = createSlice({
       state.events = []
       state.frames = []
       state.lastRequest = null
+      state.pendingInterrupt = null
     },
     // Start a fresh thread: snapshot the current one, then reset the active view.
     newThread: (state) => {
@@ -163,6 +190,7 @@ const chatSlice = createSlice({
       state.events = []
       state.frames = []
       state.lastRequest = null
+      state.pendingInterrupt = null
       saveThreads({
         order: state.threads.order,
         byId: state.threads.byId,
@@ -181,6 +209,33 @@ const chatSlice = createSlice({
       state.events = []
       state.frames = []
       state.lastRequest = null
+      state.pendingInterrupt = null
+      saveThreads({
+        order: state.threads.order,
+        byId: state.threads.byId,
+        activeId: id,
+      })
+    },
+    // Make a server thread (history already mapped to Chat messages) the active
+    // one, replacing any cached copy.
+    threadHistoryLoaded: (state, action) => {
+      const { id, title, messages } = action.payload
+      if ((state.threadId || DRAFT_ID) !== id) syncActive(state)
+      state.messages = messages
+      state.threadId = id
+      state.error = null
+      state.events = []
+      state.frames = []
+      state.lastRequest = null
+      state.pendingInterrupt = null
+      const existing = state.threads.byId[id]
+      state.threads.byId[id] = {
+        id,
+        title: existing?.title || title || titleFor(messages),
+        messages,
+        updatedAt: existing?.updatedAt || 0,
+      }
+      state.threads.order = [id, ...state.threads.order.filter((t) => t !== id)]
       saveThreads({
         order: state.threads.order,
         byId: state.threads.byId,
@@ -194,6 +249,7 @@ const chatSlice = createSlice({
       state.threads.order = state.threads.order.filter((t) => t !== id)
       const wasActive = (state.threadId || DRAFT_ID) === id
       if (wasActive) {
+        state.pendingInterrupt = null
         state.messages = []
         state.threadId = null
       }
@@ -210,8 +266,10 @@ const chatSlice = createSlice({
       state.runOptions = { initialState: "", config: "", recursionLimit: "" }
     },
     addUserMessage: (state, action) => {
-      const { id, text, time } = action.payload
-      state.messages.push({ id, role: "user", who: "You", time, text })
+      const { id, text, time, attachments } = action.payload
+      const message = { id, role: "user", who: "You", time, text }
+      if (attachments?.length) message.attachments = attachments
+      state.messages.push(message)
       syncActive(state)
     },
     // Create (or reset) the assistant turn that streaming will fill in.
@@ -224,6 +282,7 @@ const chatSlice = createSlice({
         node: node || "agent",
         blocks: [],
         answer: [],
+        steps: [],
         streaming: true,
         runMeta: null,
       })
@@ -231,26 +290,54 @@ const chatSlice = createSlice({
     setAgentNode: (state, action) => {
       const { id, node } = action.payload
       const m = findAgent(state, id)
-      if (m && node) m.node = node
+      if (!m || !node) return
+      m.node = node
+      // A new step starts when the node changes, or the same node runs again
+      // after another one. Chunks of the node already running join its step.
+      if (!m.steps) m.steps = []
+      if (m.steps.at(-1)?.node === node) return
+      const round = m.steps.filter((s) => s.node === node).length + 1
+      m.steps.push({ node, round, text: "" })
     },
     // Append or replace the streamed assistant text. `mode:"append"` for deltas,
     // `mode:"replace"` for full snapshots. Stored as a single-paragraph array.
     setAgentText: (state, action) => {
-      const { id, text, mode = "append" } = action.payload
+      const { id, text, mode = "append", internal } = action.payload
       const m = findAgent(state, id)
       if (!m) return
-      const current = m.answer[0] || ""
+      const step = contentStep(m)
+      if (step) {
+        step.text = mode === "replace" ? text : step.text + text
+        // `metadata.internal` on the complete message: a review step, not the
+        // turn's answer. Deltas of the step show normally until it arrives.
+        if (internal) step.internal = true
+      }
+      const current = answerBase(m, step)
       m.answer = [mode === "replace" ? text : current + text]
       syncActive(state)
     },
     // Upsert a reasoning / tool_call / tool_result block by a stable key.
     upsertBlock: (state, action) => {
-      const { id, key, block } = action.payload
+      const { id, key, block, append } = action.payload
       const m = findAgent(state, id)
       if (!m) return
       const existing = m.blocks.find((b) => b._key === key)
-      if (existing) Object.assign(existing, block)
-      else m.blocks.push({ _key: key, ...block })
+      if (existing && append && typeof block.text === "string") {
+        // Streamed deltas carry only the new piece: grow the row's text.
+        const text = (existing.text || "") + block.text
+        Object.assign(existing, block, { text })
+      } else if (existing) Object.assign(existing, block)
+      else {
+        contentStep(m)
+        const step = m.steps?.length ? { step: m.steps.length - 1 } : {}
+        m.blocks.push({ _key: key, ...step, ...block })
+      }
+    },
+    // A node's complete message ends its step: the node's next run is a new step.
+    endAgentStep: (state, action) => {
+      const m = findAgent(state, action.payload.id)
+      const step = m?.steps?.at(-1)
+      if (step) step.done = true
     },
     // Accumulate token usage across a run (a turn may make several LLM calls).
     addUsage: (state, action) => {
@@ -293,6 +380,24 @@ const chatSlice = createSlice({
       if (m) m.answer = [text]
     },
 
+    setPendingInterrupt: (state, action) => {
+      const { interrupt, turnId = null } = action.payload
+      state.pendingInterrupt = { interrupt, turnId, busy: false, error: null }
+    },
+    setInterruptBusy: (state, action) => {
+      if (!state.pendingInterrupt) return
+      state.pendingInterrupt.busy = action.payload
+      if (action.payload) state.pendingInterrupt.error = null
+    },
+    setInterruptError: (state, action) => {
+      if (!state.pendingInterrupt) return
+      state.pendingInterrupt.busy = false
+      state.pendingInterrupt.error = action.payload
+    },
+    clearPendingInterrupt: (state) => {
+      state.pendingInterrupt = null
+    },
+
     // --- Inspector logging ---------------------------------------------------
     beginRun: (state, action) => {
       // Reset the live panes for a fresh interaction.
@@ -327,15 +432,21 @@ export const {
   newThread,
   replaceThreads,
   switchThread,
+  threadHistoryLoaded,
   removeThread,
   addUserMessage,
   startAgentTurn,
   setAgentNode,
   setAgentText,
+  endAgentStep,
   upsertBlock,
   addUsage,
   finishAgentTurn,
   appendErrorAnswer,
+  setPendingInterrupt,
+  setInterruptBusy,
+  setInterruptError,
+  clearPendingInterrupt,
   beginRun,
   pushEvent,
   pushFrame,

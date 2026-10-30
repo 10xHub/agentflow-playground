@@ -4,7 +4,11 @@ import { enterDemo, exitDemo } from "@/lib/demo/demo-mode"
 import { loadThreads, saveThreads } from "@/store/threads-cache"
 
 const KEY = "10xgraph.threads"
-const saved = { order: ["mine"], byId: { mine: { id: "mine" } }, activeId: "mine" }
+const saved = {
+  order: ["mine"],
+  byId: { mine: { id: "mine" } },
+  activeId: "mine",
+}
 
 describe("threads-cache in demo mode", () => {
   beforeEach(() => {

@@ -1,5 +1,6 @@
 import { TenxGraphClient } from "10xgraph-client"
 
+import { registerStoredTools } from "@/lib/client-tool-handlers"
 import { getDemoClient } from "@/lib/demo/demo-client"
 import { activeScenario } from "@/lib/demo/demo-mode"
 import { getLoadedFixture } from "@/lib/demo/fixtures"
@@ -96,6 +97,8 @@ export const getTenxGraphClient = () => {
   }
 
   tenxGraphClientInstance = new TenxGraphClient(config)
+  // A rebuilt client has no handlers: restore the tools registered earlier.
+  registerStoredTools(tenxGraphClientInstance)
   tenxGraphClientConfigKey = configKey
 
   return tenxGraphClientInstance

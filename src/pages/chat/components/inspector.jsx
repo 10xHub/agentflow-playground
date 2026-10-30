@@ -1,4 +1,11 @@
-import { Copy, RefreshCw, Save, X } from "lucide-react"
+import {
+  ChevronDown,
+  ChevronRight,
+  Copy,
+  RefreshCw,
+  Save,
+  X,
+} from "lucide-react"
 import PropTypes from "prop-types"
 import { useEffect, useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
@@ -258,7 +265,7 @@ const toolCallLine = (tc) => {
 // Message content is a plain string or a list of typed blocks. Join every block
 // to a readable multi-line summary so assistant tool calls and tool results are
 // visible instead of blank. Also fold in top-level tool call fields some
-// providers put on the message (tools_calls / reasoning) when content is bare.
+// providers put on the message (tools_calls) when content is bare.
 const messageText = (message) => {
   const content = message?.content ?? message
   const lines = []
@@ -531,24 +538,72 @@ ContextMessage.propTypes = {
 /**
  *
  */
-const ContextCard = ({ context }) => (
-  <div className={styles.stCard}>
-    <div className={styles.stCardHead}>
-      <span className={styles.stCardTitle}>
-        Context <span className={styles.stCardCount}>({context.length})</span>
-      </span>
+const CONTEXT_COLLAPSED_KEY = "playground.inspector.contextCollapsed"
+
+// Storage can throw (private mode, blocked site data), so every access is guarded.
+const readCollapsed = () => {
+  try {
+    return localStorage.getItem(CONTEXT_COLLAPSED_KEY) === "1"
+  } catch {
+    return false
+  }
+}
+
+const writeCollapsed = (collapsed) => {
+  try {
+    localStorage.setItem(CONTEXT_COLLAPSED_KEY, collapsed ? "1" : "0")
+  } catch {
+    // Best effort: the choice just won't persist.
+  }
+}
+
+/**
+ *
+ */
+const ContextCard = ({ context }) => {
+  const [collapsed, setCollapsed] = useState(readCollapsed)
+  const label = collapsed ? "Expand context" : "Collapse context"
+  const Chevron = collapsed ? ChevronRight : ChevronDown
+
+  const toggle = () => {
+    const next = !collapsed
+    setCollapsed(next)
+    writeCollapsed(next)
+  }
+
+  return (
+    <div className={styles.stCard}>
+      <button
+        type="button"
+        className={`${styles.stCardHead} ${styles.stCardToggle} ${
+          collapsed ? styles.stCardHeadCollapsed : ""
+        }`}
+        aria-expanded={!collapsed}
+        aria-label={label}
+        title={label}
+        onClick={toggle}
+      >
+        <span className={styles.stCardTitle}>
+          Context <span className={styles.stCardCount}>({context.length})</span>
+        </span>
+        <Chevron size={14} className={styles.stCardChevron} />
+      </button>
+      {!collapsed && (
+        <>
+          <p className={styles.stCardDesc}>
+            Short-term conversation memory (read-only).
+          </p>
+          {context.length === 0 && (
+            <div className={styles.inspEmpty}>No messages.</div>
+          )}
+          {context.map((m, index) => (
+            <ContextMessage key={m.message_id || index} message={m} />
+          ))}
+        </>
+      )}
     </div>
-    <p className={styles.stCardDesc}>
-      Short-term conversation memory (read-only).
-    </p>
-    {context.length === 0 && (
-      <div className={styles.inspEmpty}>No messages.</div>
-    )}
-    {context.map((m, index) => (
-      <ContextMessage key={m.message_id || index} message={m} />
-    ))}
-  </div>
-)
+  )
+}
 
 ContextCard.propTypes = {
   context: PropTypes.arrayOf(PropTypes.shape({ message_id: PropTypes.string }))

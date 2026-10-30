@@ -3,8 +3,8 @@ import { useEffect, useMemo, useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
 
 import {
+  applyFilters,
   browseMemories,
-  setCollection,
   setMetric,
   setMode,
   setStrategy,
@@ -12,18 +12,12 @@ import {
 
 import FacetsColumn from "./components/facets-column"
 import MemoryDetail from "./components/memory-detail"
+import MemoryFormPane from "./components/memory-form-pane"
 import MemoryList from "./components/memory-list"
+import { MEMORY_TYPES } from "./data"
 import styles from "./memory.module.css"
 
-const ALL_TYPES = [
-  "episodic",
-  "semantic",
-  "procedural",
-  "entity",
-  "relationship",
-  "declarative",
-  "custom",
-]
+const ALL_TYPES = MEMORY_TYPES
 
 /**
  *
@@ -35,22 +29,27 @@ const MemoryPage = () => {
     mode,
     strategy,
     metric,
-    collection,
     selectedId,
     status,
     error,
     query,
     keywordMatch,
+    filters,
   } = useSelector((s) => s.memory)
 
-  // Local facet UI state (client-side filtering over the loaded set).
-  const [types, setTypes] = useState(() => new Set(ALL_TYPES))
-  const [cat, setCat] = useState(null)
+  // Facets live in the store: a search sends them to the server as filters, and
+  // the loaded rows are narrowed the same way for browse and multi-type picks.
+  const types = useMemo(
+    () => new Set(filters.types ?? ALL_TYPES),
+    [filters.types]
+  )
+  const { cat } = filters
+  const [formMode, setFormMode] = useState(null) // null | "create" | "edit"
 
-  // Load memories on mount and whenever the collection changes.
+  // Load memories on mount.
   useEffect(() => {
     dispatch(browseMemories())
-  }, [dispatch, collection])
+  }, [dispatch])
 
   // Live facet counts from the loaded items.
   const typeCounts = useMemo(() => {
@@ -66,16 +65,14 @@ const MemoryPage = () => {
     items.forEach((m) => {
       c[m.cat] = (c[m.cat] || 0) + 1
     })
+    if (cat && !c[cat]) c[cat] = 0
     return Object.entries(c).map(([k, n]) => ({ k, n }))
-  }, [items])
+  }, [items, cat])
 
-  // Client-side filter for browse mode; search results are shown as returned.
+  // Browse filters the loaded rows; search also narrows by server filters.
   const list = useMemo(
-    () =>
-      mode === "search"
-        ? items
-        : items.filter((m) => types.has(m.type) && (!cat || m.cat === cat)),
-    [items, types, cat, mode]
+    () => items.filter((m) => types.has(m.type) && (!cat || m.cat === cat)),
+    [items, types, cat]
   )
 
   const activeId = list.some((m) => m.id === selectedId)
@@ -85,13 +82,13 @@ const MemoryPage = () => {
       : null
   const activeMem = items.find((m) => m.id === activeId) || null
 
+  const setTypes = (next) =>
+    dispatch(
+      applyFilters({ types: next.length === ALL_TYPES.length ? null : next })
+    )
+
   const toggleType = (k) =>
-    setTypes((previous) => {
-      const next = new Set(previous)
-      if (next.has(k)) next.delete(k)
-      else next.add(k)
-      return next
-    })
+    setTypes(ALL_TYPES.filter((t) => (t === k ? !types.has(t) : types.has(t))))
 
   // No store backend wired for this agent — the API answered 503 "Store is not
   // configured". Show a single explanatory panel instead of the empty inspector.
@@ -125,16 +122,17 @@ const MemoryPage = () => {
   return (
     <div className={styles.page}>
       <FacetsColumn
-        collection={collection}
-        onCollectionChange={(c) => dispatch(setCollection(c))}
         loaded={`${items.length} / ${items.length}`}
         types={types}
         typeCounts={typeCounts}
         onToggleType={toggleType}
-        onAllTypes={() => setTypes(new Set(ALL_TYPES))}
+        onAllTypes={() => setTypes(ALL_TYPES)}
         cat={cat}
         catCounts={catCounts}
-        onSetCat={(k) => setCat((current) => (current === k ? null : k))}
+        onSetCat={(k) => dispatch(applyFilters({ cat: cat === k ? null : k }))}
+        minScore={filters.minScore}
+        onMinScore={(v) => dispatch(applyFilters({ minScore: v }))}
+        searching={mode === "search"}
         onReload={() => dispatch(browseMemories())}
       />
 
@@ -152,18 +150,28 @@ const MemoryPage = () => {
         error={error}
         query={query}
         activeId={activeId}
-        onSelect={(id) =>
+        onSelect={(id) => {
+          setFormMode(null)
           dispatch({ type: "memory/selectMemory", payload: id })
-        }
+        }}
+        onNew={() => setFormMode("create")}
       />
 
-      {activeMem && (
+      {formMode && (
+        <MemoryFormPane
+          mode={formMode}
+          mem={activeMem}
+          onClose={() => setFormMode(null)}
+        />
+      )}
+
+      {!formMode && activeMem && (
         <MemoryDetail
+          onEdit={() => setFormMode("edit")}
           mem={activeMem}
           mode={mode}
           strategy={keywordMatch ? "keyword match (recorded demo)" : strategy}
           metric={keywordMatch ? "none" : metric}
-          collection={collection}
           query={query}
         />
       )}

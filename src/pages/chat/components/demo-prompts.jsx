@@ -3,8 +3,8 @@ import PropTypes from "prop-types"
 import { useDispatch, useSelector } from "react-redux"
 
 import { Button } from "@/components/ui/button"
-import { track } from "@/lib/analytics"
 import { getTenxGraphClient } from "@/lib/tenxgraph-client"
+import { track } from "@/lib/usage-events"
 import { sendDemoRun } from "@/store/chat-thunks"
 
 const INSTALL = "pip install 10xgraph 10xgraph-api"

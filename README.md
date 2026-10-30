@@ -10,6 +10,12 @@ everything you see here is something your own frontend can do too.
 
 **Docs:** https://10xgraph.com/docs
 
+> **Local client for now.** Until `10xgraph-client` 1.0.0-rc.2 is published, the playground
+> depends on the local client via `file:../agentflow-client`. After changing the client, run
+> `npm run build` in `agentflow-client` (the playground reads its `dist/`). To go back to the
+> published package, set the dependency in `package.json` to the published version and run
+> `npm install`.
+
 ## Try it
 
 The fastest path is the CLI, which starts your agent's API and opens the hosted playground
@@ -62,7 +68,7 @@ These packages were previously published as `10xscale-agentflow`, `10xscale-agen
 
 ## Develop locally
 
-Requires Node.js 20 or newer (22 recommended) and a running 10xGraph API (`10xgraph api`).
+Requires Node.js 20 or newer (22 recommended) and a running 10xGraph API (`10xgraph dev`).
 
 ```bash
 npm install
@@ -109,7 +115,7 @@ Your first pull request can be small. These are real, self-contained, and useful
 - **Make it keyboard and screen-reader friendly.** A button without a label, a dialog that traps focus wrongly, a control you cannot reach with Tab.
 - **Add a test for a component you touched.** Tests run with Vitest.
 
-From clone to a running playground (with a backend running via `10xgraph api`):
+From clone to a running playground (with a backend running via `10xgraph dev`):
 
 ```bash
 git clone https://github.com/10xHub/agentflow-playground.git
