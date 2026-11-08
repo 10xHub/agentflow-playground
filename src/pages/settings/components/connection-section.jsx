@@ -59,6 +59,25 @@ const ProbeMeta = ({ probe = null, isConnected = false }) => {
   )
 }
 
+// Who the server says is connected (GET /v1/me); nothing when auth is off or unknown.
+const CallerMeta = ({ me = null, isConnected = false }) => {
+  if (!isConnected || !me) return null
+  const roles = me.roles.length ? me.roles.join(", ") : "no roles"
+  return (
+    <div className={styles.acMeta}>
+      {me.userId} · {roles}
+    </div>
+  )
+}
+
+CallerMeta.propTypes = {
+  isConnected: PropTypes.bool,
+  me: PropTypes.shape({
+    userId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    roles: PropTypes.arrayOf(PropTypes.string),
+  }),
+}
+
 ProbeMeta.propTypes = {
   probe: probeShape,
   isConnected: PropTypes.bool,
@@ -158,6 +177,7 @@ const ActiveConnectionCard = ({
   error = null,
   capabilities = null,
   probe = null,
+  me = null,
   isConnected = false,
   onReverify,
   onDisconnect,
@@ -174,6 +194,7 @@ const ActiveConnectionCard = ({
     <div className={styles.acUrl}>{conn.backendUrl}</div>
 
     <ProbeMeta probe={probe} isConnected={isConnected} />
+    <CallerMeta me={me} isConnected={isConnected} />
     <CapabilityChips capabilities={capabilities} />
     <ConnectionError status={status} error={error} />
 
@@ -193,6 +214,7 @@ ActiveConnectionCard.propTypes = {
   error: PropTypes.string,
   capabilities: capabilitiesShape,
   probe: probeShape,
+  me: CallerMeta.propTypes.me,
   isConnected: PropTypes.bool,
   onReverify: PropTypes.func.isRequired,
   onDisconnect: PropTypes.func.isRequired,
@@ -259,6 +281,7 @@ const ConnectionSection = () => {
     active,
     capabilities,
     probe,
+    me,
     saved,
     connect,
     disconnect,
@@ -296,6 +319,7 @@ const ConnectionSection = () => {
           error={error}
           capabilities={capabilities}
           probe={probe}
+          me={me}
           isConnected={isConnected}
           onReverify={reverify}
           onDisconnect={disconnect}

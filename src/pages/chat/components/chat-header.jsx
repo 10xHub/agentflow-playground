@@ -2,6 +2,7 @@ import { RotateCcw, Square } from "lucide-react"
 import { useDispatch, useSelector } from "react-redux"
 
 import { useConnection } from "@/lib/connection/connection-context"
+import { useCan } from "@/lib/connection/use-can"
 import { setGranularity, setMode } from "@/store/chat-slice"
 import { fixThread, stopGeneration } from "@/store/chat-thunks"
 
@@ -28,6 +29,7 @@ const ChatHeader = () => {
   const generating = useSelector((s) => s.chat.generating)
   const threadId = useSelector((s) => s.chat.threadId)
   const { isDemo } = useConnection()
+  const can = useCan()
 
   return (
     <div className={styles.head}>
@@ -60,7 +62,7 @@ const ChatHeader = () => {
       </select>
 
       <div className={styles.headRight}>
-        {generating ? (
+        {generating && can("graph:stop") ? (
           <button
             className={`${styles.btnGhostSm} ${styles.danger}`}
             type="button"
@@ -70,15 +72,17 @@ const ChatHeader = () => {
             Stop
           </button>
         ) : null}
-        <button
-          className={styles.btnGhostSm}
-          type="button"
-          onClick={() => dispatch(fixThread())}
-          disabled={!threadId || generating}
-        >
-          <RotateCcw size={13} />
-          Fix thread
-        </button>
+        {can("graph:fix") && (
+          <button
+            className={styles.btnGhostSm}
+            type="button"
+            onClick={() => dispatch(fixThread())}
+            disabled={!threadId || generating}
+          >
+            <RotateCcw size={13} />
+            Fix thread
+          </button>
+        )}
       </div>
     </div>
   )

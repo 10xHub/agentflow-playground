@@ -2,6 +2,7 @@ import { Search } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
 
+import { useCan } from "@/lib/connection/use-can"
 import { isDemoActive } from "@/lib/demo/demo-mode"
 import {
   loadFilesConfig,
@@ -36,6 +37,7 @@ const noteFor = (status, source) => {
 const FilesPage = () => {
   const dispatch = useDispatch()
   const demo = isDemoActive()
+  const can = useCan()
   const { config, upload, lookup, current } = useSelector((s) => s.files)
   const list = useFileList()
   const [lookupId, setLookupId] = useState("")
@@ -53,12 +55,14 @@ const FilesPage = () => {
     <div className={styles.page}>
       <h2 className={styles.title}>Files</h2>
       <ConfigHeader config={config} demo={demo} />
-      <UploadZone
-        disabled={demo}
-        busy={upload.status === "uploading"}
-        error={upload.error}
-        onFile={(file) => dispatch(uploadSelected(file))}
-      />
+      {can("files:upload") && (
+        <UploadZone
+          disabled={demo}
+          busy={upload.status === "uploading"}
+          error={upload.error}
+          onFile={(file) => dispatch(uploadSelected(file))}
+        />
+      )}
       <form className={styles.lookup} onSubmit={submitLookup}>
         <Search size={14} />
         <input

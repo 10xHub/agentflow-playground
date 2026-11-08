@@ -11,6 +11,7 @@ import { useDispatch, useSelector } from "react-redux"
 import { useNavigate } from "react-router-dom"
 
 import ErrorNote from "@/components/shell/error-note"
+import { useCan } from "@/lib/connection/use-can"
 import { ago } from "@/lib/format-ago"
 import { track } from "@/lib/usage-events"
 import { openServerThread } from "@/store/chat-history"
@@ -81,6 +82,7 @@ const Toolbar = ({
   busy,
   delArmed,
   onRefresh,
+  canDelete,
   onDelete,
   onOpenChat,
   onViewTrace,
@@ -115,31 +117,36 @@ const Toolbar = ({
       <RefreshCw size={14} strokeWidth={1.8} />
       Refresh
     </button>
-    <div className={styles.tbSep} />
-    <button
-      type="button"
-      className={`${styles.tbtn} ${styles.danger} ${delArmed ? styles.armed : ""}`}
-      onClick={onDelete}
-      disabled={busy}
-    >
-      {delArmed ? (
-        <>
-          <AlertTriangle size={14} strokeWidth={1.8} />
-          Confirm delete?
-        </>
-      ) : (
-        <>
-          <Trash2 size={14} strokeWidth={1.7} />
-          Delete thread
-        </>
-      )}
-    </button>
+    {canDelete && (
+      <>
+        <div className={styles.tbSep} />
+        <button
+          type="button"
+          className={`${styles.tbtn} ${styles.danger} ${delArmed ? styles.armed : ""}`}
+          onClick={onDelete}
+          disabled={busy}
+        >
+          {delArmed ? (
+            <>
+              <AlertTriangle size={14} strokeWidth={1.8} />
+              Confirm delete?
+            </>
+          ) : (
+            <>
+              <Trash2 size={14} strokeWidth={1.7} />
+              Delete thread
+            </>
+          )}
+        </button>
+      </>
+    )}
   </div>
 )
 
 Toolbar.propTypes = {
   busy: PropTypes.bool.isRequired,
   delArmed: PropTypes.bool.isRequired,
+  canDelete: PropTypes.bool.isRequired,
   onRefresh: PropTypes.func.isRequired,
   onDelete: PropTypes.func.isRequired,
   onOpenChat: PropTypes.func.isRequired,
@@ -176,6 +183,7 @@ TabBody.propTypes = {
  *
  */
 const ThreadsPage = () => {
+  const can = useCan()
   const dispatch = useDispatch()
   const { list, selectedId, detail, busy, detailError } = useSelector(
     (s) => s.threads
@@ -243,6 +251,7 @@ const ThreadsPage = () => {
               <Toolbar
                 busy={busy}
                 delArmed={delArmed}
+                canDelete={can("threads:delete")}
                 onRefresh={() => dispatch(loadThread(selectedId))}
                 onDelete={onDelete}
                 onOpenChat={openInChat}

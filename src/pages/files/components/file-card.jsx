@@ -2,6 +2,7 @@ import { Copy, Download, Trash2 } from "lucide-react"
 import PropTypes from "prop-types"
 import { useState } from "react"
 
+import { useCan } from "@/lib/connection/use-can"
 import { formatBytes } from "@/lib/files/preview-kind"
 import { notifyError, notifySuccess } from "@/lib/notify"
 
@@ -38,6 +39,7 @@ Row.propTypes = {
  * Info, signed link, preview and delete for one file.
  */
 const FileCard = ({ file, onDelete }) => {
+  const can = useCan()
   const [armed, setArmed] = useState(false)
   const [armedFor, setArmedFor] = useState(file.file_id)
   if (armedFor !== file.file_id) {
@@ -65,13 +67,15 @@ const FileCard = ({ file, onDelete }) => {
               <Download size={13} /> Download
             </a>
           )}
-          <button
-            type="button"
-            className={`${styles.btn} ${armed ? styles.btnDanger : ""}`}
-            onClick={() => (armed ? onDelete(file.file_id) : setArmed(true))}
-          >
-            <Trash2 size={13} /> {armed ? "Confirm delete?" : "Delete"}
-          </button>
+          {can("files:delete") && (
+            <button
+              type="button"
+              className={`${styles.btn} ${armed ? styles.btnDanger : ""}`}
+              onClick={() => (armed ? onDelete(file.file_id) : setArmed(true))}
+            >
+              <Trash2 size={13} /> {armed ? "Confirm delete?" : "Delete"}
+            </button>
+          )}
         </div>
       </header>
       <Row k="file_id">{file.file_id}</Row>

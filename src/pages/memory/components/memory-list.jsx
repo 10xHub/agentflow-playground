@@ -3,6 +3,7 @@ import PropTypes from "prop-types"
 import { useState } from "react"
 import { useDispatch } from "react-redux"
 
+import { useCan } from "@/lib/connection/use-can"
 import { forgetVisible, searchMemories } from "@/store/memory-slice"
 
 import { DISTANCE_METRICS, RETRIEVAL_STRATEGIES } from "../data"
@@ -27,25 +28,52 @@ const keyActivate = (fn) => (e) => {
 }
 
 /**
+ * "New memory", only for callers who may write to the store.
+ */
+const NewButton = ({ onNew }) => {
+  const can = useCan()
+  if (!can("store:write")) return null
+  return (
+    <button
+      type="button"
+      className={`${styles.tbtn} ${styles.newBtn}`}
+      onClick={onNew}
+    >
+      <Plus size={14} strokeWidth={1.8} />
+      New memory
+    </button>
+  )
+}
+
+NewButton.propTypes = {
+  onNew: PropTypes.func.isRequired,
+}
+
+/**
  *
  */
-const ListSub = ({ label, armed, count, disabled, onConfirm }) => (
-  <div className={styles.listSub}>
-    <span>{label}</span>
-    <button
-      className={`${styles.forget} ${armed ? styles.armed : ""}`}
-      onClick={onConfirm}
-      disabled={disabled}
-    >
-      {armed ? (
-        <Check size={12} strokeWidth={1.8} />
-      ) : (
-        <Trash2 size={12} strokeWidth={1.7} />
+const ListSub = ({ label, armed, count, disabled, onConfirm }) => {
+  const can = useCan()
+  return (
+    <div className={styles.listSub}>
+      <span>{label}</span>
+      {can("store:delete") && (
+        <button
+          className={`${styles.forget} ${armed ? styles.armed : ""}`}
+          onClick={onConfirm}
+          disabled={disabled}
+        >
+          {armed ? (
+            <Check size={12} strokeWidth={1.8} />
+          ) : (
+            <Trash2 size={12} strokeWidth={1.7} />
+          )}
+          {armed ? `Confirm · forget ${count}?` : "Forget visible"}
+        </button>
       )}
-      {armed ? `Confirm · forget ${count}?` : "Forget visible"}
-    </button>
-  </div>
-)
+    </div>
+  )
+}
 
 ListSub.propTypes = {
   label: PropTypes.string.isRequired,
@@ -273,14 +301,7 @@ const MemoryList = ({
       <div className={styles.listHead}>
         <div className={styles.listHeadRow}>
           <ModeTabs mode={mode} onSetMode={onSetMode} />
-          <button
-            type="button"
-            className={`${styles.tbtn} ${styles.newBtn}`}
-            onClick={onNew}
-          >
-            <Plus size={14} strokeWidth={1.8} />
-            New memory
-          </button>
+          <NewButton onNew={onNew} />
         </div>
 
         {mode === "browse" ? (

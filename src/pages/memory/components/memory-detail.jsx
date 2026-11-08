@@ -3,6 +3,7 @@ import PropTypes from "prop-types"
 import { useState } from "react"
 import { useDispatch } from "react-redux"
 
+import { useCan } from "@/lib/connection/use-can"
 import { deleteMemory } from "@/store/memory-slice"
 
 import styles from "../memory.module.css"
@@ -38,6 +39,7 @@ MetaJson.propTypes = {
  */
 const MemoryDetail = ({ mem, mode, strategy, metric, query, onEdit }) => {
   const dispatch = useDispatch()
+  const can = useCan()
   const [delArmed, setDelArmed] = useState(false)
   const [armedFor, setArmedFor] = useState(mem.id)
 
@@ -77,17 +79,21 @@ const MemoryDetail = ({ mem, mode, strategy, metric, query, onEdit }) => {
           </div>
         </div>
         <div className={styles.dActions}>
-          <button className={styles.tbtn} onClick={onEdit}>
-            <Pencil size={14} strokeWidth={1.7} />
-            Edit
-          </button>
-          <button
-            className={`${styles.tbtn} ${styles.danger} ${delArmed ? styles.armed : ""}`}
-            onClick={onDelete}
-          >
-            <Trash2 size={14} strokeWidth={1.7} />
-            {delArmed ? "Confirm delete?" : "Delete"}
-          </button>
+          {can("store:write") && (
+            <button className={styles.tbtn} onClick={onEdit}>
+              <Pencil size={14} strokeWidth={1.7} />
+              Edit
+            </button>
+          )}
+          {can("store:delete") && (
+            <button
+              className={`${styles.tbtn} ${styles.danger} ${delArmed ? styles.armed : ""}`}
+              onClick={onDelete}
+            >
+              <Trash2 size={14} strokeWidth={1.7} />
+              {delArmed ? "Confirm delete?" : "Delete"}
+            </button>
+          )}
         </div>
       </div>
 

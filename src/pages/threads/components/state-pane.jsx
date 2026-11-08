@@ -2,6 +2,7 @@ import { Trash2 } from "lucide-react"
 import PropTypes from "prop-types"
 import { useDispatch, useSelector } from "react-redux"
 
+import { useCan } from "@/lib/connection/use-can"
 import { clearThread } from "@/store/threads-slice"
 
 import styles from "../threads.module.css"
@@ -69,6 +70,7 @@ const contextRowsOf = (state, selectedId) => [
  */
 const StatePane = () => {
   const dispatch = useDispatch()
+  const can = useCan()
   const { selectedId, detail, detailStatus, busy } = useSelector(
     (s) => s.threads
   )
@@ -93,17 +95,19 @@ const StatePane = () => {
       <h3 className={styles.sectionH}>raw state</h3>
       <RawJson value={state} />
 
-      <div className={styles.stateActions}>
-        <button
-          type="button"
-          className={`${styles.tbtn} ${styles.danger}`}
-          disabled={busy || !selectedId}
-          onClick={() => dispatch(clearThread(selectedId))}
-        >
-          <Trash2 size={14} strokeWidth={1.7} />
-          Clear state
-        </button>
-      </div>
+      {can("threads:delete") && (
+        <div className={styles.stateActions}>
+          <button
+            type="button"
+            className={`${styles.tbtn} ${styles.danger}`}
+            disabled={busy || !selectedId}
+            onClick={() => dispatch(clearThread(selectedId))}
+          >
+            <Trash2 size={14} strokeWidth={1.7} />
+            Clear state
+          </button>
+        </div>
+      )}
     </div>
   )
 }

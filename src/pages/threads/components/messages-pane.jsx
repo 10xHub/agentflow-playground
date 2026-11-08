@@ -4,6 +4,7 @@ import { useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
 
 import { Trace } from "@/components/ui/trace"
+import { useCan } from "@/lib/connection/use-can"
 import chatStyles from "@/pages/chat/chat.module.css"
 import { ReasoningStep, ToolStep } from "@/pages/chat/components/agent-steps"
 import RichText from "@/pages/chat/components/rich-text"
@@ -82,6 +83,7 @@ const timeOf = (m) => {
  *
  */
 const MessageRow = ({ threadId = null, msg, onDelete }) => {
+  const can = useCan()
   const roleClass = styles[msg.role] || ""
   const [armed, setArmed] = useState(false)
   const onClick = () => {
@@ -100,19 +102,21 @@ const MessageRow = ({ threadId = null, msg, onDelete }) => {
           <b>{msg.message_id?.slice(0, 8) || "—"}</b>
         </span>
         <span className={styles.mTime}>{timeOf(msg)}</span>
-        <button
-          type="button"
-          className={styles.mDel}
-          title={armed ? "Click again to delete" : "Delete message"}
-          onClick={onClick}
-          onBlur={() => setArmed(false)}
-        >
-          {armed ? (
-            <AlertTriangle size={14} strokeWidth={1.7} />
-          ) : (
-            <Trash2 size={14} strokeWidth={1.7} />
-          )}
-        </button>
+        {can("threads:delete") && (
+          <button
+            type="button"
+            className={styles.mDel}
+            title={armed ? "Click again to delete" : "Delete message"}
+            onClick={onClick}
+            onBlur={() => setArmed(false)}
+          >
+            {armed ? (
+              <AlertTriangle size={14} strokeWidth={1.7} />
+            ) : (
+              <Trash2 size={14} strokeWidth={1.7} />
+            )}
+          </button>
+        )}
       </div>
       <div className={styles.mrowBody}>
         <MessageBody msg={msg} />

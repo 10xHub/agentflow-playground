@@ -10,6 +10,7 @@ import {
   InputGroupTextarea,
 } from "@/components/ui/input-group"
 import { useConnection } from "@/lib/connection/connection-context"
+import { useCan } from "@/lib/connection/use-can"
 import { summariseRunOptions } from "@/lib/run-options"
 import { track } from "@/lib/usage-events"
 import { cn } from "@/lib/utils"
@@ -68,6 +69,7 @@ const Composer = () => {
     (s) => Boolean(s.chat.pendingInterrupt) && s.chat.mode === "stream"
   )
   const { isConnected, isDemo } = useConnection()
+  const can = useCan()
   const [text, setText] = useState("")
   const [popup, setPopup] = useState(null) // null | "initialState" | "config"
 
@@ -146,7 +148,7 @@ const Composer = () => {
               generating={generating}
               summary={summary}
             />
-            {generating ? (
+            {generating && can("graph:stop") ? (
               <InputGroupButton
                 size="icon-sm"
                 variant="default"

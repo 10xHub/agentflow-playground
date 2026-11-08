@@ -1,7 +1,6 @@
 import { TenxGraphClient } from "10xgraph-client"
 import PropTypes from "prop-types"
 import {
-  createContext,
   useCallback,
   useContext,
   useEffect,
@@ -28,13 +27,13 @@ import { demoSwitched } from "@/store/app-actions"
 import { abortActiveRun } from "@/store/chat-thunks"
 
 import { deriveCapabilities } from "./capabilities"
+import { ConnectionContext } from "./connection-store-context"
 import {
   listConnections,
   removeConnection,
   upsertConnection,
 } from "./connections-store"
-
-const ConnectionContext = createContext(null)
+import { can as canDo, fetchMe } from "./me"
 
 /**
  *
@@ -104,7 +103,7 @@ const buildClient = (conn) => {
     const headers = buildHeaders(conn)
     if (headers) config.headers = headers
   }
-  return { client: new TenxGraphClient(config), baseUrl }
+  return { client: new TenxGraphClient(config), baseUrl, config }
 }
 
 const isRejected = (error, message) =>
@@ -204,6 +203,7 @@ export const ConnectionProvider = ({ children }) => {
   const [capabilities, setCapabilities] = useState(null)
   const [info, setInfo] = useState(null)
   const [probe, setProbe] = useState(null) // {latencyMs, nodes, edges}
+  const [me, setMe] = useState(null) // /v1/me result; null = auth off or unknown
   const [saved, setSaved] = useState(() => listConnections())
   const clientReference = useRef(null)
   const dispatch = useDispatch()
@@ -244,6 +244,7 @@ export const ConnectionProvider = ({ children }) => {
       const { graphInfo, nodes, edges } = probeCounts(graph)
 
       clientReference.current = client
+      setMe(null)
       setActive({
         id: "demo",
         name: fixture.title,
@@ -289,14 +290,20 @@ export const ConnectionProvider = ({ children }) => {
 
   // `silent` (used by the on-load re-verify): on failure fall back to idle instead
   // of a red error state, since the user didn't just click Connect.
+  const loadMe = useCallback(async (config, client) => {
+    const result = await fetchMe(config)
+    if (clientReference.current === client) setMe(result)
+  }, [])
+
   const connectBackend = useCallback(
     async (conn, { remember = true, silent = false } = {}) => {
       setStatus("connecting")
       setError(null)
       let baseUrl
       let client
+      let config
       try {
-        ;({ client, baseUrl } = buildClient(conn))
+        ;({ client, baseUrl, config } = buildClient(conn))
       } catch (e) {
         setStatus(failStatus(silent))
         if (!silent) setError(e.message)
@@ -316,6 +323,9 @@ export const ConnectionProvider = ({ children }) => {
         setCapabilities(deriveCapabilities(graphInfo))
         setProbe({ latencyMs, nodes, edges })
         setStatus("connected")
+        setMe(null)
+        // Once per connection; a newer connect or a disconnect drops a late answer.
+        loadMe(config, client)
 
         // Persist the active connection for SDK reuse across the app.
         saveCurrentSettings(settingsFrom(normalized, baseUrl))
@@ -329,10 +339,11 @@ export const ConnectionProvider = ({ children }) => {
         setCapabilities(null)
         setInfo(null)
         setProbe(null)
+        setMe(null)
         return { ok: false, error: e }
       }
     },
-    []
+    [loadMe]
   )
 
   const connect = useCallback(
@@ -361,9 +372,12 @@ export const ConnectionProvider = ({ children }) => {
     setCapabilities(null)
     setInfo(null)
     setProbe(null)
+    setMe(null)
   }, [leaveDemo])
 
   const removeSaved = useCallback((id) => setSaved(removeConnection(id)), [])
+
+  const can = useCallback((permission) => canDo(me, permission), [me])
 
   const getClient = useCallback(() => clientReference.current, [])
 
@@ -375,6 +389,8 @@ export const ConnectionProvider = ({ children }) => {
       capabilities,
       info,
       probe,
+      me,
+      can,
       saved,
       connect,
       connectDemo,
@@ -392,6 +408,8 @@ export const ConnectionProvider = ({ children }) => {
       capabilities,
       info,
       probe,
+      me,
+      can,
       saved,
       connect,
       connectDemo,
