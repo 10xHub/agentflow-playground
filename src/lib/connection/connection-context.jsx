@@ -124,7 +124,7 @@ const isUnreachable = (error, message) =>
 const humanizeError = (error, baseUrl) => {
   const message = error?.message || String(error)
   if (isRejected(error, message)) {
-    return "Rejected (401/403) — this backend needs a valid token."
+    return "Rejected (401/403) — this backend needs a valid token. If it uses cookie auth, switch to Custom header and have your BaseAuth accept an HMAC/API-key header."
   }
   if (isTimedOut(error, message)) return `Timed out reaching ${baseUrl}.`
   if (isUnreachable(error, message)) {

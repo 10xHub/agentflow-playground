@@ -30,7 +30,7 @@ const AUTH_MODES = [
 const AUTH_NOTES = {
   none: "Local dev servers run with auth off, so leave this on “None”.",
   header:
-    "Sends these as custom request headers on every call. Use them for a backend guarded by a custom BaseAuth (e.g. an X-API-Key check), or to pass extra data your backend reads off the request.",
+    "Sends these as custom request headers on every call. Use them for a backend guarded by a custom BaseAuth (e.g. an X-API-Key check), or to pass extra data your backend reads off the request. The playground cannot use cookie-based auth. If your backend uses cookies, add an HMAC or API-key check to your custom BaseAuth that reads a header such as X-API-Key, and send that header here to try the playground.",
   basic:
     "Sends an Authorization: Basic header. Your custom BaseAuth backend must decode it server-side.",
   bearer:
