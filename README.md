@@ -66,6 +66,8 @@ These packages were previously published as `10xscale-agentflow`, `10xscale-agen
 - **GitHub:** https://github.com/10xGraph
 - **Docs:** https://10xgraph.com/docs
 
+If this saved you time, star [10xGraph on GitHub](https://github.com/10xGraph/10xGraph). It helps other developers find it.
+
 ## Develop locally
 
 Requires Node.js 20 or newer (22 recommended) and a running 10xGraph API (`10xgraph dev`).
