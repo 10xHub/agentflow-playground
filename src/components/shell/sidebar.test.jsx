@@ -65,6 +65,27 @@ describe("Sidebar threads badge", () => {
   })
 })
 
+describe("Sidebar GitHub link", () => {
+  const linkName = "Star 10xGraph on GitHub (opens in a new tab)"
+
+  it("renders an external link that opens in a new tab", () => {
+    renderSidebar()
+    const link = screen.getByRole("link", { name: linkName })
+    expect(link.getAttribute("href")).toBe(
+      "https://github.com/10xGraph/10xGraph"
+    )
+    expect(link.getAttribute("target")).toBe("_blank")
+    expect(link.getAttribute("rel")).toBe("noopener noreferrer")
+    expect(link.getAttribute("title")).toBeNull()
+  })
+
+  it("stays present in collapsed mode with a title", () => {
+    renderSidebar({ collapsed: true })
+    const link = screen.getByRole("link", { name: linkName })
+    expect(link.getAttribute("title")).toBe("Star on GitHub")
+  })
+})
+
 describe("Sidebar collapse toggle", () => {
   it("is labelled Collapse sidebar when expanded and calls the handler", () => {
     const onToggleCollapse = vi.fn()

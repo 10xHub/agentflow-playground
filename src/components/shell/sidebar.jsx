@@ -1,4 +1,4 @@
-import { PanelLeftClose, PanelLeftOpen, Settings } from "lucide-react"
+import { Github, PanelLeftClose, PanelLeftOpen, Settings } from "lucide-react"
 import PropTypes from "prop-types"
 import { useEffect } from "react"
 import { useDispatch, useSelector } from "react-redux"
@@ -12,7 +12,7 @@ import styles from "./Sidebar.module.css"
 
 /**
  * Grouped left rail (Interact / Inspect / Build) with a collapse toggle in the
- * top header and Settings in the footer. Collapsed mode is icon-only with
+ * top header and, in the footer, a Star on GitHub external link plus Settings. Collapsed mode is icon-only with
  * tooltips; state is owned by AppShell.
  */
 const Sidebar = ({ collapsed, onToggleCollapse }) => {
@@ -77,6 +77,17 @@ const Sidebar = ({ collapsed, onToggleCollapse }) => {
       </div>
 
       <div className={styles.foot}>
+        <a
+          href="https://github.com/10xGraph/10xGraph"
+          target="_blank"
+          rel="noopener noreferrer"
+          title={collapsed ? "Star on GitHub" : undefined}
+          aria-label="Star 10xGraph on GitHub (opens in a new tab)"
+          className={styles.item}
+        >
+          <Github size={16} className={styles.ic} />
+          <span className={styles.label}>Star on GitHub</span>
+        </a>
         <NavLink
           to="/settings"
           title={collapsed ? "Settings" : undefined}
