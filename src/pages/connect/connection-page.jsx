@@ -1,4 +1,17 @@
-import { AlertTriangle, Check, Eye, EyeOff, Plus, Trash2 } from "lucide-react"
+import {
+  AlertTriangle,
+  ArrowUpRight,
+  BookOpen,
+  Check,
+  Eye,
+  EyeOff,
+  Github,
+  Moon,
+  Play,
+  Plus,
+  Sun,
+  Trash2,
+} from "lucide-react"
 import PropTypes from "prop-types"
 import { useEffect, useRef, useState } from "react"
 import { Link, useNavigate, useSearchParams } from "react-router-dom"
@@ -85,27 +98,62 @@ const buildConn = (source, profile) => ({
 /**
  *
  */
-const TopBar = ({ theme, onToggle }) => (
-  <div className={styles.topbar}>
-    <Brand size={22} />
-    <div className={styles.topActions}>
-      <Link className={styles.ghost} to="/demo">
-        Demo
-      </Link>
-      <button className={styles.ghost} onClick={onToggle} type="button">
-        {theme === "light" ? "Dark" : "Light"}
-      </button>
-      <a
-        className={styles.ghost}
-        href="https://10xgraph.com/docs"
-        target="_blank"
-        rel="noreferrer"
-      >
-        Docs
-      </a>
+const TopBar = ({ theme, onToggle }) => {
+  const next = theme === "light" ? "dark" : "light"
+  const themeLabel = `Switch to ${next} theme`
+  return (
+    <div className={styles.topbar}>
+      <Brand size={22} />
+      <div className={styles.topActions}>
+        <Link
+          className={styles.navLink}
+          to="/demo"
+          aria-label="Try demo"
+          title="Try demo"
+        >
+          <Play size={14} aria-hidden="true" />
+          <span className={styles.navText}>Try demo</span>
+        </Link>
+        <a
+          className={styles.navLink}
+          href="https://10xgraph.com/docs"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Docs (opens in a new tab)"
+          title="Docs"
+        >
+          <BookOpen size={14} aria-hidden="true" />
+          <span className={styles.navText}>Docs</span>
+          <ArrowUpRight size={12} aria-hidden="true" />
+        </a>
+        <a
+          className={styles.starPill}
+          href="https://github.com/10xGraph/10xGraph"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Star 10xGraph on GitHub (opens in a new tab)"
+        >
+          <Github size={14} aria-hidden="true" />
+          <span className={styles.starText}>Star</span>
+        </a>
+        <span className={styles.divider} aria-hidden="true" />
+        <button
+          className={styles.iconBtn}
+          onClick={onToggle}
+          type="button"
+          aria-label={themeLabel}
+          title={themeLabel}
+        >
+          {theme === "light" ? (
+            <Moon size={16} aria-hidden="true" />
+          ) : (
+            <Sun size={16} aria-hidden="true" />
+          )}
+        </button>
+      </div>
     </div>
-  </div>
-)
+  )
+}
 
 TopBar.propTypes = {
   theme: PropTypes.string.isRequired,

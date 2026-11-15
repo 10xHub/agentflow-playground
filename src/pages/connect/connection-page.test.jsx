@@ -97,10 +97,37 @@ describe("ConnectionPage", () => {
   it("always links to the demo from the top bar", () => {
     conn.saved = [profile("a"), profile("b"), profile("c")]
     renderPage()
-    expect(screen.getByRole("link", { name: "Demo" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Try demo" })).toHaveAttribute(
       "href",
       "/demo"
     )
+  })
+
+  it("links to the docs and the GitHub repo in a new tab", () => {
+    renderPage()
+    const docs = screen.getByRole("link", { name: /^Docs/ })
+    expect(docs).toHaveAttribute("href", "https://10xgraph.com/docs")
+    const star = screen.getByRole("link", {
+      name: "Star 10xGraph on GitHub (opens in a new tab)",
+    })
+    expect(star).toHaveAttribute("href", "https://github.com/10xGraph/10xGraph")
+    for (const a of [docs, star]) {
+      expect(a).toHaveAttribute("target", "_blank")
+      expect(a).toHaveAttribute("rel", "noopener noreferrer")
+    }
+  })
+
+  it("flips the theme toggle label and calls the toggle", () => {
+    renderPage()
+    const toggle = screen.getByRole("button", {
+      name: /^Switch to (dark|light) theme$/,
+    })
+    const before = toggle.getAttribute("aria-label")
+    fireEvent.click(toggle)
+    const after = screen
+      .getByRole("button", { name: /^Switch to (dark|light) theme$/ })
+      .getAttribute("aria-label")
+    expect(after).not.toBe(before)
   })
 
   describe("two-state connect button", () => {

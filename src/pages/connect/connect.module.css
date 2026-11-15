@@ -28,18 +28,17 @@
   align-items: center;
   gap: 6px;
 }
-/* Shared by the theme <button> and the Docs <a>; inline-flex so the link
-   takes the same height and baseline as the button. */
-.ghost {
+/* Top bar items: quiet text links, a Star pill, and an icon-only theme toggle. */
+.navLink,
+.starPill,
+.iconBtn {
   display: inline-flex;
   align-items: center;
+  gap: 6px;
+  min-height: 36px;
   text-decoration: none;
   background: transparent;
-  border: 1px solid transparent;
   color: var(--text-secondary);
-  height: 30px;
-  padding: 0 10px;
-  border-radius: 7px;
   font-family: var(--sans);
   font-size: 12px;
   cursor: pointer;
@@ -47,9 +46,74 @@
     color 0.15s,
     border-color 0.15s;
 }
-.ghost:hover {
+.navLink {
+  padding: 0 10px;
+  border-radius: 7px;
+}
+.navLink:hover,
+.iconBtn:hover {
+  color: var(--text);
+}
+.starPill {
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.starPill:hover {
   color: var(--text);
   border-color: var(--border-strong);
+}
+.divider {
+  width: 1px;
+  height: 18px;
+  margin: 0 6px;
+  background: var(--border);
+}
+.iconBtn {
+  justify-content: center;
+  width: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+}
+.navLink:focus-visible,
+.starPill:focus-visible,
+.iconBtn:focus-visible {
+  outline: 2px solid var(--text-secondary);
+  outline-offset: 2px;
+}
+@media (max-width: 560px) {
+  .topbar {
+    padding: 12px 16px;
+  }
+  .topActions {
+    gap: 2px;
+  }
+  .navText {
+    display: none;
+  }
+  .navLink {
+    justify-content: center;
+    min-width: 36px;
+    padding: 0 8px;
+  }
+  .divider {
+    margin: 0 2px;
+  }
+}
+/* Brand + five controls no longer fit beside each other below ~440px. */
+@media (max-width: 440px) {
+  .starText {
+    display: none;
+  }
+  .starPill {
+    justify-content: center;
+    width: 36px;
+    padding: 0;
+  }
 }
 .eyebrow {
   font-size: 11px;
