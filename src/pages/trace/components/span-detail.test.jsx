@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react"
-import { describe, expect, it, vi } from "vitest"
+import { describe, expect, it } from "vitest"
 
 import SpanDetail from "./span-detail"
 
@@ -26,7 +26,7 @@ describe("SpanDetail", () => {
     expect(screen.getByText(/prompt is not recorded/i)).toBeTruthy()
     fireEvent.click(screen.getByRole("tab", { name: "Outputs" }))
     expect(screen.getByText("Hello there", { selector: "div" })).toBeTruthy()
-    expect(screen.getByLabelText("Copy JSON")).toBeTruthy()
+    expect(screen.getByRole("tree", { name: "Span JSON" })).toBeTruthy()
   })
 
   it("Metadata tab lists model, tokens and reasoning tokens", () => {
@@ -49,28 +49,6 @@ describe("SpanDetail", () => {
       />
     )
     expect(screen.getByRole("alert").textContent).toContain("boom")
-  })
-
-  it("copies the JSON", async () => {
-    const writeText = vi.fn().mockResolvedValue()
-    Object.defineProperty(navigator, "clipboard", {
-      value: { writeText },
-      configurable: true,
-    })
-    render(
-      <SpanDetail
-        span={{
-          id: "t",
-          kind: "tool",
-          name: "tool: x",
-          inputs: { args: { a: 1 } },
-        }}
-      />
-    )
-    fireEvent.click(screen.getByLabelText("Copy JSON"))
-    expect(writeText).toHaveBeenCalledWith(
-      JSON.stringify({ args: { a: 1 } }, null, 2)
-    )
   })
 
   it("renders an old-shape span with no inputs, outputs or status", () => {

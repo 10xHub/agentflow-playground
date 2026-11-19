@@ -1207,3 +1207,19 @@
 .threadMore:hover {
   background: var(--surface-2);
 }
+
+/* View/Edit toggle under a structured state field. */
+.stModeBtn {
+  margin-top: 6px;
+  padding: 2px 8px;
+  font-size: 10.5px;
+  color: var(--text-secondary);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  cursor: pointer;
+}
+.stModeBtn:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+}

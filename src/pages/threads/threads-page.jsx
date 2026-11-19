@@ -10,6 +10,7 @@ import { useEffect, useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import { useNavigate } from "react-router-dom"
 
+import { JsonViewer } from "@/components/arc/json-viewer/json-viewer"
 import ErrorNote from "@/components/shell/error-note"
 import { ago } from "@/lib/format-ago"
 import { track } from "@/lib/usage-events"
@@ -17,7 +18,6 @@ import { openServerThread } from "@/store/chat-history"
 import { loadThread, loadThreadList, removeThread } from "@/store/threads-slice"
 
 import MessagesPane from "./components/messages-pane"
-import RawJson from "./components/raw-json"
 import StatePane from "./components/state-pane"
 import ThreadList from "./components/thread-list"
 import styles from "./threads.module.css"
@@ -155,12 +155,15 @@ const TabBody = ({ tab, thread = null, detail = null }) => (
     {tab === "messages" && <MessagesPane />}
     {tab === "state" && <StatePane />}
     {tab === "raw" && (
-      <RawJson
-        value={{
+      <JsonViewer
+        data={{
           thread,
           state: detail?.state,
           messages: detail?.messages,
         }}
+        rootName="thread"
+        maxHeight={520}
+        label="Raw thread"
       />
     )}
   </div>

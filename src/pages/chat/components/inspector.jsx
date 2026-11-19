@@ -10,6 +10,7 @@ import PropTypes from "prop-types"
 import { useEffect, useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
 
+import { JsonViewer } from "@/components/arc/json-viewer/json-viewer"
 import { loadGraphInfo } from "@/store/chat-thunks"
 import {
   FIXED_FIELDS,
@@ -119,9 +120,12 @@ const GraphPane = () => {
           })}
         </div>
       ) : (
-        <pre className={styles.curlbox}>
-          {JSON.stringify(graphInfo, null, 2)}
-        </pre>
+        <JsonViewer
+          data={graphInfo}
+          rootName="graph"
+          maxHeight={320}
+          label="Graph info"
+        />
       )}
     </>
   )
@@ -294,6 +298,70 @@ const fieldType = (info, structured) => {
   return declared || (structured ? "json" : "string")
 }
 
+// Structured values show as a JSON tree; "Edit" swaps in the textarea. "View"
+// returns to the tree and is hidden while the text is not valid JSON.
+/**
+ *
+ */
+const FieldInput = ({
+  fieldKey,
+  value = undefined,
+  raw,
+  structured,
+  invalid,
+  onChange,
+}) => {
+  const [editing, setEditing] = useState(false)
+  if (structured && !editing) {
+    return (
+      <>
+        <JsonViewer
+          data={value}
+          rootName={fieldKey}
+          maxHeight={240}
+          label={fieldKey}
+        />
+        <button
+          type="button"
+          className={styles.stModeBtn}
+          onClick={() => setEditing(true)}
+        >
+          Edit
+        </button>
+      </>
+    )
+  }
+  return (
+    <>
+      <textarea
+        className={`${styles.stArea} ${invalid ? styles.stInvalid : ""}`}
+        value={raw}
+        rows={structured ? 4 : 2}
+        onChange={(e) => onChange(e.target.value)}
+        spellCheck={false}
+      />
+      {structured && !invalid && (
+        <button
+          type="button"
+          className={styles.stModeBtn}
+          onClick={() => setEditing(false)}
+        >
+          View
+        </button>
+      )}
+    </>
+  )
+}
+
+FieldInput.propTypes = {
+  fieldKey: PropTypes.string.isRequired,
+  value: PropTypes.any,
+  raw: PropTypes.string.isRequired,
+  structured: PropTypes.bool.isRequired,
+  invalid: PropTypes.bool.isRequired,
+  onChange: PropTypes.func.isRequired,
+}
+
 // A dynamic field: JSON is parsed back to a value; anything else stays a string.
 // The parent remounts this (via a key that includes the sync nonce) whenever a
 // fresh load replaces the state, so `raw` re-seeds from `value` without an effect.
@@ -336,12 +404,13 @@ const DynamicField = ({
           <span className={styles.stFieldDesc}>{info.description}</span>
         )}
       </div>
-      <textarea
-        className={`${styles.stArea} ${invalid ? styles.stInvalid : ""}`}
-        value={raw}
-        rows={structured ? 4 : 2}
-        onChange={(e) => handle(e.target.value)}
-        spellCheck={false}
+      <FieldInput
+        fieldKey={fieldKey}
+        value={value}
+        raw={raw}
+        structured={structured}
+        invalid={invalid}
+        onChange={handle}
       />
       {invalid && (
         <div className={styles.stHint}>Invalid JSON — fix to apply</div>

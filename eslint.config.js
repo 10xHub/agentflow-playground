@@ -16,6 +16,8 @@ export default [
       // code-block highlighter), kept as published.
       "src/lib/highlighter.jsx",
       "src/hooks/use-highlighted-code.js",
+      // Vendored from the uiarc registry (json-viewer), kept as published.
+      "src/components/arc/**",
     ],
   },
   ...config,

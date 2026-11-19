@@ -552,6 +552,7 @@
   grid-template-columns: 1fr 1fr;
   gap: 12px;
   margin-bottom: 18px;
+  align-items: start;
 }
 .scard {
   border: 1px solid var(--border);
@@ -559,13 +560,33 @@
   background: var(--surface);
   padding: 14px;
 }
+.scard summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  list-style: none;
+  color: var(--text-muted);
+}
+.scard summary::-webkit-details-marker {
+  display: none;
+}
+.scard[open] summary {
+  margin-bottom: 12px;
+}
+.scardChevron {
+  transition: transform 0.15s ease;
+}
+.scard[open] .scardChevron {
+  transform: rotate(90deg);
+}
 .scard h3 {
   font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-muted);
   font-weight: 500;
-  margin: 0 0 12px;
+  margin: 0;
 }
 .kv {
   display: flex;
@@ -679,43 +700,7 @@
   line-height: 1.6;
   color: var(--text-muted);
 }
-.rawWrap {
-  position: relative;
-}
-.copyBtn {
-  position: absolute;
-  top: 8px;
-  right: 22px;
-  z-index: 1;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 6px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 5px;
-  color: var(--text-secondary);
-  font-size: 10.5px;
-  cursor: pointer;
-}
-.copyBtn:hover {
-  color: var(--text);
-  border-color: var(--border-strong, var(--border));
-}
-.rawState {
-  border: 1px solid var(--border);
-  border-radius: 9px;
-  background: var(--surface-2);
-  padding: 12px 14px;
-  margin: 0;
-  font-family: var(--mono);
-  font-size: 11px;
-  line-height: 1.7;
-  color: var(--text-secondary);
-  white-space: pre;
-  overflow: auto;
-  max-height: 420px;
-}
+
 .dim {
   opacity: 0.5;
   pointer-events: none;

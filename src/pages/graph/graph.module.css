@@ -491,17 +491,3 @@ html[data-theme="light"] .main {
   color: var(--text);
   border-color: var(--border-strong);
 }
-.schema {
-  border: 1px solid var(--border);
-  border-radius: 9px;
-  background: var(--surface);
-  padding: 12px 14px;
-  font-family: var(--mono);
-  font-size: 11px;
-  line-height: 1.6;
-  color: var(--text-secondary);
-  white-space: pre;
-  overflow: auto;
-  max-height: 320px;
-  margin: 0;
-}

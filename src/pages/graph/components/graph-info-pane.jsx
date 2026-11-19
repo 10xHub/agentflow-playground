@@ -3,6 +3,7 @@ import PropTypes from "prop-types"
 import { useState } from "react"
 import { useSelector } from "react-redux"
 
+import { JsonViewer } from "@/components/arc/json-viewer/json-viewer"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 import styles from "../graph.module.css"
@@ -286,9 +287,12 @@ const GraphInfoPane = () => {
               {showSchema ? "Hide" : "Show"} state schema
             </button>
             {showSchema && (
-              <pre className={styles.schema}>
-                {JSON.stringify(stateSchema, null, 2)}
-              </pre>
+              <JsonViewer
+                data={stateSchema}
+                rootName="schema"
+                maxHeight={320}
+                label="State schema"
+              />
             )}
           </div>
         )}

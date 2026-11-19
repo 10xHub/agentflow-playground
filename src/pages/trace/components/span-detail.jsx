@@ -2,10 +2,11 @@ import { AlertTriangle } from "lucide-react"
 import PropTypes from "prop-types"
 import { useState } from "react"
 
+import { JsonViewer } from "@/components/arc/json-viewer/json-viewer"
+
 import styles from "../trace-detail.module.css"
 import { bubblesFor, hasValue, metaRows } from "../values"
 
-import JsonView from "./json-view"
 import MessageBubbles from "./message-bubbles"
 
 const TABS = [
@@ -35,7 +36,12 @@ const Payload = ({ span, side }) => {
     <>
       {bubbles && <MessageBubbles messages={bubbles} />}
       <div className={styles.dSub}>JSON</div>
-      <JsonView value={value} />
+      <JsonViewer
+        data={value}
+        rootName="value"
+        maxHeight={320}
+        label="Span JSON"
+      />
     </>
   )
 }

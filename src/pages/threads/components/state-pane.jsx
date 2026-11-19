@@ -1,19 +1,21 @@
-import { Trash2 } from "lucide-react"
+import { ChevronRight, Trash2 } from "lucide-react"
 import PropTypes from "prop-types"
 import { useDispatch, useSelector } from "react-redux"
 
+import { JsonViewer } from "@/components/arc/json-viewer/json-viewer"
 import { clearThread } from "@/store/threads-slice"
 
 import styles from "../threads.module.css"
-
-import RawJson from "./raw-json"
 
 /**
  *
  */
 const KvCard = ({ title, rows }) => (
-  <div className={styles.scard}>
-    <h3>{title}</h3>
+  <details className={styles.scard} open>
+    <summary>
+      <ChevronRight size={12} className={styles.scardChevron} />
+      <h3>{title}</h3>
+    </summary>
     {rows.length === 0 && <div className={styles.kv}>—</div>}
     {rows.map((r) => (
       <div className={styles.kv} key={r.k}>
@@ -23,7 +25,7 @@ const KvCard = ({ title, rows }) => (
         </span>
       </div>
     ))}
-  </div>
+  </details>
 )
 
 KvCard.propTypes = {
@@ -91,7 +93,12 @@ const StatePane = () => {
       </div>
 
       <h3 className={styles.sectionH}>raw state</h3>
-      <RawJson value={state} />
+      <JsonViewer
+        data={state}
+        rootName="state"
+        maxHeight={320}
+        label="Raw state"
+      />
 
       <div className={styles.stateActions}>
         <button
